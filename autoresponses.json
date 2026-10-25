@@ -1,0 +1,21 @@
+{
+    "1529977373158674704": [],
+    "1549176864432717964": [
+        {
+            "keyword": "aide",
+            "response": "Si tu a besoin d’aide n’hésite pas à aller dans le salon ticket !"
+        },
+        {
+            "keyword": "L’aide",
+            "response": "Si tu a besoin d’aide n’hésite pas à aller dans le salon ticket !"
+        },
+        {
+            "keyword": "M’aide",
+            "response": "Si tu a besoin d’aide n’hésite pas à aller dans le salon ticket !"
+        },
+        {
+            "keyword": "D’aide",
+            "response": "Si tu a besoin d’aide n’hésite pas à aller dans le salon ticket !"
+        }
+    ]
+}

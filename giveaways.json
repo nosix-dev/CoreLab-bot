@@ -1,0 +1,36 @@
+{
+    "1529977373158674704": [
+        {
+            "id": "1790024843314",
+            "prize": "Volant G29",
+            "winnersCount": 3,
+            "roleId": null,
+            "winMessage": "Félicitation tu a gagner le concour !",
+            "channelId": "1529977383078203457",
+            "messageId": "1551701403066564700",
+            "hostId": "1252736157285093397",
+            "participants": [
+                "1252736157285093397"
+            ],
+            "endsAt": 1790026644155,
+            "active": false
+        }
+    ],
+    "1549176864432717964": [
+        {
+            "id": "1790640980411",
+            "prize": "1 an Nitro",
+            "winnersCount": 3,
+            "roleId": null,
+            "winMessage": "Félicitation a vous 3",
+            "channelId": "1549177750500417536",
+            "messageId": "1554285668748759160",
+            "hostId": "1252736157285093397",
+            "participants": [
+                "1252736157285093397"
+            ],
+            "endsAt": 1790641040966,
+            "active": false
+        }
+    ]
+}

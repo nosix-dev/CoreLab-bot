@@ -1,0 +1,36 @@
+{
+    "events": [],
+    "1549176864432717964": [
+        {
+            "name": "Test",
+            "date": "11/10/2026"
+        }
+    ],
+    "1559930523747618866": [],
+    "1529977373158674704": [
+        {
+            "id": "1792682707961",
+            "name": "Convoi",
+            "description": "# 📢 Kässbohrer France Logistocs vous invite à participer à son prochain convoi sur HaulMP !\n\n## 🌍 ITINÉRAIRE\n🇩🇪 Départ : Rostock, Allemagne\n🇮🇹 Arrivée : Villa San Giovanni, Italie\n📏 Distance : 2 286 km\n\n📅 Date : Samedi 24 octobre 2026\n🕗 Rassemblement : 20h00\n🕘 Départ : 21h00\n🖥️ Serveur : HaulMP\n\n## 📋 RÈGLEMENT DU CONVOI\n🚦 Respect du code de la route et des limitations de vitesse.\n🤝 Respect obligatoire envers tous les participants.\n🚫 Dépassements interdits sans autorisation des organisateurs.\n⛔ Les doubles remorques sont strictement interdites.\n⚠️ Toute conduite dangereuse ou volontairement gênante est interdite.\n📢 Les consignes des organisateurs doivent être respectées.\n\n## 🔗 Inscription et informations :\nhttps://vtc.haulmp.com/jbc-crome#convoys\n\n🔥 Préparez vos camions et rejoignez-nous pour un long trajet dans une ambiance conviviale et professionnelle !\n\nKässbohrer France Logistics — Prenez la route avec nous ! 🚛💨",
+            "startAt": 1792868400000,
+            "endAt": 1792875600000,
+            "type": "convoi",
+            "voiceId": "1540778588591227011",
+            "location": null,
+            "roleId": "1529977373188165834",
+            "maxPlaces": 25,
+            "channelId": "1529977382751178866",
+            "messageId": "1562849295219167383",
+            "discordEventId": "1562849291654004936",
+            "hostId": "1252736157285093397",
+            "hostTag": "unknown.php",
+            "yes": [],
+            "maybe": [],
+            "no": [],
+            "status": "ended",
+            "r24": true,
+            "r1": true,
+            "endedAt": 1792875619710
+        }
+    ]
+}

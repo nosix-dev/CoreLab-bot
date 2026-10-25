@@ -1,0 +1,115 @@
+{
+    "1529977373158674704": [
+        {
+            "question": "Qui joue ce soir ?",
+            "active": true
+        }
+    ],
+    "1492875979142598716": {
+        "mu5rwc6jaaygi0": {
+            "pollId": "mu5rwc6jaaygi0",
+            "question": "Qui serra là au convoi de la WTBL",
+            "titre": "Présence au convoi !",
+            "couleur": 0,
+            "imageUrls": [
+                "https://cdn.discordapp.com/ephemeral-attachments/1528132570921963570/1550189042467999905/26328_1788187185.png?ex=6aad6d8c&is=6aac1c0c&hm=c0b7c1f3b37de142ee14f37f510dce5e951c6bc97e158de96e067a1e8d3b21ce&"
+            ],
+            "options": [
+                {
+                    "label": "Moi",
+                    "voters": []
+                },
+                {
+                    "label": "Pas Moi",
+                    "voters": []
+                }
+            ],
+            "auteurId": "1252736157285093397",
+            "ferme": false,
+            "finTimestamp": null
+        },
+        "mvl51ygp3hzwpz": {
+            "pollId": "mvl51ygp3hzwpz",
+            "question": "La quelle peinture de remorque vous préféré ?",
+            "titre": "NOUVEAU VOTE 🗳️",
+            "couleur": null,
+            "imageUrls": [
+                "https://cdn.discordapp.com/ephemeral-attachments/1528132570921963570/1563216010549395486/2063FE1.JPG?ex=6adcd1dc&is=6adb805c&hm=778ba7f2143e5a28b85038faea6509d3d256215f16037340baee7effeeb84399&",
+                "https://cdn.discordapp.com/ephemeral-attachments/1528132570921963570/1563216012260937829/2069EA1.JPG?ex=6adcd1dc&is=6adb805c&hm=f6473f83b06fcba5e940d647f39a38bc07bc5d900aaca7f5e456e43049c447db&"
+            ],
+            "options": [
+                {
+                    "label": "Photo 1",
+                    "voters": [
+                        "1077203544286953532",
+                        "717470058443440211",
+                        "1252736157285093397",
+                        "530854490585169920",
+                        "1409499394444623984",
+                        "458246939893563393",
+                        "1030854605325750322",
+                        "693935554076868690"
+                    ]
+                },
+                {
+                    "label": "Photo 2",
+                    "voters": [
+                        "1347701652572078100",
+                        "945729087836676157",
+                        "961177292334305290",
+                        "1357005552072393088"
+                    ]
+                }
+            ],
+            "auteurId": "1252736157285093397",
+            "ferme": false,
+            "finTimestamp": null
+        }
+    },
+    "1549176864432717964": {
+        "muh5u9qn4x62bl": {
+            "pollId": "muh5u9qn4x62bl",
+            "question": "Qui serra la pour le convoi de demain",
+            "titre": "Convoi du 26/09/2026",
+            "couleur": 0,
+            "imageUrls": [
+                "https://cdn.discordapp.com/ephemeral-attachments/1528132570921963570/1553077010727702639/26464_1790337149.png?ex=6ab7ef2e&is=6ab69dae&hm=61b06a22b87c232733b66413abcdd07800e2c165dba0ae9265e5141442366bdc&"
+            ],
+            "options": [
+                {
+                    "label": "Moi",
+                    "voters": []
+                },
+                {
+                    "label": "Pas Moi",
+                    "voters": []
+                }
+            ],
+            "auteurId": "1252736157285093397",
+            "ferme": false,
+            "finTimestamp": null
+        },
+        "mvledymnrxx4d1": {
+            "pollId": "mvledymnrxx4d1",
+            "question": "test",
+            "titre": null,
+            "couleur": null,
+            "imageUrls": [],
+            "options": [
+                {
+                    "label": "1",
+                    "voters": [
+                        "1252736157285093397"
+                    ]
+                },
+                {
+                    "label": "2",
+                    "voters": []
+                }
+            ],
+            "auteurId": "1252736157285093397",
+            "ferme": false,
+            "finTimestamp": null
+        }
+    }
+}

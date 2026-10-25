@@ -1,0 +1,160 @@
+{
+    "1106621828610392114": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1450986060145492011": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1462488578163740685": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1480579149922828368": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1491853377401913394": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1492301662243520696": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1492875979142598716": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1493404002652651631": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1495554736374419486": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1504444554621751386": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1517659616538787851": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1518194519223304193": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1523341494763913338": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 2
+    },
+    "1526842375748718592": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1529977373158674704": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1539290781565718590": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1549176864432717964": {
+        "channelId": "1549177779109634068",
+        "pingRoleId": "1549177717906210898",
+        "posts": {},
+        "nextId": 3
+    },
+    "1529534990679933168": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1550888775712776282": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1558372415669669901": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1559930523747618866": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {
+            "1": {
+                "id": "1",
+                "auteurId": "1252736157285093397",
+                "jeu": "test",
+                "places": 25,
+                "description": "test",
+                "heure": "22h00",
+                "joueurs": [
+                    "1252736157285093397"
+                ],
+                "vocal": true,
+                "vocalId": null,
+                "statut": "expire",
+                "channelId": "1559931311983038524",
+                "messageId": "1563284332926214174",
+                "creeLe": 1792786428754,
+                "expireLe": 1792786728754,
+                "vocalVideDepuis": null
+            }
+        },
+        "nextId": 2
+    },
+    "1541221633287528529": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    },
+    "1546246125810487346": {
+        "channelId": null,
+        "pingRoleId": null,
+        "posts": {},
+        "nextId": 1
+    }
+}

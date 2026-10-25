@@ -1,0 +1,945 @@
+{
+    "1549176864432717964": {
+        "test": {
+            "title": "🧪 Embed de Test",
+            "description": "**Bienvenue sur cet embed de test !**\n\nCet embed permet de tester la **mise en forme**, les **catégories**, les **champs** et le **footer**.",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": {
+                "text": "**🧪 Embed de test • ScaraBot Créé automatiquement pour tester le système d'embed**",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/attachments/1542490906677092402/1549570914021146624/LOGO2.png?ex=6aae799f&is=6aad281f&hm=6eb2936e5de5ba7110a2f5ac990c560e89433f9a32271e805add1f37839533ad&",
+            "image": null,
+            "categories": [
+                {
+                    "titre": "## 📌 Informations",
+                    "contenu": "> Voici la première catégorie de l'embed.\n> Elle peut contenir une description ou des informations générales."
+                },
+                {
+                    "titre": "## ⚙️ Fonctionnalités",
+                    "contenu": "> • Fonctionnalité 1\n> • Fonctionnalité 2\n> • Fonctionnalité 3\n> • Fonctionnalité 4"
+                },
+                {
+                    "titre": "## 📊 Statistiques",
+                    "contenu": "> **Utilisateurs :** 1 250  \n> **Serveurs :** 48  \n> **Version :** 3.6.8"
+                }
+            ],
+            "channelId": "1549534788430340168"
+        },
+        "site": {
+            "title": "🚛 Convoi de la J.B.C Crome",
+            "description": "🚛 **CONVOI DE LA J.B.C CROME**\n\n📜 Merci de respecter le règlement et les autres participants durant tout le convoi.",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": null,
+            "thumbnail": null,
+            "image": null,
+            "mentions": [],
+            "categories": [
+                {
+                    "titre": "## 📅 Date",
+                    "contenu": "📅 **26 septembre 2026**\n\n🕗 Rassemblement : **20h00**\n🚦 Départ : **21h00**"
+                },
+                {
+                    "titre": "## ℹ️ Infos",
+                    "contenu": "📍 Départ : **Ostrava**\n🏢 Entreprise départ : **ITCC**\n\n🏁 Arrivée : **Amsterdam**\n🏢 Entreprise arrivée : **Pas précisé**\n\n🛣️ Distance : **1 261 km**\n🌐 Serveur : **Server 1**\n🎮 Multijoueur : **HaulMP**\n📡 GPS : **Aucun point GPS**"
+                }
+            ]
+        }
+    },
+    "broadcast:1252736157285093397": {},
+    "1492875979142598716": {
+        "maj": {
+            "title": "🚛 EURO TRUCK SIMULATOR 2 — MISE À JOUR 1.61 !",
+            "description": "La version 1.61 arrive avec plusieurs nouveautés et améliorations importantes pour Euro Truck Simulator 2 ! 🔥",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": null,
+            "thumbnail": null,
+            "image": null,
+            "categories": [
+                {
+                    "titre": "## 🗺️ Exploration de la carte",
+                    "contenu": "Une nouvelle fonctionnalité fait son apparition : Proximity Exploration.\n\n➡️ Lorsque cette option est activée, une petite zone autour de votre camion est automatiquement découverte lorsque vous roulez.\n➡️ Plus besoin de passer sur chaque petit morceau de route pour progresser vers les 100 % de carte.\n➡️ Les routes accessibles proches des stations-service, péages, frontières et aires de repos peuvent également être découvertes plus facilement.\n➡️ Les routes secrètes restent à explorer : seule une première partie peut être révélée à proximité. 👀"
+                },
+                {
+                    "titre": "## 🐄 Nouvelle remorque bétaillère",
+                    "contenu": "La Livestock Trailer bénéficie d'une refonte complète ! 🔧\n\n➡️ Nouveau modèle entièrement reconstruit\n➡️ Nouveau châssis abaissé avec roues jumelées\n➡️ Châssis 3 essieux standard ou 3 essieux abaissé\n➡️ Carrosserie aluminium ou entièrement personnalisable\n➡️ Nombreux nouveaux accessoires\n➡️ Nouvelles possibilités de peinture et de personnalisation\n➡️ Modèles également retravaillés pour le trafic IA et le Freight Market"
+                },
+                {
+                    "titre": "## 🚛 Schwarzmüller Trailer Pack amélioré",
+                    "contenu": "Le DLC Schwarzmüller Trailer Pack commence également à recevoir une importante mise à jour.\n\n➡️ Nouveau modèle de low loader\n➡️ Accessoires modernisés\n➡️ Design rapproché des modèles actuels de Schwarzmüller\n➡️ Début d'une refonte plus large du DLC"
+                },
+                {
+                    "titre": "## 🚌 Préparation de l'arrivée des bus",
+                    "contenu": "La carte reçoit plusieurs modifications afin de préparer l'arrivée du futur Coaches DLC.\n\n📍 Nuremberg\n📍 Karlstad\n📍 Aarhus\n📍 Thessalonique\n📍 Héraklion\n\n➡️ Nouvelles gares routières\n➡️ Nouveaux bâtiments et panneaux\n➡️ Améliorations de navigation\n➡️ Modifications de certaines frontières et accès"
+                },
+                {
+                    "titre": "## 🏆 Volvo FH Series 6 — 100 Year Edition",
+                    "contenu": "La Volvo FH Series 6 100 Year Edition fait également son apparition avec de nouvelles options :\n\n✨ Nouveaux accessoires\n✨ Deux peintures 100y Edition – Day / Night\n✨ Nouveaux logos anniversaire\n✨ Nouveaux lightboxes\n✨ Nouvel intérieur en cuir\n✨ Nouveau volant en cuir\n✨ Nouveaux sièges bicolores\n✨ Éclairage d'ambiance du tableau de bord"
+                },
+                {
+                    "titre": "## ✨ Amélioration des matériaux",
+                    "contenu": "Le système de matériaux amélioré est désormais étendu au Volvo FH Series 6.\n\nLes matériaux comme le cuir, tissu, plastique et métal réagissent plus naturellement à la lumière, notamment dans l'habitacle. Cela améliore le rendu et les détails des intérieurs."
+                }
+            ],
+            "buttonLines": [
+                "🔗〢Source | https://blog.scssoft.com/"
+            ],
+            "channelId": "1495114355707220089"
+        },
+        "dlc": {
+            "title": "DLC ETS2 1.61.1.0 🚛",
+            "description": "Téléchargez les DLC pour Euro Truck Simulator 2 – **version 1.61.1.0**. 🚛\nRetrouvez les contenus disponibles et profitez pleinement de votre expérience sur ETS2. 🔥\n\n⚠️ Vérifiez la compatibilité avec votre version du jeu avant l’installation.",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": null,
+            "thumbnail": null,
+            "image": null,
+            "categories": [
+                {
+                    "titre": "## 📦 Téléchargements ETS2",
+                    "contenu": "Retrouvez ici les différents contenus et fichiers disponibles pour Euro Truck Simulator 2. 🚛\nCliquer sur le bouton ci-dessous pour les téléchargé. ⬇️"
+                }
+            ],
+            "buttonLines": [
+                "🔗〢Site Web DLC | https://nosix-studio.pages.dev/dlc"
+            ],
+            "channelId": "1521631380042285128"
+        },
+        "ford": {
+            "title": "Nouveaux Camion ETS2 ?",
+            "description": "Les infos présent ci-dessous provienne d'une vidéo et les infos son a prendre a la **légère** et ne pas **s'enflammer**",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": null,
+            "thumbnail": null,
+            "image": null,
+            "mentions": [],
+            "categories": [
+                {
+                    "titre": "## La présence d'SCS Software à l'événement IAA",
+                    "contenu": "Le studio participe à **l'événement de transport IAA** en Allemagne, où ils rencontrent de vrais **fabricants de camions, de remorques et d'équipements** pour nouer des partenariats et potentiellement préparer du **nouveau contenu pour le jeu**"
+                },
+                {
+                    "titre": "## L'indice du stand Ford",
+                    "contenu": "Le fait d'avoir aperçu le **stand de Ford** sur place amène à se poser la question : **SCS** discute-t-il avec **Ford Trucks** pour intégrer enfin le **F-Max officiel dans ETS2** ? \n\nActuellement, le jeu intègre les grandes marques européennes **(Volvo, Scania, MAN, DAF, Renault, Iveco, Mercedes-Benz),** mais pas encore **Ford**"
+                },
+                {
+                    "titre": "## Un historique existant",
+                    "contenu": "Même si les **licences** sont **complexes à obtenir**, il existe déjà un lien entre **SCS** et **Ford** à travers `American Truck Simulator` (notamment pour le projet ATS **Road Trip**), ce qui montre qu'ils ne sont **pas totalement inconnus l'un de l'autre**."
+                },
+                {
+                    "titre": "## Garder les pieds sur terre",
+                    "contenu": "Le **vidéaste** précise qu'il ne faut pas **s'enflammer trop vite** ni crier au **\"F-Max confirmé\"* juste à cause d'un **logo aperçu dans un salon**, mais que c'est un **détail très intéressant à surveiller pour le futur du jeu**"
+                }
+            ],
+            "buttonLines": [
+                "🔗〢Lien de la vidéo | https://youtu.be/4qOLg8o1uiw"
+            ],
+            "channelId": "1495114355707220089",
+            "sentMessageId": "1550869965278806019",
+            "sentChannelId": "1495114355707220089"
+        },
+        "promod": {
+            "title": "🚛 ProMods — Téléchargement gratuit",
+            "description": "🌍 ProMods est maintenant disponible gratuitement pour les membres de la communauté !",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": null,
+            "thumbnail": null,
+            "image": null,
+            "mentions": [
+                {
+                    "id": "1495111013949902999",
+                    "type": "role"
+                },
+                {
+                    "id": "1495109879403385003",
+                    "type": "role"
+                },
+                {
+                    "id": "1495109483028807740",
+                    "type": "role"
+                }
+            ],
+            "categories": [
+                {
+                    "titre": "## ⚠️ Important",
+                    "contenu": "• Vérifiez que votre version d'ETS2 est compatible.\n• Aucun paiement n'est demandé par la communauté pour accéder aux fichiers partagés ici."
+                },
+                {
+                    "titre": "## 📥 Téléchargement",
+                    "contenu": "Retrouvez les fichiers nécessaires en cliquant sur le bouton ci-dessous. 👇🏽\n\nLe site de téléchargement éxpire dans 7 jours !"
+                }
+            ],
+            "buttonLines": [
+                "🔗〢J.B.C Crome Promod | https://www.transfernow.net/dl/20260919JbmnBNzU"
+            ],
+            "channelId": "1505519136627757096",
+            "sentMessageId": "1550947265672118324",
+            "sentChannelId": "1505519136627757096"
+        },
+        "web": {
+            "title": "📸・Galerie du site réparée",
+            "description": "**Statu**t : En ligne 🟢\n**Dernière mise à jour** : 22 septembre 2026",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": {
+                "text": "J.B.C Crome • Bonne route à tous ! 🛣️",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/attachments/1540474319912837183/1540475045669904454/LogoV3.png?ex=6ab24c6f&is=6ab0faef&hm=d98817647bd0191b1ffde1a3fce059df28df987529f470ac67d734dda2c57612&",
+            "image": "https://cdn.discordapp.com/attachments/1549177803755487272/1551737313682391162/9DDD7AC9-4E72-41E2-B4E1-E4B40EC73D14.png?ex=6ab30f7d&is=6ab1bdfd&hm=678a526acd6ac17279fb439ee5124698a36c01fcf062876978d8b9a5a4fe2928&",
+            "mentions": [
+                {
+                    "id": "@everyone",
+                    "type": "everyone"
+                }
+            ],
+            "categories": [
+                {
+                    "titre": "## 📢・INFORMATIONS",
+                    "contenu": "Après quelques galères techniques, le problème qui empêchait les photos de s’afficher sur le site est enfin réglé. 🔧\n\n📸 La galerie J.B.C Crome fonctionne à nouveau normalement !\n\n🚛 Retrouvez dès maintenant les photos de nos convois et de notre flotte directement dans l’onglet Galerie du site."
+                }
+            ],
+            "buttonLines": [
+                "📌〢Site-Web | https://j-b-c-crome.pages.dev/"
+            ],
+            "channelId": "1545923840239210526",
+            "sentMessageId": "1551737454401167372",
+            "sentChannelId": "1545923840239210526"
+        },
+        "scarabgroups": {
+            "title": "📢〢Scarab'Groups — `Mise à jour`",
+            "description": "**Statut** : En ligne 🟢\n**Dernière mise à jour** : 22 septembre 2026",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": {
+                "text": "Merci à tous pour votre fidélité et votre confiance ! ❤️",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/attachments/1540474319912837183/1540475045669904454/LogoV3.png?ex=6ab24c6f&is=6ab0faef&hm=d98817647bd0191b1ffde1a3fce059df28df987529f470ac67d734dda2c57612&",
+            "image": null,
+            "mentions": [
+                {
+                    "id": "@everyone",
+                    "type": "everyone"
+                }
+            ],
+            "categories": [
+                {
+                    "titre": "## ✨ Nouveautés",
+                    "contenu": "**[+]** Statistiques du mois en cours\nLes kilomètres et livraisons du mois sont désormais affichés séparément des statistiques all-time.\n---------------------------------------------------------------------------------------------------------\n**[+]** Journalisation des erreurs API\nLes erreurs liées à TrucksBook sont désormais automatiquement enregistrées, permettant un diagnostic plus rapide en cas de problème."
+                },
+                {
+                    "titre": "## 🛠️ Corrections",
+                    "contenu": "**[/]** Statistiques TrucksBook (`/trucksbook infos`, `/stats voir`, statut du bot)\nL’ancien endpoint ayant été retiré avec la mise à jour **TrucksBook** 1.5.0, le bot utilise désormais le nouvel endpoint officiel.\n------------------------------------------------------------------------------\n**[/]** Calcul des distances ATS\nCorrection des distances retournées en miles au lieu de kilomètres. **La conversion automatique en km** est maintenant appliquée."
+                },
+                {
+                    "titre": "## 💬 Vos retours",
+                    "contenu": "Vous rencontrez un problème ou avez une suggestion ?\nN’hésitez pas à **nous faire part de vos retours** afin de nous aider à améliorer le bot. 🛠️"
+                }
+            ],
+            "channelId": "1495114355707220089",
+            "sentMessageId": "1551740615123931170",
+            "sentChannelId": "1495114355707220089"
+        },
+        "site": {
+            "title": "🔧 Mise à jour du site — Prochain événement & Redesign",
+            "description": "Petit tour des dernières nouveautés sur le site J.B.C Crome :",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": {
+                "text": "J.B.C Crome • Mise à jour du site",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/attachments/1540474319912837183/1540475045669904454/LogoV3.png?ex=6ab8e3ef&is=6ab7926f&hm=7c75e426b3e345d73d2e4c0c8533a61f1da6db23fe6027c28c334ee1bd261593&",
+            "image": "https://cdn.discordapp.com/attachments/1540474319912837183/1553549043517620234/8462164E-0329-4916-ABFF-505195F75728.png?ex=6ab9a6cb&is=6ab8554b&hm=e754a9507233ee07882787c958107e8545326e7bcfca6ff227d51ee75883be57&",
+            "mentions": [
+                {
+                    "id": "@everyone",
+                    "type": "everyone"
+                }
+            ],
+            "categories": [
+                {
+                    "titre": "## 📌 Nouvelle carte \"Prochain événement\"",
+                    "contenu": "- ↪︎ La bannière du haut a été remplacée par une carte flottante à droite, sous le logo, dans le hero\n- ↪︎ Affiche maintenant le titre, la description, la date + heure, le lieu et le ticket, chacun avec son icône\n- ↪︎ Compte à rebours et bouton \"Voir l'événement\" toujours dynamiques (données tirées d'`events.json`)\n- ↪︎ Couleur : #5DA8FF (Bleu)"
+                },
+                {
+                    "titre": "## 🎨 Header redesigné",
+                    "contenu": "- ↪︎ Le logo J.B.C Crome apparaît maintenant à gauche du nom\n- ↪︎ Le texte a un vrai effet chromé (dégradé métal) au lieu du bleu précédent\nCouleur : #5DA8FF (bleu)"
+                },
+                {
+                    "titre": "## ✏️ Galerie mise à jour",
+                    "contenu": "- Refonte complète de la page Galerie avec le nouveau style chromé du site\n- Ajout d'une image vedette en grand format en haut de page, avec :\n    ↪︎ une catégorie (ex : Camion société)\n    ↪︎ un titre et une description\n    ↪︎ un compteur de photos (ex : 1/7) et des flèches de navigation\n- En dessous, une grille de miniatures pour parcourir rapidement toutes les photos/albums\n- Header harmonisé avec le reste du site (logo + effet chromé)\n- Couleur : #5DA8FF (Bleu)"
+                }
+            ],
+            "channelId": "1545923840239210526",
+            "buttonLines": [
+                "🌐 〢Site Web | https://j-b-c-crome.pages.dev/"
+            ],
+            "sentMessageId": "1553549273147244617",
+            "sentChannelId": "1545923840239210526"
+        },
+        "classement": {
+            "title": "Classement Kilométrage – Septembre 2026",
+            "description": "Distance acceptée (km réellement roulés)\nVoici le classement complet des 29 pilotes, classés du plus gros kilométrage au plus petit.\n\nLes chiffres sont bruts, sans filtre : total des km acceptés sur la période.",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": {
+                "text": "Export TrucksBook – Septembre 2026",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/attachments/1540474319912837183/1540475045669904454/LogoV3.png?ex=6abe29ef&is=6abcd86f&hm=505a74d9295a17fe853c48337ba4ad6c43a590c718c7dd54b4f18b6e9e5a17b0&",
+            "image": "https://cdn.discordapp.com/attachments/1540474319912837183/1554973209731006684/banner.png?backend=b2&ex=6abed527&is=6abd83a7&hm=302abd7a271be807b76b47100994549acc48cd7055f3f1d0393a0f9bcf814da6&",
+            "mentions": [
+                {
+                    "id": "@everyone",
+                    "type": "everyone"
+                }
+            ],
+            "categories": [
+                {
+                    "titre": "## 🥇 Élite (plus de 100 000 km)",
+                    "contenu": "1〢bobi79 — 153 443 km (197 jobs)\n2〢fastory 3 — 147 270 km (126 jobs)\n3〢Jerem09821 — 135 903 km (126 jobs)\n4〢Gufuse — 120 413 km (106 jobs)"
+                },
+                {
+                    "titre": "## 🥈 Gros rouleurs (50 000 – 100 000 km)",
+                    "contenu": "5〢patrickdunord — 83 672 km (91 jobs)\n6〢zib60 — 61 230 km (33 jobs)\n7〢babass/ — 60 784 km (87 jobs)\n8〢Kougnouc — 58 850 km (54 jobs)\n9〢gozy2025 — 55 084 km (88 jobs)\n10〢chris27 — 53 722 km (40 jobs)"
+                },
+                {
+                    "titre": "## 🥉 Réguliers (20 000 – 50 000 km)",
+                    "contenu": "11〢Rastatrankill — 49 467 km (44 jobs)\n12〢nonoo-fr — 47 262 km (55 jobs)\n13〢\\8/ LowQy59 \\8/ — 44 400 km (29 jobs)\n14〢Kylian09 — 31 646 km (59 jobs)"
+                },
+                {
+                    "titre": "## 🚚 Actifs moyens (10 000 – 20 000 km)",
+                    "contenu": "15〢Ratah6 — 18 369 km (16 jobs)\n16〢Darkjojo98 — 18 304 km (18 jobs)\n17〢ilyesdz1 — 17 241 km (22 jobs)\n18〢compte désactivé — 16 302 km (22 jobs)\n19〢Bratony — 15 508 km (21 jobs)\n20〢Denisdu57 — 10 124 km (4 jobs)"
+                },
+                {
+                    "titre": "## 🐌 Occasionnels / Petits kilométrages (moins de 10 000 km)",
+                    "contenu": "21〢Mitchnakin44 — 8 034 km (23 jobs)\n22〢Ghost.Officiel — 6 642 km (9 jobs)\n23〢StuKy — 6 207 km (11 jobs)\n24〢david80 — 5 897 km (6 jobs)\n25〢Aron28190 — 2 837 km (3 jobs)\n26〢GlaDDyBoy — 2 385 km (1 job)\n27〢Chris_Winston — 2 098 km (7 jobs)\n28〢bibou_2003 — 803 km (2 jobs)\n29〢Eric l — 133 km (2 jobs)"
+                }
+            ],
+            "buttonLines": [
+                "🌐〢Classement | https://trucksbook.eu/player_stats?scope=company"
+            ],
+            "sentMessageId": "1554976333883510868",
+            "sentChannelId": "1523071409708859636"
+        },
+        "maj-site": {
+            "title": "✨ Mise à jour du site",
+            "description": "`Le site J.B.C Crome passe à la finition encore plus chromée.`\n\n**En Ligne**: 🟢\n**Date de mise a jours**: 14/10/2026",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": {
+                "text": "J.B.C Crome • Un convoi propre, une présence qui marque",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/icons/1492875979142598716/f5aa3da5cbc991b0ffa7d69e72f31338.png?size=1024",
+            "image": "https://cdn.discordapp.com/attachments/1558372416713916479/1560039523797303410/Desktop_2026.10.14_-_23.19.46.03.mp4?ex=6ad14386&is=6acff206&hm=bc22c3bcc77e731bcf55d5f69a95d7f6c9dfd733231ebf4079e4a1eaa170761a&",
+            "mentions": [
+                {
+                    "id": "@everyone",
+                    "type": "everyone"
+                }
+            ],
+            "buttonLines": [
+                "🌐 〢Site Web | https://j-b-c-crome.pages.dev/"
+            ],
+            "channelId": "1545923840239210526",
+            "sentMessageId": "1560039851620040735",
+            "sentChannelId": "1545923840239210526",
+            "categories": [
+                {
+                    "titre": "🪞 Nouveau look chromé",
+                    "contenu": "Les blocs, cartes et boutons ont maintenant un reflet chromé qui brille quand on passe la souris dessus.\n\nCouleur : #5da8ff (le bleu du site)"
+                },
+                {
+                    "titre": "🚚 Nouveau curseur camion sur le site !",
+                    "contenu": "**Ton curseur classique laisse sa place à un camion 🚛**\n\nOù que tu navigues sur le site, c’est un petit camion qui te suit. Ça colle à l’esprit **VTC** et ça rend la navigation plus fun.\n\n**Ce qui change :**\n- Curseur camion sur toutes les pages du site\n- Même fonctionnalité, juste un look plus roulant"
+                }
+            ]
+        },
+        "theme_discord": {
+            "title": "👻〢Ouuuuh ça fait peur",
+            "description": "Discord et passé en mode **spooky** avec le changement de `logo` jusqu'à la `fin` de la saison **d'halloween**",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": null,
+            "thumbnail": "https://cdn.discordapp.com/icons/1492875979142598716/6225249b0b24ac2a12c3a2f21db8cd64.png?size=1024",
+            "image": null,
+            "mentions": [
+                {
+                    "id": "@everyone",
+                    "type": "everyone"
+                }
+            ],
+            "channelId": "1495114355707220089",
+            "sentMessageId": "1557820001350717554",
+            "sentChannelId": "1495114355707220089"
+        },
+        "site_photo": {
+            "title": "🌐〢J.B.C Crome site web photo",
+            "description": "Les photo du convoie de 10/10/2026 ont était ajouter sur le site ✅",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": null,
+            "thumbnail": null,
+            "image": "https://cdn.discordapp.com/attachments/1558372416713916479/1558583574570205345/5481409A-485F-45D0-B037-26132A0D9AFF.png?ex=6acbf791&is=6acaa611&hm=20286d445259196d481b839bc982f6e16792bd604bee22d8bea2e1d41721ec0b&",
+            "mentions": [
+                {
+                    "id": "@everyone",
+                    "type": "everyone"
+                }
+            ],
+            "buttonLines": [
+                "🌐〢Site Web | https://j-b-c-crome.pages.dev/"
+            ],
+            "channelId": "1545923840239210526",
+            "sentMessageId": "1558584149172953121",
+            "sentChannelId": "1545923840239210526"
+        },
+        "ats": {
+            "title": "🇺🇸・AMERICAN TRUCK SIMULATOR — BÊTA 1.62 DISPONIBLE !",
+            "description": "🚛 La bêta ouverte de la version 1.62 d'American Truck Simulator est désormais disponible !\n\nSCS Software vient de publier cette nouvelle bêta, qui apporte plusieurs nouveautés concernant l'exploration, les graphismes des camions et la radio du jeu.",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": null,
+            "thumbnail": "https://cdn.discordapp.com/attachments/1540474319912837183/1562082950701391882/LogoV3.png?ex=6ad8b29d&is=6ad7611d&hm=b49fa0163c0ace9934cd8b2984a5654a84d49d6027944e929c219ab44cb95601&",
+            "image": "https://cdn.discordapp.com/attachments/1562082635965005906/1562082679342501940/BETA_ATS.png?ex=6ad8b25c&is=6ad760dc&hm=9bae253cb99b40f2852a5318a827b75812e2aca973b500fae74af419e260f4be&",
+            "mentions": [
+                {
+                    "id": "@everyone",
+                    "type": "everyone"
+                }
+            ],
+            "categories": [
+                {
+                    "titre": "## 🗺️ ・Nouvelles destinations touristiques",
+                    "contenu": "> • Ajout de nouveaux panneaux touristiques à découvrir dans plusieurs États : Iowa, Kansas, Missouri, Colorado, Oklahoma, Arkansas, Texas, Washington et Louisiane.\n> • Le Nebraska accueille deux nouveaux panneaux touristiques.\n> • Chaque panneau complété permet de débloquer une nouvelle carte postale."
+                },
+                {
+                    "titre": "## 🛣️ ・Route 66 — 100 ans !",
+                    "contenu": "> • Ajout d'un parcours touristique spécial dédié aux 100 ans de la légendaire Route 66.\n> • Des lieux d'exploration répartis entre l'Illinois, le Missouri, le Kansas, l'Oklahoma, le Texas, le Nouveau-Mexique, l'Arizona et la Californie.\n> • Une carte postale spéciale et un accessoire parfumé Route 66 à débloquer en terminant l'ensemble des explorations requises."
+                },
+                {
+                    "titre": "## 🚚 ・Amélioration graphique du Volvo VNL",
+                    "contenu": "> • Amélioration du système de matériaux pour le Volvo VNL 2025.\n> • Éclairage intérieur amélioré.\n> • Matériaux plus réalistes et meilleure restitution de la lumière sur le cuir, le plastique, le tissu et le métal."
+                },
+                {
+                    "titre": "## 🛞 ・Mise à jour Goodyear Tires Pack",
+                    "contenu": "> • Mise à jour des peintures pour intégrer le nouveau logo Goodyear.\n> • Ajustement des couleurs pour correspondre à la nouvelle identité visuelle de la marque."
+                },
+                {
+                    "titre": "## 📻 ・Mise à jour de la radio du jeu",
+                    "contenu": "> • Amélioration de la station Escape.\n> • Suppression de morceaux présentant des problèmes de droits d'auteur.\n> • Ajout de 11 nouvelles musiques pour profiter de trajets encore plus agréables."
+                },
+                {
+                    "titre": "# ⚠️・INFORMATION IMPORTANTE",
+                    "contenu": "Cette version est une bêta ouverte, et non une version finale. Des bugs, des problèmes de stabilité ou des crashs peuvent survenir.\n## 🎮 Comment participer à la bêta ?\n1️⃣・Ouvrez Steam et accédez à votre bibliothèque.\n2️⃣・Faites un clic droit sur American Truck Simulator.\n3️⃣・Sélectionnez Propriétés → Versions du jeu et bêtas.\n4️⃣・Dans la participation aux bêtas, sélectionnez public_beta.\n\n📢 Si vous testez cette version, n'hésitez pas à signaler les bugs rencontrés afin d'aider SCS Software à améliorer la mise à jour avant sa sortie définitive !\n\n**🛣️ Bonne route à tous les routiers ! 🇺🇸**"
+                }
+            ],
+            "buttonLines": [
+                "🌐〢Source | https://blog.scssoft.com/"
+            ],
+            "channelId": "1495114355707220089",
+            "sentMessageId": "1562083089126133843",
+            "sentChannelId": "1495114355707220089"
+        },
+        "beta-ets": {
+            "title": "🇪🇺・EURO TRUCK SIMULATOR 2 — BÊTA 1.62 DISPONIBLE !",
+            "description": "**🚛 La bêta ouverte de la version 1.62 d'Euro Truck Simulator 2 apporte plusieurs nouveautés et améliorations !**\n\nSCS Software prépare une nouvelle mise à jour avec des améliorations graphiques, de nouveaux garages et de nouvelles éditions de camions. Voici les principales nouveautés annoncées pour cette version.",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": {
+                "text": "🛣️ Bonne route à tous les routiers ! 🇪🇺",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/attachments/1540474319912837183/1562466518866853988/icon.png?ex=6ada17d7&is=6ad8c657&hm=290fa0b91cf6fa13898ea5ad8e4d0a4ad3cad90f14e8a875a449f2b1123ea9f0&",
+            "image": "https://media.discordapp.net/attachments/1562082635965005906/1562082678134808596/BETA_ETS2.png?ex=6ada03dc&is=6ad8b25c&hm=964b0d0ed04f8e6c9c346eea0d4c5d64c6597616e2f51286ad22f8c12c41f1fc&=&format=webp&quality=lossless",
+            "mentions": [
+                {
+                    "id": "@everyone",
+                    "type": "everyone"
+                }
+            ],
+            "categories": [
+                {
+                    "titre": "## 🆕・LES NOUVEAUTÉS",
+                    "contenu": "> • Modèles de garages entièrement retravaillés.\n> • Améliorations graphiques à l'intérieur comme à l'extérieur.\n> • Nouveaux détails pour rendre les garages plus modernes et réalistes.\n> • Mise à jour prévue sur la carte de base et les extensions de carte."
+                },
+                {
+                    "titre": "## 🚚 ・Amélioration graphique de l'Iveco S-Way",
+                    "contenu": "> • Intégration du système de matériaux amélioré.\n> • Éclairage intérieur retravaillé.\n> • Meilleur rendu des matériaux comme le cuir, le tissu, le plastique et le métal.\n> • Des cabines plus détaillées et réalistes."
+                },
+                {
+                    "titre": "## 💎 ・Nouvelles éditions du DAF XG+",
+                    "contenu": "> • Emerald Edition : une finition verte distinctive.\n> • Sapphire Edition : une finition bleue avec des éléments noirs.\n> • 30 Years in Czechia Edition : une édition spéciale célébrant les 30 ans de présence de DAF en République tchèque.\n> • Peintures, accessoires extérieurs et intérieurs spécifiques à ces éditions."
+                },
+                {
+                    "titre": "## ⚠️・INFORMATION IMPORTANTE",
+                    "contenu": "La version 1.62 est en préparation et les nouveautés annoncées sont prévues pour cette mise à jour. \n\n📢 Restez attentifs aux prochaines annonces de SCS Software pour connaître la date de disponibilité de la mise a jour officiel et découvrir les éventuelles nouveautés supplémentaires !"
+                }
+            ],
+            "buttonLines": [
+                "📰・Source officielle | https://blog.scssoft.com/"
+            ],
+            "channelId": "1495114355707220089",
+            "sentMessageId": "1562753133325852673",
+            "sentChannelId": "1495114355707220089"
+        }
+    },
+    "1523341494763913338": {
+        "gngn": {
+            "title": "🚚 CLASSEMENT DES CHAUFFEURS PAR KILOMÈTRES",
+            "description": "*Du plus de kilomètres au moins de kilomètres*\n**Classement du mois de septembre**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": {
+                "text": "**Classement basé sur la Distance acceptée • Données TrucksBook**",
+                "iconURL": null
+            },
+            "thumbnail": null,
+            "image": null,
+            "mentions": [
+                {
+                    "id": "@everyone",
+                    "type": "everyone"
+                }
+            ],
+            "channelId": "1523341497636884602",
+            "sentMessageId": "1553914926030917733",
+            "sentChannelId": "1523341497636884602",
+            "categories": [
+                {
+                    "titre": "## 🥇 PODIUM",
+                    "contenu": "bobi79          →  142 966 km  (185 jobs)\nfastory 3       →  141 960 km  (119 jobs)\nJerem09821      →  124 271 km  (113 jobs)"
+                },
+                {
+                    "titre": "## 📊 TOP 10",
+                    "contenu": "Gufuse           →  108 061 km  (102 jobs)\npatrickdunord    →   77 483 km  (85 jobs)\nzib60            →   52 873 km  (29 jobs)\ngozy2025         →   51 672 km  (82 jobs)\nKougnouc         →   51 603 km  (46 jobs)\nbabass/          →   50 469 km  (75 jobs)\nRastatrankill    →   49 048 km  (43 jobs)"
+                },
+                {
+                    "titre": "## 📈 MILIEU DE TABLEAU",
+                    "contenu": "nonoo-fr         →   47 262 km  (55 jobs)\nchris27          →   41 210 km  (30 jobs)\nLowQy59          →   41 112 km  (27 jobs)\nKylian09         →   31 646 km  (59 jobs)\nRatah6           →   16 524 km  (15 jobs)\ncompte désactivé →   16 302 km  (22 jobs)\nBratony          →   12 677 km  (17 jobs)\nDarkjojo98       →   11 305 km  (12 jobs)\nDenisdu57        →   10 124 km  (4 jobs)\nMitchnakin44     →    8 034 km  (23 jobs)"
+                },
+                {
+                    "titre": "## 📉 FIN DE CLASSEMENT",
+                    "contenu": "Ghost.Officiel   →    6 642 km  (9 jobs)\nilyesdz1         →    6 319 km  (8 jobs)\ndavid80          →    5 897 km  (6 jobs)\nStuKy            →    4 757 km  (10 jobs)\nAron28190        →    2 837 km  (3 jobs)\nGlaDDyBoy        →    2 385 km  (1 job)\nChris_Winston    →    2 098 km  (7 jobs)\nbibou_2003       →      803 km  (2 jobs)\nEric l           →      133 km  (2 jobs)"
+                }
+            ]
+        },
+        "maj": {
+            "title": "📌 ıl CoreLab - Version 5.5.2 `Update`",
+            "description": "Version : 5.5.2\nStatut : En ligne 🟢\nDernière mise à jour : 24 Octobre 2026",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": null,
+            "thumbnail": null,
+            "image": null,
+            "mentions": [],
+            "categories": [
+                {
+                    "titre": "## ✨ Nouveautés",
+                    "contenu": "`[+]` Nouveau jeu 8balls : /game 8balls te permet de poser une question à la boule magique. Elle répond par oui, peut-être ou non, avec une couleur différente selon la réponse.\n`[+]` Avatar en grand : /avatar affiche l’avatar d’un membre en grand, avec des boutons pour l’ouvrir en PNG, JPG, WEBP (et GIF s’il est animé). L’option serveur affiche l’avatar propre au serveur.\n`[+]` Bannière en grand : /banniere fait la même chose avec la bannière d’un membre, et indique sa couleur de profil s’il n’en a pas.\n`[+]` Système de réputation : /reputation donner @membre pour remercier quelqu’un (+1 rep, une fois par jour), /reputation voir pour consulter la réputation d’un membre et /reputation classement pour afficher le top du serveur en image.\n\n`[~]` Les nouvelles commandes sont classées dans !help (Communauté et Public).\n\n`[!]` Les commandes peuvent mettre un peu de temps à apparaître après la mise à jour."
+                },
+                {
+                    "titre": "## 🛟 Serveur support",
+                    "contenu": "`[i]` Une question, un bug, une suggestion ? Rejoins-nous en cliquant sur le bouton ci-dessous."
+                }
+            ]
+        }
+    },
+    "1529977373158674704": {
+        "58": {
+            "title": "🧪 CORELAB・EMBED DE TEST",
+            "description": "Bienvenue dans le système de test de CoreLab !\n\nCet embed sert à vérifier l'affichage des messages, les couleurs, les titres, les descriptions et les fonctionnalités interactives.",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": {
+                "text": "`CORELAB` ・ Simplifiez la gestion de votre serveur.",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/attachments/1558372416713916479/1558955111433248878/halloween_logo.png?ex=6acdfa56&is=6acca8d6&hm=714d054044419a69a5e2423a54c689686cee9fa768ed61955bf971653a0d9ff3&",
+            "image": "https://cdn.discordapp.com/attachments/1558372416713916479/1559175564798201976/image.png?ex=6ace1ee6&is=6acccd66&hm=2f3a119a4142daf47c26eae78dc7e3205ebf6d41f8251ad3722d08eb9d0e4cb6&",
+            "mentions": [],
+            "categories": [
+                {
+                    "titre": "📋 Informations",
+                    "contenu": "🤖 Bot : CoreLab\n⚙️ Fonction : Test d'embed\n🟢 Statut : Opérationnel"
+                },
+                {
+                    "titre": "✨ Fonctionnalités à tester**",
+                    "contenu": "🎨 Personnalisation des couleurs\n🖼️ Images et miniatures\n📝 Titres et descriptions\n🔘 Boutons interactifs"
+                }
+            ]
+        },
+        "test": {
+            "title": "📢 Nouvelle mise à jour ProMods 1.61",
+            "description": "📦 Tous les dossiers ont été ajoutés et sont prêts au téléchargement.\n\n🔹 Cliquez sur les noms en bleu pour accéder au téléchargement.\n\nBon voyage sur les routes d'ETS2 ! 🚛",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": null,
+            "thumbnail": null,
+            "image": null,
+            "mentions": [],
+            "categories": [
+                {
+                    "titre": "## ⚠️ Important",
+                    "contenu": "• Vérifiez que votre version d'ETS2 est compatible.\n• Suivez les instructions d'installation fournies.\n• Aucun paiement n'est demandé par la communauté pour accéder aux fichiers partagés ici."
+                },
+                {
+                    "titre": "## 📥 Téléchargement",
+                    "contenu": "Retrouvez les fichiers nécessaires en cliquant sur le bouton ci-dessous 👇🏽"
+                }
+            ]
+        },
+        "qui": {
+            "title": "Qui somme nous ?",
+            "description": "**Bienvenue chez Kässbohrer France® !** 🇪🇺\n\nNous sommes une communauté dédiée à **Euro Truck Simulator 2**, réunissant des passionnés de transport routier, de convois et de simulation. 🚛\n\n🎯 **Notre objectif**:\nCréer une VTC active, sérieuse et conviviale, où chaque chauffeur peut partager sa passion pour la route.\n\n📦 **Ce que nous proposons** :\n- 🚛 Convois réguliers\n- 📅 Événements communautaires\n- 🛣️ Missions et transports\n- 📸 Photos & vidéos ETS2\n- 🤝 Une communauté soudée\n- 🏆 Des objectifs pour nos chauffeurs\n\n**❤️ Kässbohrer VTC — La route nous rassemble.**",
+            "url": null,
+            "color": 16733782,
+            "author": null,
+            "footer": null,
+            "thumbnail": "https://cdn.discordapp.com/attachments/1540474319912837183/1554529228060368916/logo.png?backend=b2&ex=6abd37a9&is=6abbe629&hm=2755ba9f470e538e3ad4f14ca42cbfaa24042ea747686621737670d34b1e90d6&",
+            "image": "https://cdn.discordapp.com/attachments/1540474319912837183/1554529289548996618/03383a15-1235-424a-a8d4-74ffa29601b2.png?backend=b2&ex=6abd37b8&is=6abbe638&hm=45dcab5062f45fb16abc9505c9021e75e3029792053052b95be5a45b6b3b0615&",
+            "mentions": [],
+            "categories": [],
+            "buttonLines": [
+                "📂〢VTC Milevox | https://milevox.app/vtc/k%C3%A4ssbohrer%20France"
+            ],
+            "sentMessageId": "1554530900308664321",
+            "sentChannelId": "1545534311980212354"
+        },
+        "lien": {
+            "title": "🔗 LIENS UTILES — KÄSSBOHRER FRANCE",
+            "description": "🔗 Retrouvez ici tous les liens utiles de la VTC Kässbohrer France : site internet, réseaux sociaux, plateformes de suivi et informations importantes concernant la VTC.",
+            "url": null,
+            "color": 16733782,
+            "author": null,
+            "footer": {
+                "text": "🚛 Kässbohrer France — Ensemble sur la route !",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/attachments/1540474319912837183/1554529228060368916/logo.png?backend=b2&ex=6abd37a9&is=6abbe629&hm=2755ba9f470e538e3ad4f14ca42cbfaa24042ea747686621737670d34b1e90d6&",
+            "image": null,
+            "mentions": [],
+            "categories": [
+                {
+                    "titre": "🌐 Milevox",
+                    "contenu": "Retrouvez notre société et suivez nos activités directement sur Milevox."
+                },
+                {
+                    "titre": "💬 Discord",
+                    "contenu": "Rejoignez notre serveur Discord pour discuter avec la communauté, participer aux convois et suivre toutes les actualités."
+                }
+            ],
+            "buttonLines": [
+                "➡️  Milevox | https://milevox.app/vtc/k%C3%A4ssbohrer%20France"
+            ],
+            "sentMessageId": "1554532004609925161",
+            "sentChannelId": "1536478243211841657"
+        }
+    },
+    "broadcast-templates:1252736157285093397": {
+        "maj-bot": {
+            "title": "📌 ScaraBot - Version 5.4.2 `Update`",
+            "description": null,
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": {
+                "text": "### L'équipe ScaraBot vous remercie de votre fidélité ! 🤍",
+                "iconURL": null
+            },
+            "thumbnail": null,
+            "image": null,
+            "mentionEveryone": true,
+            "categories": [
+                {
+                    "titre": "## ✨ Nouveautés",
+                    "contenu": "**[+]** Nouvelle commande `/eco ajouter-argent` (Admin) : crédite un montant illimité au portefeuille ou à la banque d'un membre, réponse invisible pour les autres joueurs.\n**[+]** Badge ⭐ **Premium** / 👑 **Founder** désormais visible sur l'annonce de montée de niveau et sur `/eco porte-monnaie`.\n**[+]** `/premium` affiche maintenant le détail complet des avantages (IA, notifications, sauvegardes, badge)."
+                },
+                {
+                    "titre": "## ⚡ Améliorations",
+                    "contenu": "**[/]** Le chat IA (`/config-ia`) est limité à **15 messages/jour** en gratuit, **illimité **en Premium.\n**[/]** `/notification` est limité à 1 notification suivie (toutes plateformes confondues : YouTube, Twitch, Blog, Medal, TikTok) en gratuit, illimité en Premium.\n**[/]** `/backup` devient une fonctionnalité **100% Premium** (suppression du palier gratuit à 3 sauvegardes) — jusqu'à 10 backups, chaque sous-commande l'indique désormais dans sa description (`⭐ Premium •`)."
+                },
+                {
+                    "titre": "## 🛟 Serveur support",
+                    "contenu": "**[i]** Une question, un bug, une suggestion ? Rejoins-nous en cliquant sur le bouton ci-dessous"
+                }
+            ],
+            "buttonLines": [
+                "🌐〢Serveur Support | https://discord.gg/WecpyxrSBT"
+            ]
+        },
+        "maj": {
+            "title": "📌〢CoreLab - Version 5.5.1 `Update`",
+            "description": "`Version` : 5.5.1\n`Statut` : En ligne 🟢\n`Dernière mise à jour` : 12 Octobre 2026",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": {
+                "text": "L'équipe CoreLab vous remercie de votre fidélité ! 🤍",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/icons/1523341494763913338/6baeda5c16fcc07d44d445cc639ce979.png?size=1024",
+            "image": "https://cdn.discordapp.com/attachments/1558372416713916479/1559175564798201976/image.png?ex=6ace1ee6&is=6acccd66&hm=2f3a119a4142daf47c26eae78dc7e3205ebf6d41f8251ad3722d08eb9d0e4cb6&",
+            "mentionEveryone": true,
+            "categories": [
+                {
+                    "titre": "## ✨ Nouveautés",
+                    "contenu": "`[+]` **Nouveau look de la roue** — `/economy wheel` passe en mode « ouverture de caisse » : une bande de cartes défile, ralentit puis s'arrête sur ton tirage, avec une ligne dorée et un cadre néon qui prend la couleur de la rareté\n`[+]` **Vraies cartes Pokémon** — quand tu obtiens une carte, la vraie carte officielle du JCC s'affiche en grand, avec son édition, sa rareté et son prix de rachat\n`[~]` Plus ta carte est rare, plus la carte affichée est rare (commune, holo, ultra rare...)\n\n`[!]` Si une carte n'a pas d'image disponible, le résultat s'affiche comme avant, sans image"
+                },
+                {
+                    "titre": "## 🛟 Serveur support",
+                    "contenu": "**[i]** Une question, un bug, une suggestion ? Rejoins-nous en cliquant sur le bouton ci-dessous"
+                }
+            ],
+            "buttonLines": [
+                "🌐〢Serveur Support | https://discord.gg/WecpyxrSBT",
+                "➡️〢Ajoute CoreLab | https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+            ]
+        },
+        "best": {
+            "title": "📌 ScaraBot - Version 5.4.8 `Update`",
+            "description": "**Version** : 5.4.8\n**Statut** : En ligne 🟢\n**Dernière mise à jour** : 8 Octobre 2026",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": {
+                "text": "L'équipe ScaraBot vous remercie de votre fidélité ! 🤍",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/icons/1523341494763913338/6baeda5c16fcc07d44d445cc639ce979.png?size=1024",
+            "image": "https://cdn.discordapp.com/attachments/1546293278721318933/1557816447152169041/image.png?ex=6ac92d1f&is=6ac7db9f&hm=263db110ea1c41703d9b5eeff2ceca76037964957770233354cd5d9ac0c4b75b&",
+            "mentionEveryone": true,
+            "categories": [
+                {
+                    "titre": "## ✨ Nouveautés",
+                    "contenu": "**[+]** Nouvelle commande `/rp` — Système de **roleplay complet** :\n\n`/rp creer` — Créer ton profil RP **(nom, prénom, date de naissance, sexe, taille)**\n\n`/rp profil [@membre]` — Afficher le profil **RP**\n\n`/rp supprimer` — Supprimer ton profil **RP**\n\n`/rp ci voir [@membre]` — 🪪 Carte Nationale d'Identité réaliste **(bandeau européen, filigrane RF, MRZ TD1)**\n\n`/rp permis voir [@membre]` — 🚗 **Permis de conduire réaliste (cases catégories, MRZ)**\n\n`/rp permis ajouter <catégorie>` / `/rp permis retirer <catégorie>` — Gérer les catégories **(AM, A1, A2, A, B1, B, BE, C1, C, D1, D)**\n\n/rp passeport voir [@membre] — 🛂 **Passeport français double page** (identité + visas, **MRZ TD3**)\n\n**[+]** Documents générés dynamiquement en image avec toutes les infos du profil : photo de profil Discord, numéros uniques (CI, permis), dates de délivrance et d'expiration automatiques, nationalité française."
+                },
+                {
+                    "titre": "## ⚡ Améliorations",
+                    "contenu": "**[/]** Petite amélioration mineur !"
+                },
+                {
+                    "titre": "## 🛟 Serveur support",
+                    "contenu": "**[i]** Une question, un bug, une suggestion ? Rejoins-nous en cliquant sur le bouton ci-dessous"
+                }
+            ],
+            "buttonLines": [
+                "🛡️〢Ajouter le ScaraBot | https://discord.com/oauth2/authorize?client_id=1403513450273177772&permissions=8&integration_type=0&scope=bot%20applications.commands"
+            ]
+        },
+        "best2": {
+            "title": "📌 ScaraBot - Version 5.4.9 `Update`",
+            "description": "**Version** : 5.4.9\n**Statut** : En ligne 🟢\n**Dernière mise à jour** : 10 Octobre 2026",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": {
+                "text": "L'équipe ScaraBot vous remercie de votre fidélité ! 🤍",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/icons/1523341494763913338/6baeda5c16fcc07d44d445cc639ce979.png?size=1024",
+            "image": "https://cdn.discordapp.com/attachments/1558372416713916479/1558372495390941295/image.png?ex=6acb32fc&is=6ac9e17c&hm=d4d4ff92b1cc4d4d9edfe94080191dc1da79b965a893f9ff0cd0d0811b411583&",
+            "mentionEveryone": true,
+            "categories": [
+                {
+                    "titre": "## ✨ Nouveautés",
+                    "contenu": "`[+]` **Nouveau look du panneau de tickets** — le panneau publié est maintenant une carte image verte : l'**icône de ton serveur** à gauche, le titre et la liste des raisons à droite\n`/settings ticket` — Configure tes raisons de tickets, l'apparence et le message d'ouverture, puis publie le nouveau panneau avec le bouton **🎫 Publier le panneau**\n`[~]` Si le serveur n'a pas d'icône, le bloc vert avec la bulle **SUPPORT** s'affiche à la place\n\n`[!]` Pour appliquer le nouveau look, **republie le panneau** : les anciens panneaux gardent leur ancien rendu"
+                },
+                {
+                    "titre": "## 🛟 Serveur support",
+                    "contenu": "**[i]** Une question, un bug, une suggestion ? Rejoins-nous en cliquant sur le bouton ci-dessous"
+                }
+            ],
+            "buttonLines": [
+                "🛡️〢Ajouter le ScaraBot | https://discord.com/oauth2/authorize?client_id=1403513450273177772&permissions=8&integration_type=0&scope=bot%20applications.commands",
+                "🌐〢Serveur Support | https://discord.gg/WecpyxrSBT"
+            ]
+        },
+        "yoyo": {
+            "title": "📌 ScaraBot - Version 5.4.9 `Update`",
+            "description": "**Version** : 5.4.9\n**Statut** : En ligne 🟢\n**Dernière mise à jour** : 10 Octobre 2026",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": {
+                "text": "L'équipe ScaraBot vous remercie de votre fidélité ! 🤍",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/icons/1523341494763913338/6baeda5c16fcc07d44d445cc639ce979.png?size=1024",
+            "image": "https://cdn.discordapp.com/attachments/1558372416713916479/1559175564798201976/image.png?ex=6ace1ee6&is=6acccd66&hm=2f3a119a4142daf47c26eae78dc7e3205ebf6d41f8251ad3722d08eb9d0e4cb6&",
+            "mentionEveryone": true,
+            "categories": [
+                {
+                    "titre": "## ✨ Nouveautés",
+                    "contenu": "`[+]` **Nouveau look de la roue** — `/economy wheel` passe en mode « ouverture de caisse » : une bande de cartes défile, ralentit puis s'arrête sur ton tirage, avec une ligne dorée et un cadre néon qui prend la couleur de la rareté\n`[+]` **Vraies cartes Pokémon** — quand tu obtiens une carte, la vraie carte officielle du JCC s'affiche en grand, avec son édition, sa rareté et son prix de rachat\n`[~]` Plus ta carte est rare, plus la carte affichée est rare (commune, holo, ultra rare...)\n\n`[!]` Si une carte n'a pas d'image disponible, le résultat s'affiche comme avant, sans image"
+                },
+                {
+                    "titre": "## 🛟 Serveur support",
+                    "contenu": "**[i]** Une question, un bug, une suggestion ? Rejoins-nous en cliquant sur le bouton ci-dessous"
+                }
+            ],
+            "buttonLines": [
+                "🌐〢Serveur Support | https://discord.gg/WecpyxrSBT",
+                "➡️〢Ajoute CoreLab | https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+            ]
+        },
+        "best-des-best": {
+            "title": "📌 ScaraBot - Version 5.4.9 `Update`",
+            "description": "**Version** : 5.4.9\n**Statut** : En ligne 🟢\n**Dernière mise à jour** : 10 Octobre 2026",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": {
+                "text": "L'équipe ScaraBot vous remercie de votre fidélité ! 🤍",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/icons/1523341494763913338/6baeda5c16fcc07d44d445cc639ce979.png?size=1024",
+            "image": "https://cdn.discordapp.com/attachments/1558372416713916479/1558372495390941295/image.png?ex=6acb32fc&is=6ac9e17c&hm=d4d4ff92b1cc4d4d9edfe94080191dc1da79b965a893f9ff0cd0d0811b411583&",
+            "mentionEveryone": true,
+            "categories": [
+                {
+                    "titre": "## ✨ Nouveautés",
+                    "contenu": "`[+]` **Nouveau jeu 8balls** : `/game 8balls` te permet de poser une question à la boule magique. Elle répond par **oui, peut-être ou non**, avec une couleur différente selon la réponse.\n`[+]` **Avatar en grand** : `/avatar` affiche l’avatar d’un membre en grand, avec des boutons pour l’ouvrir en PNG, JPG, WEBP (et GIF s’il est animé). L’option serveur affiche l’avatar propre au serveur.\n`[+]` **Bannière en grand** : `/banniere` fait la même chose avec la bannière d’un membre, et indique sa couleur de profil s’il n’en a pas.\n`[+]` **Système de réputation** : `/reputation` donner @membre pour remercier quelqu’un (+1 rep, une fois par jour), `/reputation` voir pour consulter la réputation d’un membre et `/reputation classement` pour afficher le top du serveur en image.\n\n`[~]` Les nouvelles commandes sont classées dans `!help` (Communauté et Public).\n\n`[!]` Les commandes peuvent mettre un peu de temps à apparaître après la mise à jour."
+                },
+                {
+                    "titre": "## 🛟 Serveur support",
+                    "contenu": "**[i]** Une question, un bug, une suggestion ? Rejoins-nous en cliquant sur le bouton ci-dessous"
+                }
+            ],
+            "buttonLines": [
+                "🌐〢Serveur Support | https://discord.gg/WecpyxrSBT",
+                "🤖〢Inviter CoreLab | https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+            ]
+        }
+    },
+    "1504444554621751386": {
+        "qui": {
+            "title": "🎨〢Qui sommes-nous ?",
+            "description": "Pixel Studio est spécialisé dans la création de Lightbox Custom pour les VTC ETS2. 🚛✨\n\nNotre objectif est simple : permettre à chaque VTC de disposer d’une Lightbox unique et personnalisée, adaptée à son identité et à son style.",
+            "url": null,
+            "color": 0,
+            "author": null,
+            "footer": {
+                "text": "Pixel Studio — Donnez du style à votre VTC. 🚛💙",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/icons/1504444554621751386/046ac3d7d017d7df07e3aec5b498a82d.png?size=1024",
+            "image": "https://cdn.discordapp.com/attachments/1533461535995727932/1553153618394484938/218774bc-c938-4dc6-a837-7e953591996c.png?ex=6ab83686&is=6ab6e506&hm=9ba1b9ffb489ed9a74d924806afa553c95c3073a5499f1d7d89e4bd03c6bac6f&",
+            "mentions": [],
+            "categories": [
+                {
+                    "titre": "## 🎨〢Création sur mesure",
+                    "contenu": "Nous réalisons vos Lightbox selon vos envies : nom de VTC, couleurs, logo, texte et design personnalisé."
+                },
+                {
+                    "titre": "## 🚛〢Pensé pour ETS2",
+                    "contenu": "Nos créations sont conçues pour s’intégrer à vos camions et mettre en valeur votre VTC lors de vos convois."
+                },
+                {
+                    "titre": "## ✨〢Votre identité, votre style",
+                    "contenu": "Chaque Lightbox est créée pour vous permettre de vous démarquer et d’afficher fièrement les couleurs de votre VTC."
+                }
+            ],
+            "buttonLines": [
+                "🌐〢Site Web | https://nosix-studio.pages.dev/"
+            ],
+            "channelId": "1553152119035662456",
+            "sentMessageId": "1553154825930150008",
+            "sentChannelId": "1553152119035662456"
+        }
+    },
+    "1558372415669669901": {
+        "fonction": {
+            "title": "🛠️〢CoreLab Fonctionalité",
+            "description": "Toute les fonctionnalité de CoreLab !\n\n`Statut` : En ligne 🟢",
+            "url": null,
+            "color": 16777215,
+            "author": null,
+            "footer": {
+                "text": "⚙️ `CoreLab Systems`  •  All systems nominal",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/attachments/1558372416713916479/1558955016067481620/LOGO2.png?ex=6acdfa3f&is=6acca8bf&hm=cbc58a7b2925656604fa54b31725aef93687608f7f3466431e655fc26607c918&",
+            "image": "https://cdn.discordapp.com/attachments/1558372416713916479/1559175564798201976/image.png?ex=6ace1ee6&is=6acccd66&hm=2f3a119a4142daf47c26eae78dc7e3205ebf6d41f8251ad3722d08eb9d0e4cb6&",
+            "mentions": [],
+            "categories": [
+                {
+                    "titre": "## 🛡️ MODÉRATION & SÉCURITÉ",
+                    "contenu": "**Une protection avancée pour votre serveur grâce aux systèmes anti-scam, anti-spam, anti-raid et aux outils de modération.**\n\n- Anti-raid, anti-spam, anti-lien, anti-everyone et anti-mentions\n- Anti-bot, anti-alt, anti-nuke et anti-ghostping\n- Anti-scam avec analyse d'images (OCR) et anti-phishing (faux nitro, IP loggers, typosquat)\n- AutoMod Discord déployable en un clic\n- Kick, ban, mute, timeout, warn, ban et mute temporaires\n- Système d'infractions avec historique et réinitialisation\n- Purge de messages, verrouillage d'un salon ou lockdown total\n- Journaux complets : messages, arrivées et départs, salons, rôles, bans, vocal, invitations"
+                },
+                {
+                    "titre": "## ⚙️ ADMINISTRATION",
+                    "contenu": "**Des commandes complètes pour gérer votre serveur, configurer ses paramètres et administrer vos membres en toute simplicité.**\n\n- Panneau de configuration et paramètres interactifs\n- Sauvegarde et restauration de la structure du serveur (rôles, salons, permissions)\n- Statistiques du serveur et compteurs en salons\n- Gestion des rôles et des pseudos, pseudo du bot personnalisable\n- Rôle dédié du bot créé automatiquement\n- Langue du bot configurable\n- Annonces et messages personnalisés (embeds)"
+                },
+                {
+                    "titre": "## 🎫 GESTION COMMUNAUTAIRE",
+                    "contenu": "**Tickets, suggestions, notifications et outils interactifs pour offrir une expérience fluide et agréable à vos membres.**\n\n- Tickets avec catégories, formulaires personnalisés, prise en charge et fermeture\n- Suggestions, sondages et concours avec tirage au sort\n- Messages d'accueil et de départ avec image personnalisée\n- Tableau d'étoiles (starboard)\n- Jeu de comptage\n- Recherche de joueurs (LFG), mini-jeux, mariage, amis et clans\n- Formulaires, événements et anniversaires"
+                },
+                {
+                    "titre": "## 🔔 AUTOMATISATION",
+                    "contenu": "**Récompensez l'activité de votre communauté.**\n\n- XP et niveaux (messages et vocal) avec cartes de niveau, classements et récompenses de rôles\n- Économie : porte-monnaie, daily, travail, pêche, banque, boutique et échanges\n- Casino : blackjack, machine à sous, roue, pile ou face\n- Collection d'objets à vendre ou échanger"
+                },
+                {
+                    "titre": "## 🤖 IA & ROLEPLAY",
+                    "contenu": "- Assistant IA intégré, avec édition d'images\n- Système RP : profils, passeports et permis"
+                },
+                {
+                    "titre": "## ✨ UNE EXPÉRIENCE COMPLÈTE",
+                    "contenu": "Des fonctionnalités polyvalentes, une interface soignée et des mises à jour régulières pour accompagner l'évolution de votre communauté.\n---------------------------------------------------------------------------------------------------------"
+                }
+            ],
+            "channelId": "1559181282632663130",
+            "sentMessageId": "1559184026739408897",
+            "sentChannelId": "1559181282632663130"
+        }
+    },
+    "1559720201128382504": {
+        "qui": {
+            "title": "🌴・Qui sommes-nous ?",
+            "description": "☀️ **Bienvenue chez Tropic !**\n\n🌺 Tropic, c'est bien plus qu'un simple serveur Discord : c'est une communauté dédiée au partage, à la détente et aux rencontres.\n\n💬 **・Discussions & partage**\nÉchange sur tes passions et participe aux conversations.\n\n🎮 **・Gaming & détente**\nJoue avec les membres et profite des salons vocaux.\n\n🤝 **・Rencontres & amitié**\nFais de nouvelles connaissances et crée de véritables liens.\n\n🌊 **・Notre objectif**\nCréer une communauté accueillante, active et conviviale où chacun peut trouver sa place dans le respect et la bonne humeur.\n\n━━━━━━━━━━━━━━━━━━━━\n\n🌴 **Tropic, ton petit coin de paradis sur Discord.**\n💚 *Une communauté, des rencontres, une seule ambiance : la bonne humeur !*",
+            "url": null,
+            "color": 2148759,
+            "author": null,
+            "footer": {
+                "text": "🌴 Tropic • Une communauté, une ambiance",
+                "iconURL": null
+            },
+            "thumbnail": "https://cdn.discordapp.com/icons/1559720201128382504/4da7451e43457cb5081a5f4e55da168c.png?size=1024",
+            "image": "https://cdn.discordapp.com/ephemeral-attachments/1522351759274541100/1559727768638464110/9386b052-fb5d-48dd-966b-5fa2a67312ec.png?ex=6ad0212e&is=6acecfae&hm=fccbb971a236fcb890be2ed1055a07b76c5baee14ed3d4cba5efbdff85cdf07d&",
+            "mentions": [],
+            "categories": [],
+            "channelId": "1559720201560264798",
+            "sentMessageId": "1559729045363621969",
+            "sentChannelId": "1559720201560264798"
+        }
+    },
+    "1559930523747618866": {},
+    "1462488578163740685": {}
+}

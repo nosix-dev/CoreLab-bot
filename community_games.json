@@ -1,0 +1,58 @@
+{
+    "1492875979142598716": {
+        "stats": {},
+        "mots": {
+            "enabled": false,
+            "channelId": null,
+            "chain": 0,
+            "record": 0,
+            "lastWord": null,
+            "lastUserId": null,
+            "used": []
+        }
+    },
+    "1549176864432717964": {
+        "stats": {
+            "1252736157285093397": {
+                "quizPoints": 13,
+                "quizWins": 1,
+                "penduWins": 0,
+                "devineWins": 0,
+                "motsCount": 3
+            }
+        },
+        "mots": {
+            "enabled": true,
+            "channelId": "1549177779109634068",
+            "chain": 0,
+            "record": 1,
+            "lastWord": null,
+            "lastUserId": null,
+            "used": []
+        }
+    },
+    "1492301662243520696": {
+        "stats": {},
+        "mots": {
+            "enabled": false,
+            "channelId": null,
+            "chain": 0,
+            "record": 0,
+            "lastWord": null,
+            "lastUserId": null,
+            "used": []
+        }
+    },
+    "1523341494763913338": {
+        "stats": {},
+        "mots": {
+            "enabled": false,
+            "channelId": null,
+            "chain": 0,
+            "record": 0,
+            "lastWord": null,
+            "lastUserId": null,
+            "used": []
+        }
+    }
+}

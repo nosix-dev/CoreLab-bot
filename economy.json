@@ -1,0 +1,1107 @@
+{
+    "1549176864432717964": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "JBCMONEY",
+            "currencyEmoji": "💵",
+            "dailyAmount": 30,
+            "dailyCooldownMs": 86400000,
+            "workMin": 20,
+            "workMax": 80,
+            "workCooldownMs": 86400000,
+            "fishCooldownMs": 3600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {
+            "1252736157285093397": {
+                "wallet": 330434,
+                "bank": 156879,
+                "lastDaily": 1791500436966,
+                "lastWork": 1791653055527,
+                "lastFish": 1791500461551,
+                "history": [
+                    {
+                        "ts": 1790012064054,
+                        "total": 524013
+                    },
+                    {
+                        "ts": 1790098464056,
+                        "total": 524013
+                    },
+                    {
+                        "ts": 1790247205964,
+                        "total": 524013
+                    },
+                    {
+                        "ts": 1790337891043,
+                        "total": 524013
+                    },
+                    {
+                        "ts": 1790453790165,
+                        "total": 524013
+                    },
+                    {
+                        "ts": 1790529549188,
+                        "total": 524013
+                    },
+                    {
+                        "ts": 1790611831280,
+                        "total": 524013
+                    },
+                    {
+                        "ts": 1790698619708,
+                        "total": 524013
+                    },
+                    {
+                        "ts": 1790785698146,
+                        "total": 524013
+                    },
+                    {
+                        "ts": 1790937943027,
+                        "total": 524428
+                    },
+                    {
+                        "ts": 1791026770350,
+                        "total": 524128
+                    },
+                    {
+                        "ts": 1791159420896,
+                        "total": 524128
+                    },
+                    {
+                        "ts": 1791236249097,
+                        "total": 524128
+                    },
+                    {
+                        "ts": 1791321233203,
+                        "total": 524128
+                    },
+                    {
+                        "ts": 1791478492231,
+                        "total": 524128
+                    },
+                    {
+                        "ts": 1791568285304,
+                        "total": 489570
+                    },
+                    {
+                        "ts": 1791650882495,
+                        "total": 489570
+                    },
+                    {
+                        "ts": 1791731511383,
+                        "total": 489513
+                    },
+                    {
+                        "ts": 1791840742240,
+                        "total": 489413
+                    },
+                    {
+                        "ts": 1791927434178,
+                        "total": 487413
+                    },
+                    {
+                        "ts": 1792009214628,
+                        "total": 487313
+                    },
+                    {
+                        "ts": 1792093031480,
+                        "total": 487313
+                    },
+                    {
+                        "ts": 1792171501547,
+                        "total": 487313
+                    },
+                    {
+                        "ts": 1792307466672,
+                        "total": 487313
+                    },
+                    {
+                        "ts": 1792453267735,
+                        "total": 487313
+                    },
+                    {
+                        "ts": 1792538477989,
+                        "total": 487313
+                    },
+                    {
+                        "ts": 1792625360618,
+                        "total": 487313
+                    },
+                    {
+                        "ts": 1792768798079,
+                        "total": 487313
+                    },
+                    {
+                        "ts": 1792871240547,
+                        "total": 487313
+                    }
+                ],
+                "lastSpin": 1791997086287,
+                "inventory": {
+                    "objet:vieille_cle_rouillee": 1,
+                    "pokemon:carte_pimito": 1,
+                    "pokemon:carte_monorpale": 1,
+                    "pokemon:carte_chamallot": 1,
+                    "pokemon:carte_simularbre": 1,
+                    "pokemon:carte_chovsourir": 1,
+                    "pokemon:carte_snubbull": 1,
+                    "pokemon:carte_regieleki": 1,
+                    "pokemon:carte_gloupti": 1,
+                    "pokemon:carte_abo": 1,
+                    "pokemon:carte_taupikeau": 1,
+                    "pokemon:carte_rongourmand": 1,
+                    "pokemon:carte_chapotus": 1,
+                    "pokemon:carte_parecool": 1,
+                    "pokemon:carte_brindibou": 2,
+                    "pokemon:carte_poltchageist": 1,
+                    "pokemon:carte_elekable": 1,
+                    "pokemon:carte_macronium": 1,
+                    "pokemon:carte_soporifik": 1,
+                    "pokemon:carte_psystigri": 1,
+                    "pokemon:carte_patachiot": 1,
+                    "pokemon:carte_makuhita": 1
+                }
+            },
+            "1497914530897072188": {
+                "wallet": 34250,
+                "bank": 0,
+                "lastDaily": 0,
+                "lastWork": 0,
+                "lastFish": 0,
+                "history": [
+                    {
+                        "ts": 1791568285304,
+                        "total": 34650
+                    },
+                    {
+                        "ts": 1791650882495,
+                        "total": 34650
+                    },
+                    {
+                        "ts": 1791731511383,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1791840742240,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1791927434178,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1792009214628,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1792093031480,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1792171501547,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1792307466672,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1792453267735,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1792538477989,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1792625360618,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1792768798079,
+                        "total": 34250
+                    },
+                    {
+                        "ts": 1792871240547,
+                        "total": 34250
+                    }
+                ],
+                "inventory": {
+                    "objet:pile_usee": 1,
+                    "ville:chateauroux": 1,
+                    "objet:chaussette_orpheline": 1,
+                    "sentiment:un_soulagement": 1
+                },
+                "lastSpin": 1791653220615
+            }
+        }
+    },
+    "1523341494763913338": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {
+            "1252736157285093397": {
+                "wallet": 48729,
+                "bank": 0,
+                "lastDaily": 0,
+                "lastWork": 1790803862819,
+                "lastFish": 0,
+                "history": [
+                    {
+                        "ts": 1790012064053,
+                        "total": 0
+                    },
+                    {
+                        "ts": 1790098464055,
+                        "total": 0
+                    },
+                    {
+                        "ts": 1790247205963,
+                        "total": 0
+                    },
+                    {
+                        "ts": 1790337891042,
+                        "total": 0
+                    },
+                    {
+                        "ts": 1790453790164,
+                        "total": 0
+                    },
+                    {
+                        "ts": 1790529549187,
+                        "total": 0
+                    },
+                    {
+                        "ts": 1790611831279,
+                        "total": 0
+                    },
+                    {
+                        "ts": 1790698619708,
+                        "total": 0
+                    },
+                    {
+                        "ts": 1790785698146,
+                        "total": 0
+                    },
+                    {
+                        "ts": 1790937943026,
+                        "total": 129
+                    },
+                    {
+                        "ts": 1791026770349,
+                        "total": 129
+                    },
+                    {
+                        "ts": 1791159420896,
+                        "total": 129
+                    },
+                    {
+                        "ts": 1791236249097,
+                        "total": 129
+                    },
+                    {
+                        "ts": 1791321233202,
+                        "total": 129
+                    },
+                    {
+                        "ts": 1791478492230,
+                        "total": 129
+                    },
+                    {
+                        "ts": 1791568285303,
+                        "total": 129
+                    },
+                    {
+                        "ts": 1791650882493,
+                        "total": 129
+                    },
+                    {
+                        "ts": 1791731511382,
+                        "total": 49329
+                    },
+                    {
+                        "ts": 1791840742238,
+                        "total": 49329
+                    },
+                    {
+                        "ts": 1791927434177,
+                        "total": 48729
+                    },
+                    {
+                        "ts": 1792009214627,
+                        "total": 48729
+                    },
+                    {
+                        "ts": 1792093031478,
+                        "total": 48729
+                    },
+                    {
+                        "ts": 1792171501546,
+                        "total": 48729
+                    },
+                    {
+                        "ts": 1792307466671,
+                        "total": 48729
+                    },
+                    {
+                        "ts": 1792453267734,
+                        "total": 48729
+                    },
+                    {
+                        "ts": 1792538477987,
+                        "total": 48729
+                    },
+                    {
+                        "ts": 1792625360617,
+                        "total": 48729
+                    },
+                    {
+                        "ts": 1792768798078,
+                        "total": 48729
+                    },
+                    {
+                        "ts": 1792871240546,
+                        "total": 48729
+                    }
+                ],
+                "lastSpin": 1791891267398,
+                "inventory": {
+                    "pokemon:carte_magicarpe": 1,
+                    "pokemon:carte_rattata": 1,
+                    "sentiment:une_legere_nostalgie": 1,
+                    "lieu:parking_desert": 1,
+                    "sentiment:un_petit_ennui": 1,
+                    "lieu:plage_secrete": 1,
+                    "ville:laval": 1,
+                    "convoi:convoi_de_nuit": 1,
+                    "pokemon:carte_cabriolaine": 1
+                }
+            }
+        },
+        "crypto": {
+            "wallets": {},
+            "title": null,
+            "description": null,
+            "footer": null,
+            "color": null,
+            "channelId": "1523341497636884602",
+            "messageId": "1558599760405860464",
+            "alerts": {
+                "enabled": false,
+                "channelId": "1523341497636884602",
+                "intervalMin": 5,
+                "currency": "eur",
+                "coins": [
+                    "ETH"
+                ],
+                "custom": [],
+                "last": {
+                    "ETH": {
+                        "eur": 2238.28,
+                        "usd": 2507.55
+                    }
+                },
+                "lastSent": 1791669447684
+            }
+        }
+    },
+    "1106621828610392114": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1450986060145492011": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1462488578163740685": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1480579149922828368": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1491853377401913394": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1492301662243520696": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1492875979142598716": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {},
+        "crypto": {
+            "wallets": {},
+            "title": null,
+            "description": null,
+            "footer": null,
+            "color": null,
+            "channelId": null,
+            "messageId": null
+        }
+    },
+    "1493404002652651631": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1495554736374419486": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000
+        },
+        "accounts": {}
+    },
+    "1504444554621751386": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1517659616538787851": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000
+        },
+        "accounts": {}
+    },
+    "1518194519223304193": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1526842375748718592": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1529977373158674704": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {
+            "1252736157285093397": {
+                "wallet": 2729,
+                "bank": 0,
+                "lastDaily": 1790024903285,
+                "lastWork": 1790024893846,
+                "lastFish": 0,
+                "history": [
+                    {
+                        "ts": 1790098464056,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1790247205964,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1790337891043,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1790453790165,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1790529549188,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1790611831279,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1790698619708,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1790785698146,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1790937943027,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1791026770350,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1791159420896,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1791236249097,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1791321233203,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1791478492230,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1791568285304,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1791650882494,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1791731511383,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1791840742240,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1791927434177,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1792009214628,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1792093031479,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1792171501547,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1792307466672,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1792453267735,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1792538477988,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1792625360618,
+                        "total": 2729
+                    },
+                    {
+                        "ts": 1792768798079,
+                        "total": 2729
+                    }
+                ]
+            }
+        },
+        "crypto": {
+            "wallets": {},
+            "title": null,
+            "description": null,
+            "footer": null,
+            "color": null,
+            "channelId": null,
+            "messageId": null,
+            "alerts": {
+                "enabled": false,
+                "channelId": null,
+                "intervalMin": 60,
+                "currency": "eur",
+                "coins": [
+                    "BTC"
+                ],
+                "custom": [],
+                "last": {},
+                "lastSent": 0
+            }
+        }
+    },
+    "1539290781565718590": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1529534990679933168": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1558372415669669901": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1550888775712776282": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "333949691962195969": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {
+            "599278003406766081": {
+                "wallet": 179,
+                "bank": 0,
+                "lastDaily": 0,
+                "lastWork": 1791753424429,
+                "lastFish": 1791753431186,
+                "lastSpin": 0,
+                "inventory": {}
+            }
+        }
+    },
+    "1559930523747618866": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "TropicCoins",
+            "currencyEmoji": "🪙",
+            "dailyAmount": 25,
+            "dailyCooldownMs": 86400000,
+            "workMin": 10,
+            "workMax": 20,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 1800000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {
+            "1497914530897072188": {
+                "wallet": 451,
+                "bank": 0,
+                "lastDaily": 1791989974893,
+                "lastWork": 1791990189065,
+                "lastFish": 1791990166177,
+                "lastSpin": 1792018493090,
+                "inventory": {
+                    "pokemon:carte_terraiste": 1,
+                    "pokemon:carte_tiplouf": 1
+                },
+                "history": [
+                    {
+                        "ts": 1791990427507,
+                        "total": 551
+                    },
+                    {
+                        "ts": 1792093031480,
+                        "total": 451
+                    },
+                    {
+                        "ts": 1792171501547,
+                        "total": 451
+                    },
+                    {
+                        "ts": 1792307466673,
+                        "total": 451
+                    },
+                    {
+                        "ts": 1792453267736,
+                        "total": 451
+                    },
+                    {
+                        "ts": 1792538477989,
+                        "total": 451
+                    },
+                    {
+                        "ts": 1792625360619,
+                        "total": 451
+                    },
+                    {
+                        "ts": 1792768798081,
+                        "total": 451
+                    },
+                    {
+                        "ts": 1792871240547,
+                        "total": 451
+                    }
+                ]
+            },
+            "1252736157285093397": {
+                "wallet": 24264,
+                "bank": 0,
+                "lastDaily": 1792786357107,
+                "lastWork": 1792786665379,
+                "lastFish": 1792199783771,
+                "lastSpin": 1792682552161,
+                "inventory": {
+                    "pokemon:carte_lockpin": 1,
+                    "pokemon:carte_psykokwak": 1,
+                    "pokemon:carte_fouinette": 1,
+                    "pokemon:carte_minidraco": 1
+                },
+                "history": [
+                    {
+                        "ts": 1791996910535,
+                        "total": 24387
+                    },
+                    {
+                        "ts": 1792093031480,
+                        "total": 24287
+                    },
+                    {
+                        "ts": 1792171501547,
+                        "total": 24287
+                    },
+                    {
+                        "ts": 1792307466673,
+                        "total": 24453
+                    },
+                    {
+                        "ts": 1792453267736,
+                        "total": 24453
+                    },
+                    {
+                        "ts": 1792538477989,
+                        "total": 24453
+                    },
+                    {
+                        "ts": 1792625360619,
+                        "total": 24453
+                    },
+                    {
+                        "ts": 1792768798081,
+                        "total": 24253
+                    },
+                    {
+                        "ts": 1792871240547,
+                        "total": 24264
+                    }
+                ]
+            }
+        },
+        "crypto": {
+            "wallets": {
+                "BTC": {
+                    "address": "bc1qgjjqg08almgmatu0ph00sptdg7rmfmj7m4flvs",
+                    "memo": null
+                }
+            },
+            "title": "₿ Cours des cryptomonnaies",
+            "description": "🌴・Bienvenue dans l'espace crypto de Tropic !\n\n₿・Retrouve ici les informations et les discussions autour des cryptomonnaies.\n\n💰・Bitcoin (BTC)\n💎・Ethereum (ETH)\n📊・Actualités et tendances du marché\n\n⚠️・Les cryptomonnaies comportent des risques. Fais tes propres recherches avant d'investir.",
+            "footer": "🌴 Tropic・L'actualité crypto !",
+            "color": 2018456,
+            "channelId": "1559937697030610994",
+            "messageId": "1563287064261173269",
+            "alerts": {
+                "enabled": false,
+                "channelId": "1559937697030610994",
+                "intervalMin": 15,
+                "currency": "eur",
+                "coins": [
+                    "BTC"
+                ],
+                "custom": [],
+                "last": {
+                    "BTC": {
+                        "eur": 72375,
+                        "usd": 81073
+                    }
+                },
+                "lastSent": 1792799518253
+            }
+        }
+    },
+    "1541221633287528529": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    },
+    "1546246125810487346": {
+        "settings": {
+            "enabled": true,
+            "currencyName": "Scarabée",
+            "currencyEmoji": "💠",
+            "dailyAmount": 200,
+            "dailyCooldownMs": 86400000,
+            "workMin": 80,
+            "workMax": 220,
+            "workCooldownMs": 3600000,
+            "fishCooldownMs": 600000,
+            "goalAmount": 1000000,
+            "wheelCost": 100,
+            "wheelCooldownMs": 15000,
+            "sellRatio": 0.5
+        },
+        "accounts": {}
+    }
+}

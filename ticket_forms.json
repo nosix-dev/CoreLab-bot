@@ -1,0 +1,70 @@
+{
+    "1492875979142598716": {
+        "standalone_recrutement": [
+            {
+                "label": "1. 👤 Quel est ton pseudo Discord et ton âge ?",
+                "placeholder": "Présente-toi brièvement.",
+                "required": true,
+                "style": "short"
+            },
+            {
+                "label": "2. 🎮 Depuis combien de temps joues-tu à ETS2 ?",
+                "placeholder": "",
+                "required": true,
+                "style": "short"
+            },
+            {
+                "label": "3. 🚛 Pourquoi rejoindre J.B.C Crome ?",
+                "placeholder": "",
+                "required": true,
+                "style": "paragraph"
+            },
+            {
+                "label": "4. 📋 As-tu déjà rejoint une société ETS2 ?",
+                "placeholder": "Si oui la quelle ?",
+                "required": true,
+                "style": "paragraph"
+            },
+            {
+                "label": "5. 📅 Es-tu disponible pour les convois ?",
+                "placeholder": "combien de temp par semaine t'es dispo ?",
+                "required": true,
+                "style": "paragraph"
+            }
+        ]
+    },
+    "1529977373158674704": {
+        "standalone_recrutement": [
+            {
+                "label": "👤 Quel est ton pseudo Milevox ?",
+                "placeholder": "Réponse :",
+                "required": true,
+                "style": "short"
+            },
+            {
+                "label": "🎮 Depuis combien de temps joues-tu à ETS2 ?",
+                "placeholder": "Réponse :",
+                "required": true,
+                "style": "short"
+            },
+            {
+                "label": "🚛 As-tu déjà fait partie d'une VTC ?",
+                "placeholder": "Réponse : Si oui la quelle ?",
+                "required": true,
+                "style": "short"
+            },
+            {
+                "label": "💼 Pourquoi souhaites-tu rejoindre Kässbohrer France VTC ?",
+                "placeholder": "Réponse :",
+                "required": true,
+                "style": "paragraph"
+            },
+            {
+                "label": "📜 As-tu lu et accepté le règlement de la VTC ?",
+                "placeholder": "✅ Oui / ❌ Non",
+                "required": true,
+                "style": "short"
+            }
+        ]
+    }
+}

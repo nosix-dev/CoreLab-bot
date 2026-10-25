@@ -1,0 +1,3150 @@
+{
+    "1252736157285093397": [
+        {
+            "id": "mtuj6vljgli4sl",
+            "name": "test",
+            "guildId": "1462488578163740685",
+            "guildName": "Scara'Bot [Serveur Support]",
+            "createdBy": "1252736157285093397",
+            "createdAt": "2026-09-09T20:08:36.728Z",
+            "roles": [
+                {
+                    "name": "🔓┃Vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "🔒┃Non Vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "🫂┃Nouveau",
+                    "color": 0,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "🫂┃Membres",
+                    "color": 3447003,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "✨┃ Scarab'Team",
+                    "color": 15277667,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "👑┃Scara'Boss",
+                    "color": 16161536,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "8864262743130111"
+                },
+                {
+                    "name": "🛡️〢ScaraBot",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "8"
+                },
+                {
+                    "name": "🤖┃ ScaraBot",
+                    "color": 16777215,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "8"
+                }
+            ],
+            "categories": [
+                {
+                    "name": "🛡️ ScaraBot Protect",
+                    "overwrites": []
+                },
+                {
+                    "name": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "【🌐】Général",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🤖┃ ScaraBot",
+                            "allow": "0",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "【⚙️】Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "【🤖】Bot",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "【👥】Scarab'Team",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                }
+            ],
+            "channels": [
+                {
+                    "name": "🎫┃tickets",
+                    "type": 0,
+                    "categoryName": "【⚙️】Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "🤖┃logs",
+                    "type": 0,
+                    "categoryName": "【🤖】Bot",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "💬┃général",
+                    "type": 0,
+                    "categoryName": "【🌐】Général",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🤖┃ ScaraBot",
+                            "allow": "0",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "[🎙️]┃Général",
+                    "type": 2,
+                    "categoryName": "【🌐】Général",
+                    "bitrate": 64000,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🤖┃ ScaraBot",
+                            "allow": "0",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "🤝┃partenariats",
+                    "type": 0,
+                    "categoryName": "【👥】Scarab'Team",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "📢┃annonce",
+                    "type": 5,
+                    "categoryName": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "🍯・honeypot",
+                    "type": 0,
+                    "categoryName": "🛡️ ScaraBot Protect",
+                    "overwrites": []
+                },
+                {
+                    "name": "📋┃arrivée",
+                    "type": 0,
+                    "categoryName": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "🤖┃commands",
+                    "type": 0,
+                    "categoryName": "【🤖】Bot",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "🏆┃levels",
+                    "type": 0,
+                    "categoryName": "【🌐】Général",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "📝┃update",
+                    "type": 0,
+                    "categoryName": "【⚙️】Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35840"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "📜┃règlement",
+                    "type": 0,
+                    "categoryName": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🔓┃Vérifié",
+                            "allow": "1024",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "⭐┃vos-avis",
+                    "type": 0,
+                    "categoryName": "【🌐】Général",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🤖┃ ScaraBot",
+                            "allow": "0",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "📰┃serveur",
+                    "type": 0,
+                    "categoryName": "【🤖】Bot",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "🔗┃lien-discord",
+                    "type": 0,
+                    "categoryName": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "test",
+                    "type": 0,
+                    "categoryName": "【🤖】Bot",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "🔗┃lien-bot",
+                    "type": 0,
+                    "categoryName": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "mu1sbw6w2c3go3",
+            "name": "test",
+            "guildId": "1462488578163740685",
+            "guildName": "Scara'Bot [Serveur Support]",
+            "createdBy": "1252736157285093397",
+            "createdAt": "2026-09-14T21:58:50.552Z",
+            "roles": [
+                {
+                    "name": "🔓┃Vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "🔒┃Non Vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "🫂┃Nouveau",
+                    "color": 0,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "🫂┃Membres",
+                    "color": 3447003,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "✨┃ Scarab'Team",
+                    "color": 15277667,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "👑┃Scara'Boss",
+                    "color": 16161536,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "8864262743130111"
+                },
+                {
+                    "name": "🛡️〢ScaraBot",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "8"
+                },
+                {
+                    "name": "🤖┃ ScaraBot",
+                    "color": 16777215,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "8"
+                }
+            ],
+            "categories": [
+                {
+                    "name": "🛡️ ScaraBot Protect",
+                    "overwrites": []
+                },
+                {
+                    "name": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "【🌐】Général",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🤖┃ ScaraBot",
+                            "allow": "0",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "【⚙️】Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "【🤖】Bot",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "【👥】Scarab'Team",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                }
+            ],
+            "channels": [
+                {
+                    "name": "🎫┃tickets",
+                    "type": 0,
+                    "categoryName": "【⚙️】Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "🤖┃logs",
+                    "type": 0,
+                    "categoryName": "【🤖】Bot",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "[🎙️]┃Général",
+                    "type": 2,
+                    "categoryName": "【🌐】Général",
+                    "bitrate": 64000,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🤖┃ ScaraBot",
+                            "allow": "0",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "🤝┃partenariats",
+                    "type": 0,
+                    "categoryName": "【👥】Scarab'Team",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "📢┃annonce",
+                    "type": 5,
+                    "categoryName": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "⭐┃vos-idée",
+                    "type": 15,
+                    "categoryName": "【🌐】Général",
+                    "topic": "# 📌 GUIDE DE PUBLICATION — SCARABOT\n\nBienvenue dans l’espace dédié aux retours de la communauté !\nAvant de publier votre message, choisissez la catégorie qui correspond le mieux à votre demande.\n\n## 🐛 Bug\n\nUtilisez cette catégorie si vous rencontrez un problème ou un dysfonctionnement avec ScaraBot.\n\n**À préciser :**\n\n> 🔹 Commande / fonctionnalité concernée\n> 🔹 Description du problème\n> 🔹 Comment reproduire le bug\n> 🔹 Capture d’écran ou message d’erreur si disponible\n\n## 💡 Suggestion\n\nUtilisez cette catégorie pour proposer une amélioration d’une fonctionnalité existante.\n\n**À préciser :**\n\n> 🔹 Fonctionnalité concernée\n> 🔹 Votre proposition\n> 🔹 Pourquoi cette amélioration serait utile\n\n## 🧠 Idée\n\nUtilisez cette catégorie pour proposer une nouvelle fonctionnalité ou une idée complètement nouvelle pour ScaraBot.\n\n**À préciser :**\n\n> 🔹 Nom de l’idée\n> 🔹 Description\n> 🔹 Fonctionnement souhaité\n> 🔹 Exemple d’utilisation si possible\n\n### ⚠️ Avant de publier\n\nMerci de vérifier qu’une demande similaire n’a pas déjà été proposée et de rester clair et respectueux dans vos messages.\n\n**Vos retours permettent de faire évoluer ScaraBot. Merci pour votre contribution ! 🤖**",
+                    "rateLimitPerUser": 5,
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Nouveau",
+                            "allow": "3072",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "3072"
+                        },
+                        {
+                            "roleName": "🤖┃ ScaraBot",
+                            "allow": "3072",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1051648",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1051648",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1051648",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "🍯・honeypot",
+                    "type": 0,
+                    "categoryName": "🛡️ ScaraBot Protect",
+                    "overwrites": []
+                },
+                {
+                    "name": "📋┃arrivée",
+                    "type": 0,
+                    "categoryName": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "💬┃général",
+                    "type": 0,
+                    "categoryName": "【🌐】Général",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🤖┃ ScaraBot",
+                            "allow": "0",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "🤖┃commands",
+                    "type": 0,
+                    "categoryName": "【🤖】Bot",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "📝┃update",
+                    "type": 0,
+                    "categoryName": "【⚙️】Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35840"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "📜┃règlement",
+                    "type": 0,
+                    "categoryName": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🔓┃Vérifié",
+                            "allow": "1024",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "🏆┃levels",
+                    "type": 0,
+                    "categoryName": "【🌐】Général",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "📰┃serveur",
+                    "type": 0,
+                    "categoryName": "【🤖】Bot",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "🔗┃lien-discord",
+                    "type": 0,
+                    "categoryName": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                },
+                {
+                    "name": "test",
+                    "type": 0,
+                    "categoryName": "【🤖】Bot",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "🔗┃lien-bot",
+                    "type": 0,
+                    "categoryName": "【💠】Inforamtion",
+                    "overwrites": [
+                        {
+                            "roleName": "🫂┃Membres",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "👑┃Scara'Boss",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "✨┃ Scarab'Team",
+                            "allow": "1049600",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "35904"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "mv6m0iapxr1tvs",
+            "name": "test",
+            "guildId": "1523341494763913338",
+            "guildName": "Test CoreLab et HomniHive",
+            "createdBy": "1252736157285093397",
+            "createdAt": "2026-10-13T11:40:34.862Z",
+            "roles": [
+                {
+                    "name": "[TST] test",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "2222085186637377"
+                },
+                {
+                    "name": "vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "Non vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "111111",
+                    "color": 3066993,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "TEST",
+                    "color": 15277667,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "8"
+                },
+                {
+                    "name": "🛡️〢CoreLab",
+                    "color": 16777215,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "8"
+                }
+            ],
+            "categories": [
+                {
+                    "name": "règlement",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "vérifié",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "BORDEL",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "MESSAGE MAJ BOT",
+                    "overwrites": []
+                },
+                {
+                    "name": "🤖〢CoreLab Intélligence",
+                    "overwrites": []
+                }
+            ],
+            "channels": [
+                {
+                    "name": "général",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "bordel-2",
+                    "type": 0,
+                    "categoryName": "BORDEL",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "lol",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "regle",
+                    "type": 0,
+                    "categoryName": "règlement",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "vérifié",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "s",
+                    "type": 2,
+                    "categoryName": "DDD",
+                    "bitrate": 64000,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "rules",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "2048"
+                        }
+                    ]
+                },
+                {
+                    "name": "message-maj-bot",
+                    "type": 0,
+                    "categoryName": "MESSAGE MAJ BOT",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "🌐〢corelab-ia",
+                    "type": 0,
+                    "categoryName": "🤖〢CoreLab Intélligence",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "1024",
+                            "deny": "2048"
+                        }
+                    ]
+                },
+                {
+                    "name": "test",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "logo",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "moderator-only",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "maj-envoi",
+                    "type": 0,
+                    "categoryName": "MESSAGE MAJ BOT",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "photo",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "annonce",
+                    "type": 5,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "image-maj",
+                    "type": 0,
+                    "categoryName": "MESSAGE MAJ BOT",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "starboard",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "notification",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "bienvnue",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "image",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "aurevoir",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "mv6m1fzwyyhob7",
+            "name": "test3",
+            "guildId": "1523341494763913338",
+            "guildName": "Test CoreLab et HomniHive",
+            "createdBy": "1252736157285093397",
+            "createdAt": "2026-10-13T11:41:18.524Z",
+            "roles": [
+                {
+                    "name": "[TST] test",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "2222085186637377"
+                },
+                {
+                    "name": "vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "Non vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "111111",
+                    "color": 3066993,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "TEST",
+                    "color": 15277667,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "8"
+                },
+                {
+                    "name": "🛡️〢CoreLab",
+                    "color": 16777215,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "8"
+                }
+            ],
+            "categories": [
+                {
+                    "name": "règlement",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "vérifié",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "BORDEL",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "MESSAGE MAJ BOT",
+                    "overwrites": []
+                },
+                {
+                    "name": "🤖〢CoreLab Intélligence",
+                    "overwrites": []
+                }
+            ],
+            "channels": [
+                {
+                    "name": "général",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "bordel-2",
+                    "type": 0,
+                    "categoryName": "BORDEL",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "lol",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "regle",
+                    "type": 0,
+                    "categoryName": "règlement",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "vérifié",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "s",
+                    "type": 2,
+                    "categoryName": "DDD",
+                    "bitrate": 64000,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "rules",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "2048"
+                        }
+                    ]
+                },
+                {
+                    "name": "message-maj-bot",
+                    "type": 0,
+                    "categoryName": "MESSAGE MAJ BOT",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "🌐〢corelab-ia",
+                    "type": 0,
+                    "categoryName": "🤖〢CoreLab Intélligence",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "1024",
+                            "deny": "2048"
+                        }
+                    ]
+                },
+                {
+                    "name": "test",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "logo",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "moderator-only",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "maj-envoi",
+                    "type": 0,
+                    "categoryName": "MESSAGE MAJ BOT",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "photo",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "annonce",
+                    "type": 5,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "image-maj",
+                    "type": 0,
+                    "categoryName": "MESSAGE MAJ BOT",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "starboard",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "notification",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "bienvnue",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "image",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "aurevoir",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "mv6m38k9rosdsk",
+            "name": "tst",
+            "guildId": "1523341494763913338",
+            "guildName": "Test CoreLab et HomniHive",
+            "createdBy": "1252736157285093397",
+            "createdAt": "2026-10-13T11:42:42.201Z",
+            "roles": [
+                {
+                    "name": "[TST] test",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "2222085186637377"
+                },
+                {
+                    "name": "vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "Non vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "111111",
+                    "color": 3066993,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "TEST",
+                    "color": 15277667,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "8"
+                },
+                {
+                    "name": "🛡️〢CoreLab",
+                    "color": 16777215,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "8"
+                }
+            ],
+            "categories": [
+                {
+                    "name": "règlement",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "vérifié",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "BORDEL",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "MESSAGE MAJ BOT",
+                    "overwrites": []
+                },
+                {
+                    "name": "🤖〢CoreLab Intélligence",
+                    "overwrites": []
+                }
+            ],
+            "channels": [
+                {
+                    "name": "général",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "bordel-2",
+                    "type": 0,
+                    "categoryName": "BORDEL",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "lol",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "regle",
+                    "type": 0,
+                    "categoryName": "règlement",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "vérifié",
+                            "allow": "1049600",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "s",
+                    "type": 2,
+                    "categoryName": "DDD",
+                    "bitrate": 64000,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "rules",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "2048"
+                        }
+                    ]
+                },
+                {
+                    "name": "message-maj-bot",
+                    "type": 0,
+                    "categoryName": "MESSAGE MAJ BOT",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "🌐〢corelab-ia",
+                    "type": 0,
+                    "categoryName": "🤖〢CoreLab Intélligence",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "1024",
+                            "deny": "2048"
+                        }
+                    ]
+                },
+                {
+                    "name": "test",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "logo",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "moderator-only",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "maj-envoi",
+                    "type": 0,
+                    "categoryName": "MESSAGE MAJ BOT",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "photo",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "annonce",
+                    "type": 5,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "image-maj",
+                    "type": 0,
+                    "categoryName": "MESSAGE MAJ BOT",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "starboard",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "notification",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "bienvnue",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "image",
+                    "type": 0,
+                    "categoryName": "DDD",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "aurevoir",
+                    "type": 0,
+                    "categoryName": "Salons textuels",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "1099122712477184091": [
+        {
+            "id": "mu6wn58dbyr59t",
+            "name": "test",
+            "guildId": "1106621828610392114",
+            "guildName": "MLN FAMILLY",
+            "createdBy": "1099122712477184091",
+            "createdAt": "2026-09-18T11:58:24.829Z",
+            "roles": [
+                {
+                    "name": "🛡️〢ScaraBot",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "8"
+                },
+                {
+                    "name": "⛓️ Jail ⛓️",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "Non vérifié",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "nouveau rôle",
+                    "color": 0,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "MEMBRE",
+                    "color": 3066993,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "75696654642753"
+                },
+                {
+                    "name": "bot",
+                    "color": 4673131,
+                    "hoist": true,
+                    "mentionable": true,
+                    "permissions": "0"
+                },
+                {
+                    "name": "streameur",
+                    "color": 10038562,
+                    "hoist": true,
+                    "mentionable": false,
+                    "permissions": "0"
+                },
+                {
+                    "name": "Administrateur",
+                    "color": 15844367,
+                    "hoist": true,
+                    "mentionable": true,
+                    "permissions": "138538464575481"
+                },
+                {
+                    "name": "responsable administrateure",
+                    "color": 3604735,
+                    "hoist": false,
+                    "mentionable": false,
+                    "permissions": "2104465255563263"
+                },
+                {
+                    "name": "co-fondateur",
+                    "color": 10181046,
+                    "hoist": true,
+                    "mentionable": true,
+                    "permissions": "420009146318847"
+                },
+                {
+                    "name": "fondateur",
+                    "color": 7419530,
+                    "hoist": true,
+                    "mentionable": true,
+                    "permissions": "420009146318847"
+                }
+            ],
+            "categories": [
+                {
+                    "name": "👋Bienvenue",
+                    "overwrites": [
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "🗣 pour parloter",
+                    "overwrites": [
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "🔊 Vocal",
+                    "overwrites": [
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "🔖Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "📌 admin",
+                    "overwrites": [
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "🎫 Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                }
+            ],
+            "channels": [
+                {
+                    "name": "Général",
+                    "type": 2,
+                    "categoryName": "🔊 Vocal",
+                    "bitrate": 64000,
+                    "overwrites": [
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "live",
+                    "type": 5,
+                    "categoryName": "🗣 pour parloter",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "2048"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "enchere",
+                    "type": 13,
+                    "categoryName": "🗣 pour parloter",
+                    "bitrate": 64000,
+                    "userLimit": 10000,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "4294967296",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "arriver🛬",
+                    "type": 0,
+                    "categoryName": "👋Bienvenue",
+                    "overwrites": [
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "nexora",
+                    "type": 0,
+                    "categoryName": null,
+                    "topic": "Set up Nexora • https://nexorabot.org",
+                    "overwrites": [
+                        {
+                            "roleName": "responsable administrateure",
+                            "allow": "1024",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "co-fondateur",
+                            "allow": "1024",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Administrateur",
+                            "allow": "1024",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "fondateur",
+                            "allow": "1024",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "warn",
+                    "type": 0,
+                    "categoryName": "📌 admin",
+                    "overwrites": [
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "tickets",
+                    "type": 0,
+                    "categoryName": "🎫 Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "attente mouv",
+                    "type": 2,
+                    "categoryName": "📌 admin",
+                    "bitrate": 64000,
+                    "overwrites": [
+                        {
+                            "roleName": "Administrateur",
+                            "allow": "339348116995409",
+                            "deny": "268435968"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "4398049723392",
+                            "deny": "334950335707985"
+                        },
+                        {
+                            "roleName": "fondateur",
+                            "allow": "339348385431377",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "co-fondateur",
+                            "allow": "339348385431377",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "salon-plainte",
+                    "type": 0,
+                    "categoryName": "🔖Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "3072",
+                            "deny": "196608"
+                        },
+                        {
+                            "roleName": "MEMBRE",
+                            "allow": "1024",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "Bureau du Fondateur",
+                    "type": 2,
+                    "categoryName": "📌 admin",
+                    "bitrate": 64000,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1049600"
+                        },
+                        {
+                            "roleName": "fondateur",
+                            "allow": "339348385431377",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "co-fondateur",
+                            "allow": "339348385431377",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "support",
+                    "type": 0,
+                    "categoryName": "🎫 Tickets",
+                    "topic": "Ouvre un ticket pour contacter le staff • Nexora",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "1024",
+                            "deny": "2048"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "règle",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "66561",
+                            "deny": "133184"
+                        },
+                        {
+                            "roleName": "Administrateur",
+                            "allow": "68609",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "fondateur",
+                            "allow": "68608",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "co-fondateur",
+                            "allow": "68609",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "↪ Créer un salon",
+                    "type": 2,
+                    "categoryName": "🔊 Vocal",
+                    "bitrate": 64000,
+                    "overwrites": [
+                        {
+                            "roleName": "MEMBRE",
+                            "allow": "0",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "ticket",
+                    "type": 0,
+                    "categoryName": "🔖Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "3072",
+                            "deny": "196608"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "bye-bye✈",
+                    "type": 0,
+                    "categoryName": "👋Bienvenue",
+                    "overwrites": [
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "général",
+                    "type": 0,
+                    "categoryName": "🗣 pour parloter",
+                    "overwrites": [
+                        {
+                            "roleName": "MEMBRE",
+                            "allow": "3136",
+                            "deny": "131072"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "demandes-de-tickets",
+                    "type": 0,
+                    "categoryName": "🔖Tickets",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "Administrateur",
+                            "allow": "68672",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "fondateur",
+                            "allow": "0",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "co-fondateur",
+                            "allow": "0",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "vérification",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "68608",
+                            "deny": "0"
+                        }
+                    ]
+                },
+                {
+                    "name": "actus-image",
+                    "type": 0,
+                    "categoryName": "🗣 pour parloter",
+                    "overwrites": [
+                        {
+                            "roleName": "MEMBRE",
+                            "allow": "1024",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "sponser",
+                    "type": 0,
+                    "categoryName": "👋Bienvenue",
+                    "overwrites": [
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "🗓plannig",
+                    "type": 0,
+                    "categoryName": "👋Bienvenue",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "2048"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "📢-annonce",
+                    "type": 0,
+                    "categoryName": "🗣 pour parloter",
+                    "overwrites": [
+                        {
+                            "roleName": "Administrateur",
+                            "allow": "562952101104657",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "@everyone",
+                            "allow": "66560",
+                            "deny": "2048"
+                        },
+                        {
+                            "roleName": "fondateur",
+                            "allow": "70903468129361",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "co-fondateur",
+                            "allow": "562949953621008",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "mln_7643",
+                    "type": 0,
+                    "categoryName": "🔖Tickets",
+                    "topic": "Ticket demandé par <@1099122712477184091> le <t:1756147694:F>",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "Administrateur",
+                            "allow": "17179937872",
+                            "deny": "0"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "moderator-only",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "auto-rôle",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "sans-micro",
+                    "type": 0,
+                    "categoryName": "🗣 pour parloter",
+                    "overwrites": [
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "raidprotect-logs",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "trade",
+                    "type": 0,
+                    "categoryName": "🗣 pour parloter",
+                    "overwrites": [
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "economie",
+                    "type": 0,
+                    "categoryName": "🗣 pour parloter",
+                    "overwrites": [
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "accès-restreint",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "66560",
+                            "deny": "377957124160"
+                        }
+                    ]
+                },
+                {
+                    "name": "commande-eco",
+                    "type": 0,
+                    "categoryName": "🗣 pour parloter",
+                    "overwrites": [
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "honeypot",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        }
+                    ]
+                },
+                {
+                    "name": "enchère",
+                    "type": 0,
+                    "categoryName": "🗣 pour parloter",
+                    "overwrites": [
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "configuration",
+                    "type": 0,
+                    "categoryName": null,
+                    "overwrites": [
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                },
+                {
+                    "name": "annonce-nexora",
+                    "type": 0,
+                    "categoryName": null,
+                    "topic": "Annonce officielle de l'équipe Nexora — visible des administrateurs.",
+                    "overwrites": [
+                        {
+                            "roleName": "@everyone",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "Non vérifié",
+                            "allow": "0",
+                            "deny": "1024"
+                        },
+                        {
+                            "roleName": "⛓️ Jail ⛓️",
+                            "allow": "0",
+                            "deny": "377958173760"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
