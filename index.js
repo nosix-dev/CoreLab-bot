@@ -400,22 +400,10 @@ let statusIndex = 0;
 function getStatuses(client) {
   const totalMembers = client.guilds.cache.reduce((acc, g) => acc + g.memberCount, 0);
   return [{
-    name: '!help Pour voir les commande !',
-    type: 0
-  }, {
-    name: '/settings-panel pour commencer ✨',
-    type: 0
-  }, {
-    name: 'Suggestion, commentaire ou bug ?',
-    type: 0
-  }, {
-    name: '.gg/WecpyxrSBT 🔗',
+    name: '!help pour voir les commande !',
     type: 0
   }, {
     name: 'Version 5.5.1 ⚙️',
-    type: 0
-  }, {
-    name: '🎫 Support 24/7 !',
     type: 0
   }];
 }
@@ -538,6 +526,7 @@ client.once('ready', async () => {
   }
   startTasks(client);
   startEventLoop(client);
+  try { require('./src/core/dashboardServer').start(client); } catch (e) { console.error('❌ Dashboard:', e.message); }
   startCombat();
   startMarche(client);
   startStatusRotation(client);
@@ -1291,6 +1280,7 @@ registerPartnershipAutoHandler(client);
 registerBotRoleHandler(client);
 registerAutoRoleHandler(client);
 registerBumpReminderHandler(client);
+require('./src/commands/blacklist').registerBlacklistHandler(client);
 registerAutomodOnJoinHandler(client);
 registerIaMessageHandler(client);
 registerHelpHandler(client);
