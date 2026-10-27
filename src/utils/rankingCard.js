@@ -3,6 +3,7 @@
 const { createCanvas } = require('@napi-rs/canvas');
 const { themedCtx } = require('../core/cardTheme'); // si tu utilises 'canvas', change juste cette ligne
 const { AttachmentBuilder } = require('discord.js');
+const compactCard = require('../core/compactCard');
 
 const FONT = 'DejaVu Sans Mono, Consolas, monospace'; // remplace par la police de protect-settings si besoin
 const GREEN = '#2ecc71';
@@ -28,6 +29,7 @@ function cut(ctx, text, maxW) {
  * @param {string} [o.filename]
  */
 function buildRankingCard({ title, subtitle, badge = 'CLASSEMENT', rows, filename = 'classement.png', guildId = null }) {
+  if (compactCard.isCompact(guildId)) return new AttachmentBuilder(compactCard.renderCompactSync(compactCard.rankingSpec({ title, subtitle, badge, rows, guildId })), { name: filename });
   const list = rows.length ? rows : [{ name: 'Aucun résultat pour le moment', value: '' }];
   const W = 560, rowH = 42, gap = 8;
   const H = 108 + list.length * (rowH + gap) + 16;
