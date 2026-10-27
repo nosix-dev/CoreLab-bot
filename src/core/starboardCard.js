@@ -10,6 +10,7 @@ const fs = require('fs');
 const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 const { themedCtx, getTheme } = require('./cardTheme');
 const glass = require('./glassCard');
+const compact = require('./compactCard');
 
 // ── Polices (Poppins si présente dans src/assets/fonts, sinon police système) ──
 const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
@@ -230,6 +231,7 @@ function drawStarPath(ctx, cx, cy, R) {
  * @returns {Promise<Buffer>} PNG
  */
 async function generateStarboardCard(o) {
+  if (compact.isCompact(o.guildId)) return compact.renderCompact(compact.starboardSpec(o));
   const score = Math.max(0, o.score | 0);
   const th = Math.max(score, o.threshold | 0, 1);
   const author = String(o.author || 'Inconnu');
