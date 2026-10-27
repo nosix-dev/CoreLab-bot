@@ -118,6 +118,8 @@ function buildVideoEmbed(video) {
   return embed;
 }
 
+const { alreadyPosted } = require('../core/alreadyPosted');
+
 // Verrou anti-chevauchement
 let isChecking = false;
 let intervalStarted = false;
@@ -155,6 +157,12 @@ async function runCheck(client) {
         if (entry.lastVideoId === latest.id) continue;
         const discordChannel = guild.channels.cache.get(entry.channelId);
         if (!discordChannel?.isTextBased?.()) continue;
+        // Déjà postée dans le salon (état JSON perdu au redéploiement) : on la marque comme envoyée sans la reposter
+        if (await alreadyPosted(discordChannel, [latest.id, latest.url])) {
+          entry.lastVideoId = latest.id;
+          changed = true;
+          continue;
+        }
         entry.lastVideoId = latest.id;
         changed = true;
         persist('tiktokNotifs');
