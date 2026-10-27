@@ -10,7 +10,12 @@ const {
   TextInputStyle,
   MessageFlags,
   PermissionFlagsBits,
-  AttachmentBuilder
+  AttachmentBuilder,
+  StringSelectMenuBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize
 } = require('discord.js');
 const {
   getGuildConfig,
@@ -24,6 +29,9 @@ const {
 const {
   generateStarboardCard
 } = require('../core/starboardCard');
+const {
+  containerAccent
+} = require('../core/cardTheme');
 
 // ────────────────────────────────────────────────
 // Système StarBoard générique et configurable
@@ -210,6 +218,81 @@ async function resetEmoji(interaction) {
   cfg.starboard_emoji_customized = false;
   persist('configuration');
   return interaction.update(buildStarboardPayload(interaction.guild));
+}
+// ── Sélecteur d'émojis du serveur (liste paginée, 25 par page) ──
+const EMOJI_PAGE_SIZE = 25;
+function getSortedGuildEmojis(guild) {
+  return [...guild.emojis.cache.values()].sort((a, b) => a.name.localeCompare(b.name, 'fr', {
+    sensitivity: 'base'
+  }));
+}
+function buildEmojiPickerPayload(guild, page = 0) {
+  const cfg = getGuildConfig(guild.id);
+  const emojis = getSortedGuildEmojis(guild);
+  const totalPages = Math.max(1, Math.ceil(emojis.length / EMOJI_PAGE_SIZE));
+  const p = Math.min(Math.max(0, page), totalPages - 1);
+  const slice = emojis.slice(p * EMOJI_PAGE_SIZE, (p + 1) * EMOJI_PAGE_SIZE);
+  const current = cfg.starboard_emoji_customized ? cfg.starboard_emoji_raw : '❤️ Par défaut (cœur)';
+  const select = new StringSelectMenuBuilder().setCustomId('starboard_emoji_pick').setPlaceholder(`Choisis un émoji du serveur (${emojis.length})`).setMinValues(1).setMaxValues(1).addOptions(slice.map(e => {
+    const opt = {
+      label: e.name.slice(0, 100),
+      value: e.id,
+      emoji: {
+        id: e.id,
+        name: e.name,
+        animated: !!e.animated
+      },
+      default: String(cfg.starboard_emoji_id) === e.id
+    };
+    if (e.animated) opt.description = 'Émoji animé';
+    return opt;
+  }));
+  const navRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`starboard_emoji_page_${p - 1}`).setLabel('◀').setStyle(ButtonStyle.Secondary).setDisabled(p <= 0), new ButtonBuilder().setCustomId('starboard_emoji_page_noop').setLabel(`${p + 1}/${totalPages}`).setStyle(ButtonStyle.Secondary).setDisabled(true), new ButtonBuilder().setCustomId(`starboard_emoji_page_${p + 1}`).setLabel('▶').setStyle(ButtonStyle.Secondary).setDisabled(p >= totalPages - 1), new ButtonBuilder().setCustomId('starboard_emoji_manual_btn').setLabel('⌨️ Unicode').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_emoji_back_btn').setLabel('↩️ Retour').setStyle(ButtonStyle.Primary));
+  const container = new ContainerBuilder().setAccentColor(containerAccent(guild.id, 0xFFFFFF));
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ✨ Émoji du StarBoard\nÉmoji actuel : ${current}\n\nChoisis un émoji du serveur dans la liste ci-dessous.\n-# ${emojis.length} émoji(s) sur le serveur • page ${p + 1}/${totalPages} • « ⌨️ Unicode » pour saisir un émoji classique`));
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+  container.addActionRowComponents(new ActionRowBuilder().addComponents(select), navRow);
+  return {
+    components: [container],
+    files: [],
+    attachments: [],
+    flags: MessageFlags.IsComponentsV2
+  };
+}
+function ownerOnlyReply(interaction) {
+  return interaction.reply({
+    content: '❌ Seul le fondateur du serveur peut changer l\'émoji du StarBoard.',
+    flags: MessageFlags.Ephemeral
+  });
+}
+async function openEmojiPicker(interaction, page = 0) {
+  if (!isGuildOwner(interaction)) return ownerOnlyReply(interaction);
+  if (!interaction.guild.emojis.cache.size) await interaction.guild.emojis.fetch().catch(() => { });
+  // Aucun émoji perso sur le serveur : on garde la saisie manuelle (unicode)
+  if (!interaction.guild.emojis.cache.size) return openEmojiModal(interaction);
+  return interaction.update(buildEmojiPickerPayload(interaction.guild, page));
+}
+async function pickServerEmoji(interaction) {
+  if (!isGuildOwner(interaction)) return ownerOnlyReply(interaction);
+  const emoji = interaction.guild.emojis.cache.get(interaction.values[0]);
+  if (!emoji) {
+    return interaction.reply({
+      content: '❌ Cet émoji n\'existe plus sur le serveur.',
+      flags: MessageFlags.Ephemeral
+    });
+  }
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_emoji_raw = emoji.toString();
+  cfg.starboard_emoji_id = emoji.id;
+  cfg.starboard_emoji_customized = true;
+  persist('configuration');
+  return interaction.update(buildStarboardPayload(interaction.guild));
+}
+async function changeEmojiPage(interaction) {
+  if (!isGuildOwner(interaction)) return ownerOnlyReply(interaction);
+  const page = parseInt(interaction.customId.replace('starboard_emoji_page_', ''), 10);
+  if (!Number.isInteger(page)) return interaction.deferUpdate().catch(() => { });
+  return interaction.update(buildEmojiPickerPayload(interaction.guild, page));
 }
 async function openThresholdModal(interaction) {
   const cfg = getGuildConfig(interaction.guild.id);
@@ -424,12 +507,18 @@ async function routeStarboardInteraction(interaction) {
     const id = interaction.customId || '';
     if (interaction.isButton()) {
       if (id === 'starboard_toggle_btn') return toggleStarboardEnabled(interaction);
-      if (id === 'starboard_emoji_btn') return openEmojiModal(interaction);
+      if (id === 'starboard_emoji_btn') return openEmojiPicker(interaction);
+      if (id === 'starboard_emoji_manual_btn') return openEmojiModal(interaction);
+      if (id === 'starboard_emoji_back_btn') return refreshDashboard(interaction);
+      if (id.startsWith('starboard_emoji_page_')) return changeEmojiPage(interaction);
       if (id === 'starboard_emoji_reset_btn') return resetEmoji(interaction);
       if (id === 'starboard_threshold_btn') return openThresholdModal(interaction);
       if (id === 'starboard_selfstar_btn') return toggleSelfStar(interaction);
       if (id === 'starboard_nsfw_btn') return toggleIgnoreNsfw(interaction);
       if (id === 'starboard_removeonunstar_btn') return toggleRemoveOnUnstar(interaction);
+    }
+    if (interaction.isStringSelectMenu()) {
+      if (id === 'starboard_emoji_pick') return pickServerEmoji(interaction);
     }
     if (interaction.isChannelSelectMenu()) {
       if (id === 'starboard_channel_select') return saveStarboardChannel(interaction);
