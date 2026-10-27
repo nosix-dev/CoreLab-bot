@@ -4,6 +4,7 @@ const {
   ActionRowBuilder,
   ButtonStyle
 } = require('discord.js');
+const { findPostedMessage } = require('../core/alreadyPosted');
 const {
   store,
   persist
@@ -85,6 +86,16 @@ async function getLiveStatuses(usernames) {
   }, worker));
   return result;
 }
+// Déjà notifié ? (état JSON perdu au redéploiement alors que le stream tourne toujours)
+// Le live compte comme « nouveau » seulement s'il a démarré APRÈS la dernière notif du bot dans le salon.
+async function dejaNotifie(channel, entry, user) {
+  const prev = await findPostedMessage(channel, [`twitch.tv/${entry.twitchName}`], { maxAgeMs: 12 * 60 * 60 * 1000 });
+  if (!prev) return false;
+  const started = Date.parse(user?.stream?.createdAt || user?.stream?.startedAt || '') || 0;
+  if (started && started > prev.createdTimestamp + 60000) return false;
+  // sans heure de démarrage connue : on ne re-notifie pas un live annoncé il y a moins de 4 h
+  return started ? true : Date.now() - prev.createdTimestamp < 4 * 60 * 60 * 1000;
+}
 async function checkTwitchNotifications(client) {
   const guildBuckets = store.twitchNotifs || {};
   const guildIds = Object.keys(guildBuckets);
@@ -113,7 +124,7 @@ async function checkTwitchNotifications(client) {
         changed = true;
         try {
           const channel = await client.channels.fetch(entry.channelId);
-          if (channel?.send) {
+          if (channel?.send && !(await dejaNotifie(channel, entry, user))) {
             const displayName = user.displayName || entry.twitchName;
             const viewers = user.stream.viewersCount ?? 0;
             const followers = user.followers?.totalCount;
