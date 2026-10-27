@@ -4,6 +4,7 @@ const {
   ActionRowBuilder,
   ButtonStyle
 } = require('discord.js');
+const { alreadyPosted } = require('../core/alreadyPosted');
 const {
   store,
   persist
@@ -120,6 +121,13 @@ async function runCheck(client) {
         if (entry.lastClipId === latest.id) continue;
         const discordChannel = guild.channels.cache.get(entry.channelId);
         if (!discordChannel?.isTextBased?.()) continue;
+
+        // Déjà posté dans le salon (état JSON perdu au redéploiement) : on le marque comme envoyé sans le reposter
+        if (await alreadyPosted(discordChannel, [latest.id, latest.url])) {
+          entry.lastClipId = latest.id;
+          changed = true;
+          continue;
+        }
 
         // Marqué comme envoyé et persisté AVANT le send, pour éviter un double envoi
         entry.lastClipId = latest.id;
