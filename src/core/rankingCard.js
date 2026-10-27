@@ -18,6 +18,7 @@ const {
 } = require('discord.js');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
 const { themedCtx, containerAccent } = require('./cardTheme');
+const compactCard = require('./compactCard');
 
 // ── Police (même logique que protectCard.js) ──
 const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
@@ -64,6 +65,7 @@ function fit(ctx, text, maxW) {
  * @returns {Buffer} PNG
  */
 function renderRankingCard({ title, subtitle, badge = 'CLASSEMENT', rows, guildId = null }) {
+  if (compactCard.isCompact(guildId)) return compactCard.renderCompactSync(compactCard.rankingSpec({ title, subtitle, badge, rows, guildId }));
   const PAD = 26, GAP = 10, ROW_H = 58, W = 1240, HEAD = 112;
   const list = rows.length ? rows : [{ name: 'Aucun score pour le moment', value: '', empty: true }];
   const H = HEAD + list.length * (ROW_H + GAP) - GAP + PAD;
