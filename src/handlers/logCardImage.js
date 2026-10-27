@@ -448,7 +448,8 @@ function contentCompact(ctx, th, pal, ink, s) {
     rest = clean(toks.slice(1).map(t => (t.t === 'emoji' ? t.raw : t.v)).join(''));
   }
 
-  drawRich(ctx, rest, X0, 62, FONT_BOLD, 28, { color: pal.text });
+  const tSize = fitSize(ctx, rest, FONT_BOLD, 28, R - X0 - (s.time ? 100 : 0), 18);
+  drawRich(ctx, rest, X0, 62, FONT_BOLD, tSize, { color: pal.text });
   if (s.time) drawRich(ctx, clean(s.time), R, 62, FONT, S.time, { color: pal.dim, align: 'right' });
 
   let y = 98;
@@ -462,10 +463,47 @@ function contentCompact(ctx, th, pal, ink, s) {
   if (s.bigValue !== undefined && s.bigValue !== null && s.bigValue !== '') {
     items.push({ label: s.bigLabel || '', value: String(s.bigValue), accent: ink });
   }
+  // Mode « grille » (panneaux de config, classements) : lignes alignées, libellé à gauche / valeur à droite
+  if (s.grid) {
+    const cols = Math.max(1, s.grid | 0);
+    const GAPX = 28, RH = 58, PADI = 18, FS = 24;
+    const colW = (W - 2 * X - GAPX * (cols - 1)) / cols;
+    const top = X + TILE + 22;
+    items.forEach((b, i) => {
+      const cx = X + (i % cols) * (colW + GAPX);
+      const cy = top + Math.floor(i / cols) * RH;
+      const mid = cy + (RH - 8) / 2 + 8;
+      roundRect(ctx, cx, cy, colW, RH - 8, 12);
+      ctx.fillStyle = pal.box;
+      ctx.fill();
+      const val = cut(String(b.value ?? ''), s.valueMax || 40);
+      const vSize = fitSize(ctx, val, FONT_BOLD, FS, colW * 0.55, 15);
+      let rightEdge = cx + colW - PADI;
+      const wv = drawRich(ctx, val, rightEdge, mid, FONT_BOLD, vSize, { color: b.accent ? b.accent : pal.text, align: 'right' });
+      rightEdge -= wv;
+      if (b.dot) {
+        ctx.fillStyle = b.dot;
+        ctx.beginPath();
+        ctx.arc(rightEdge - 18, mid - 8, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = pal.ring;
+        ctx.stroke();
+        rightEdge -= 30;
+      }
+      const lab = clean(b.label);
+      const lSize = fitSize(ctx, lab, FONT, FS - 2, rightEdge - (cx + PADI) - 14, 14);
+      drawRich(ctx, lab, cx + PADI, mid, FONT, lSize, { color: pal.muted });
+    });
+    const rows = Math.ceil(items.length / cols);
+    y = top + rows * RH - 8 - 10;   // la suite (bottom = y + 10) part sous la dernière ligne
+    items.length = 0;                // plus rien à dessiner en ligne
+  }
+
   let x = X0;
   for (const b of items) {
     const lab = clean(b.label);
-    const val = cut(b.value, 40);
+    const val = cut(b.value, s.valueMax || 40);
     const wl = lab ? measureRich(ctx, `${lab} `, FONT, 19) : 0;
     const dotW = b.dot ? 24 : 0;
     const wv = measureRich(ctx, val, FONT_BOLD, 19);
@@ -484,6 +522,19 @@ function contentCompact(ctx, th, pal, ink, s) {
     }
     drawRich(ctx, val, x, y, FONT_BOLD, 19, { color: b.accent ? b.accent : pal.text });
     x += wv + 30;
+  }
+
+  // Barre de progression optionnelle (niveau, StarBoard…)
+  if (typeof s.progress === 'number') {
+    y += 26;
+    const bw = R - X0;
+    roundRect(ctx, X0, y, bw, 10, 5);
+    ctx.fillStyle = pal.line;
+    ctx.fill();
+    roundRect(ctx, X0, y, Math.max(10, bw * Math.max(0, Math.min(1, s.progress))), 10, 5);
+    ctx.fillStyle = ink;
+    ctx.fill();
+    y += 10;
   }
 
   const bottom = Math.max(X + TILE, y + 10);
