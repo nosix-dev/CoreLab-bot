@@ -28,6 +28,7 @@ const {
 } = require('discord.js');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
 const { themedCtx, containerAccent } = require('./cardTheme');
+const compactCard = require('./compactCard');
 
 // ── Police (même logique que protectCard.js) ──
 const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
@@ -342,7 +343,9 @@ function buildSettingsPayload({ guild, embed, rows = [], file = 'settings.png', 
     data.tiles.push(...extraTiles.map(t => ({ state: null, span: 1, ...t, label: String(t.label).toUpperCase() })));
     const opts = { scale, cols, width, compact, guildId: guild?.id || null };
     const cut = split > 0 && split < data.tiles.length ? split : 0;
-    const pngs = cut
+    const pngs = compactCard.isCompact(guild?.id)
+      ? [compactCard.renderCompactSync(compactCard.settingsSpec(data, guild?.id))]
+      : cut
       ? [
           renderSettingsCard({ ...data, tiles: data.tiles.slice(0, cut), pill, ...opts }),
           renderSettingsCard({ ...data, tiles: data.tiles.slice(cut), pill: null, header: false, ...opts })
