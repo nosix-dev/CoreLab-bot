@@ -54,7 +54,7 @@ const LOOKS = {
   neon: { label: 'Néon', emoji: '💡', desc: 'Bordure lumineuse et fond coloré' },
   sobre: { label: 'Sobre sombre', emoji: '⬛', desc: 'Fond uni, sans halo, accent discret' },
   clair: { label: 'Clair', emoji: '⬜', desc: 'Fond clair, texte sombre, sans halo' },
-  compact: { label: 'Compact', emoji: '📏', desc: 'Logs courts ; autres cartes en sobre' },
+  compact: { label: 'Compact', emoji: '📏', desc: 'Tuile d\'icône + infos sur une ligne (toutes les cartes)' },
   fume: { label: 'Verre fumé (défaut)', emoji: '🌫️', desc: 'Verre dépoli sombre sur fond très sombre' }
 };
 const LOG_STYLES = LOOKS; // ancien nom (compatibilité)
