@@ -538,7 +538,7 @@ async function updateStarboardCount(reaction) {
     console.error('Erreur maj starboard:', e.message);
   }
 }
-client.once('ready', async () => {
+client.once('clientReady', async () => {
   console.log('══════════════════════════════════════════════');
   console.log(`CoreLab connecté : ${client.user.tag} | ${client.guilds.cache.size} serveurs`);
   try {
@@ -1301,6 +1301,7 @@ registerNicknameGuardHandler(client);
 registerPartnershipAutoHandler(client);
 registerBotRoleHandler(client);
 registerAutoRoleHandler(client);
+require('./src/handlers/joinRequest').registerJoinRequestHandler(client);
 registerBumpReminderHandler(client);
 require('./src/commands/blacklist').registerBlacklistHandler(client);
 registerAutomodOnJoinHandler(client);
