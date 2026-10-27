@@ -357,6 +357,7 @@ async function fetchCurrentLive(channelId, fallbackName = null) {
 
 // Cache mémoire anti-doublon (en plus de la sauvegarde JSON)
 const sentIds = new Set();
+const { alreadyPosted } = require('../core/alreadyPosted');
 
 // Verrou anti-chevauchement : évite que deux exécutions se marchent dessus
 let isChecking = false;
@@ -484,7 +485,14 @@ async function runCheck(client) {
           if (live && live.id) {
             const liveCacheKey = `live_${guildId}_${notif.ytChannelId}_${live.id}`;
             const alreadySentLive = sentIds.has(liveCacheKey) || notif.lastLiveId === live.id;
-            if (!alreadySentLive) {
+            // Redéploiement (disque éphémère) : le JSON a été remis à zéro mais le live a déjà été annoncé dans le salon
+            const dejaPosteLive = !alreadySentLive && await alreadyPosted(discordCh, live.id);
+            if (dejaPosteLive) {
+              sentIds.add(liveCacheKey);
+              notif.lastLiveId = live.id;
+              modified = true;
+              persist('ytNotifs');
+            } else if (!alreadySentLive) {
               sentIds.add(liveCacheKey);
               notif.lastLiveId = live.id;
               if (live.author && live.author !== 'Chaîne inconnue') notif.channelName = live.author;
@@ -524,6 +532,14 @@ async function runCheck(client) {
             // continue implicite du bloc if
           } else {
             const cacheKey = `${guildId}_${notif.ytChannelId}_${latest.id}`;
+            // Déjà annoncée dans le salon (état JSON perdu au redéploiement) : on la marque comme envoyée sans la reposter
+            if (await alreadyPosted(discordCh, latest.id)) {
+              sentIds.add(cacheKey);
+              marquerVideoEnvoyee(notif, latest.id);
+              modified = true;
+              persist('ytNotifs');
+              continue;
+            }
             // On marque comme envoyé et on persiste AVANT le send,
             // pour qu'un check concurrent (autre process) ne double-poste pas.
             sentIds.add(cacheKey);
