@@ -111,7 +111,8 @@ function settingsSpec(data, guildId) {
     guildId,
     title: `⚙️ ${data.title}`,
     sub: data.subtitle || undefined,
-    valueMax: 64,
+    grid: data.tiles.length >= 5 ? 2 : 1,
+    valueMax: 48,
     blocks: data.tiles.map(t => ({
       label: cap(t.label),
       value: String(t.value ?? '—').split('\n').join(', '),
@@ -128,6 +129,7 @@ function rankingSpec({ title, subtitle, badge, rows, guildId }) {
     guildId,
     title: `🏆 ${title}`,
     sub: subtitle || undefined,
+    grid: 1,
     valueMax: 40,
     blocks: list
       ? list.map((r, i) => ({ label: `${i + 1}. ${r.name}`, value: String(r.value ?? '') }))
