@@ -2,13 +2,23 @@ const fs = require('fs');
 const path = require('path');
 const { FICHIERS } = require('./constants');
 
-const RACINE = path.join(__dirname, '..', '..');
+const RACINE_DEPOT = path.join(__dirname, '..', '..');
+// DATA_DIR (variable d'environnement, ex. /var/data avec un Render Disk) : les JSON y sont lus/écrits au lieu du dépôt,
+// donc ils survivent aux redéploiements. Au premier démarrage, chaque fichier absent est repris depuis le dépôt.
+const RACINE = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : RACINE_DEPOT;
+if (process.env.DATA_DIR) {
+    try { fs.mkdirSync(RACINE, { recursive: true }); } catch (e) { console.error('DATA_DIR inutilisable :', e.message); }
+}
 
 function chargerDonnees(cheminFichier, valeurParDefaut = {}) {
     const cheminComplet = path.isAbsolute(cheminFichier) ? cheminFichier : path.join(RACINE, cheminFichier);
-    if (!fs.existsSync(cheminComplet)) return structuredClone(valeurParDefaut);
+    let source = cheminComplet;
+    if (!fs.existsSync(source) && RACINE !== RACINE_DEPOT && !path.isAbsolute(cheminFichier)) {
+        source = path.join(RACINE_DEPOT, cheminFichier); // première fois : on part du fichier du dépôt
+    }
+    if (!fs.existsSync(source)) return structuredClone(valeurParDefaut);
     try {
-        return JSON.parse(fs.readFileSync(cheminComplet, 'utf8'));
+        return JSON.parse(fs.readFileSync(source, 'utf8'));
     } catch (erreur) {
         console.error(`Erreur lecture ${cheminFichier}:`, erreur.message);
         return structuredClone(valeurParDefaut);
