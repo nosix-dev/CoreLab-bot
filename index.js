@@ -11,6 +11,28 @@ try {
   console.error('Impossible de régler le timeout réseau :', e.message);
 }
 require('dotenv').config();
+
+// ────────────────────────────────────────────────
+// Serveur HTTP minimal (requis par Render pour un Web Service).
+// Démarre en premier pour que Render détecte le port tout de suite.
+// Sert aussi de cible de ping (UptimeRobot) pour garder l'instance éveillée.
+// ────────────────────────────────────────────────
+try {
+  const http = require('http');
+  const RENDER_PORT = process.env.PORT || 10000;
+  http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('CoreLab en ligne');
+  }).on('error', err => {
+    // Port déjà utilisé (ex. dashboard) : on ne plante pas le bot.
+    console.error('[HTTP] Serveur keep-alive non démarré :', err.message);
+  }).listen(RENDER_PORT, '0.0.0.0', () => {
+    console.log(`[HTTP] Serveur actif sur le port ${RENDER_PORT}`);
+  });
+} catch (e) {
+  console.error('[HTTP] Erreur :', e.message);
+}
+
 const fs = require('fs');
 const path = require('path');
 const {
@@ -1307,7 +1329,7 @@ async function connectWithRetry(client, token, maxRetries = 10) {
     } catch (err) {
       console.error(`[LOGIN] ❌ Échec tentative ${attempt}: ${err.message}`);
       if (attempt === maxRetries) {
-        console.error('[LOGIN] 🛑 Abandon après plusieurs tentatives. Le process va s\'arrêter (Wispbyte le relancera).');
+        console.error('[LOGIN] 🛑 Abandon après plusieurs tentatives. Le process va s\'arrêter (Render le relancera).');
         process.exit(1);
       }
       const delay = Math.min(5000 * attempt, 30000);
