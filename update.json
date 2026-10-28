@@ -10,9 +10,6 @@
       "[+] **Image de fond** : envoie ta propre image pour servir de fond à la carte.",
       "[+] **Aperçu en direct** : le rendu se met à jour automatiquement dans le panneau après chaque modification.",
       "[~] Les pastilles de la carte ont été légèrement descendues pour ne plus toucher un sous-titre sur deux lignes."
-    ],
-    "🛟 Serveur support": [
-      "[i] Une question, un bug, une suggestion ? Rejoins-nous en cliquant sur le bouton ci-dessous"
     ]
   },
   "boutons": [
@@ -20,11 +17,6 @@
       "label": "Inviter le bot",
       "emoji": "🚀",
       "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
-    },
-    {
-      "label": "Rejoindre le support",
-      "emoji": "🛟",
-      "url": "https://discord.gg/WecpyxrSBT"
     }
   ]
 }
