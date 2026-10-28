@@ -32,9 +32,17 @@ const {
   MessageFlags
 } = require('discord.js');
 
-const UPDATE_FILE = path.join(__dirname, '..', '..', 'update.json');
-const STATE_FILE = path.join(__dirname, '..', '..', 'update_state.json');
-const HISTORY_LIMIT = 25;      // messages récents du salon vérifiés (anti-doublon)
+const REPO_ROOT = path.join(__dirname, '..', '..');
+const UPDATE_FILE = path.join(REPO_ROOT, 'update.json');
+// Si DATA_DIR est défini (disque persistant, comme core/data.js), l'état de la dernière annonce y est gardé
+// et survit aux redéploiements. Sinon on retombe sur la vérification dans l'historique du salon.
+const STATE_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : REPO_ROOT;
+if (process.env.DATA_DIR) {
+  try { fs.mkdirSync(STATE_DIR, { recursive: true }); } catch (e) { console.error('[Update] DATA_DIR inutilisable :', e.message); }
+}
+const STATE_FILE = path.join(STATE_DIR, 'update_state.json');
+const HISTORY_PAGE = 100;      // messages récupérés par requête (max Discord)
+const HISTORY_PAGES = 5;       // 5 × 100 = 500 derniers messages du salon vérifiés (anti-doublon)
 const MAX_CHARS = 3500;        // Discord : 4000 caractères de texte max par message (Components V2)
 
 function readJson(file) {
@@ -193,24 +201,32 @@ function buildMessages(data, client, hash) {
  * null  : historique illisible (on ne sait pas → on n'envoie rien, par prudence)
  */
 async function alreadyPosted(channel, botId, hash, version) {
-  let msgs;
-  try {
-    msgs = await channel.messages.fetch({ limit: HISTORY_LIMIT });
-  } catch (e) {
-    console.error('[Update] Historique du salon illisible (permission « Voir les anciens messages » ?) :', e.message);
-    return null;
-  }
   const hashN = hashNeedle(hash);
   const legacyN = markerNeedle(version);
-  return msgs.some(m => {
-    if (m.author?.id !== botId) return false;
-    let hay = '';
-    try { hay += JSON.stringify(m.components ?? []); } catch { /* ignoré */ }
-    try { hay += JSON.stringify(m.toJSON?.() ?? {}); } catch { /* ignoré */ }
-    if (hay.includes(hashN)) return true;
-    // Annonce d'avant l'empreinte (même version, sans empreinte cachée) : considérée comme déjà envoyée.
-    return hay.includes(legacyN) && !hay.includes(`"description":"${HASH_PREFIX}`);
-  });
+  let before;
+  for (let page = 0; page < HISTORY_PAGES; page++) {
+    let msgs;
+    try {
+      msgs = await channel.messages.fetch(before ? { limit: HISTORY_PAGE, before } : { limit: HISTORY_PAGE });
+    } catch (e) {
+      console.error('[Update] Historique du salon illisible (permission « Voir les anciens messages » ?) :', e.message);
+      return null;
+    }
+    if (!msgs.size) break;
+    const found = msgs.some(m => {
+      if (m.author?.id !== botId) return false;
+      let hay = '';
+      try { hay += JSON.stringify(m.components ?? []); } catch { /* ignoré */ }
+      try { hay += JSON.stringify(m.toJSON?.() ?? {}); } catch { /* ignoré */ }
+      if (hay.includes(hashN)) return true;
+      // Annonce d'avant l'empreinte (même version, sans empreinte cachée) : considérée comme déjà envoyée.
+      return hay.includes(legacyN) && !hay.includes(`"description":"${HASH_PREFIX}`);
+    });
+    if (found) return true;
+    if (msgs.size < HISTORY_PAGE) break;
+    before = [...msgs.values()].reduce((a, b) => (BigInt(a.id) < BigInt(b.id) ? a : b)).id; // plus ancien message de la page
+  }
+  return false;
 }
 
 async function notifyUpdate(client) {
