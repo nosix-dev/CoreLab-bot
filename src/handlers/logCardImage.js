@@ -311,7 +311,7 @@ const rgba = (h, a) => { const [r, g, b] = hexRgb(h); return `rgba(${r},${g},${b
 
 const PAL = {
   sobre: { bg: '#1a1b1e', border: '#2e3035', text: '#f2f3f5', muted: '#8b8d93', dim: '#6d6f76', box: '#232428', line: '#2e3035', ring: '#5a5c63', dark: true },
-  clair: { bg: '#ffffff', border: '#e3e5e8', text: '#1a1b1e', muted: '#6b6e76', dim: '#8a8d95', box: '#f3f4f6', line: '#eceef0', ring: '#c9ccd1', dark: false },
+  clair: { bg: '#eef1f4', border: '#d5dbe2', text: '#1b2430', muted: '#76808c', dim: '#8a94a0', box: '#ffffff', line: '#d5dbe2', ring: '#b8c1cc', dark: false },
   fume: { bg: 'transparent', border: 'rgba(255,255,255,0.3)', text: '#ffffff', muted: 'rgba(255,255,255,0.65)', dim: 'rgba(255,255,255,0.5)', box: 'rgba(0,0,0,0.28)', line: 'rgba(255,255,255,0.16)', ring: 'rgba(255,255,255,0.45)', dark: true },
   compact: { bg: '#111214', border: '#26282c', text: '#f2f3f5', muted: '#8b8d93', dim: '#6d6f76', box: '#1a1b1e', line: '#26282c', ring: '#5a5c63', dark: true }
 };
@@ -336,7 +336,7 @@ function drawBlockStyled(ctx, pal, b, x, y, maxW) {
 }
 
 // zones de texte + pastilles (communes aux 3 styles)
-function drawQuotesPills(ctx, th, pal, ink, s, px, y, inner) {
+function drawQuotesPills(ctx, th, pal, ink, s, px, y, inner, rightEdge = W - px) {
   for (const q of s.quotes || []) {
     y += 4;
     drawRich(ctx, clean(q.label), px, y + 18, FONT, S.label, { color: pal.muted });
@@ -362,7 +362,7 @@ function drawQuotesPills(ctx, th, pal, ink, s, px, y, inner) {
       const col = pal.dark ? base : mixHex(base, '#000000', 0.35);
       const txt = cut(p.text, 30);
       const w = measureRich(ctx, txt, FONT_BOLD, S.pill) + 34;
-      if (x + w > W - px && x > px) { x = px; y += 46; }
+      if (x + w > rightEdge && x > px) { x = px; y += 46; }
       roundRect(ctx, x, y, w, 36, 18);
       ctx.fillStyle = pal.dark ? rgba(base, 0.14) : mixHex(base, '#ffffff', 0.88);
       ctx.fill();
@@ -601,6 +601,110 @@ function generateStyledCard(style, spec) {
 }
 
 
+// ───────────────────────────────────────────────────────────
+// Style « gris glacier » (défaut) : colonne latérale ardoise (icône, titre, heure, pied)
+// + zone d'infos claire à droite (grille, gros nombre, citations, pastilles).
+// ───────────────────────────────────────────────────────────
+const SPLIT_COL = 300;
+const SPLIT_PAD = 40;
+
+function generateSplitCard(spec) {
+  const th = THEMES[spec.theme] || THEMES.green;
+  const pal = PAL.clair;
+  const slate = '#475569';
+  const colColor = slate;
+  const ink = slate;
+  const rx = SPLIT_COL + SPLIT_PAD;               // début de la zone d'infos
+  const rRight = W - SPLIT_PAD;
+  const inner = rRight - rx;
+
+  const run = ctx => {
+    ctx.textBaseline = 'alphabetic';
+    let y = 44;
+    if (spec.sub) {
+      const sub = cut(spec.sub, 60);
+      drawRich(ctx, sub, rx, y + 14, FONT, fitSize(ctx, sub, FONT, S.sub, inner, 17), { color: pal.muted });
+      y += 46;
+    }
+    const blocks = spec.blocks || [];
+    const hasBig = spec.bigValue !== undefined && spec.bigValue !== null && spec.bigValue !== '';
+    const top = y;
+    if (hasBig) {
+      for (const b of blocks) y = drawBlockStyled(ctx, pal, b, rx, y, inner - 230);
+      const nx = rRight - 100;
+      drawRich(ctx, clean(spec.bigLabel || ''), nx, top + 18, FONT, S.label, { color: pal.muted, align: 'center' });
+      const big = String(spec.bigValue);
+      const bigSize = fitSize(ctx, big, FONT_BOLD, 96, 200, 36);
+      const bigY = top + 32 + bigSize * 0.9;
+      drawRich(ctx, big, nx, bigY, FONT_BOLD, bigSize, { color: ink, align: 'center' });
+      y = Math.max(y, bigY + 16);
+    } else if (blocks.length) {
+      const colW = inner / 2;
+      blocks.forEach((b, i) => {
+        drawBlockStyled(ctx, pal, b, rx + (i % 2) * colW, y + Math.floor(i / 2) * BLOCK_H, colW - 20);
+      });
+      y += Math.ceil(blocks.length / 2) * BLOCK_H;
+    }
+    return drawQuotesPills(ctx, th, pal, ink, spec, rx, y, inner, rRight);
+  };
+
+  const probe = createCanvas(W, 3000);
+  const yEnd = run(probe.getContext('2d'));
+  const H = Math.max(260, Math.ceil(yEnd + 72));
+
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext('2d'); // pas de recoloration : le gris glacier est la palette de ce style
+  const radius = 22;
+
+  ctx.save();
+  roundRect(ctx, 1, 1, W - 2, H - 2, radius);
+  ctx.clip();
+  ctx.fillStyle = pal.bg;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = colColor;
+  ctx.fillRect(0, 0, SPLIT_COL, H);
+  // fine barre de couleur = type de log (vert, rouge, orange…)
+  ctx.fillStyle = spec.theme === 'green' ? '#94a3b8' : th.accent;
+  ctx.fillRect(SPLIT_COL - 6, 0, 6, H);
+
+  // colonne : tuile d'icône, titre, heure, pied
+  const cx = 34, cw = SPLIT_COL - 2 * cx;
+  roundRect(ctx, cx, 34, 72, 72, 18);
+  ctx.fillStyle = 'rgba(255,255,255,0.16)';
+  ctx.fill();
+  const toks = tokenize(clean(spec.title));
+  let rest = clean(spec.title);
+  if (toks[0] && toks[0].t === 'emoji') {
+    drawRich(ctx, toks[0].raw, cx + 36, 34 + 36 + 13, FONT_BOLD, 38, { align: 'center' });
+    rest = clean(toks.slice(1).map(t => (t.t === 'emoji' ? t.raw : t.v)).join(''));
+  }
+  const tLines = wrap(ctx, rest, cw, 4, FONT_BOLD, 30);
+  tLines.forEach((l, i) => drawRich(ctx, l, cx, 150 + i * 38, FONT_BOLD, 30, { color: '#ffffff' }));
+  if (spec.time) {
+    drawRich(ctx, clean(spec.time), cx, H - 66, FONT, 19, { color: 'rgba(255,255,255,0.88)' });
+  }
+  if (spec.footerRight) {
+    const t = cut(spec.footerRight, 30);
+    drawRich(ctx, t, cx, H - 36, FONT, fitSize(ctx, t, FONT, 15, cw, 12), { color: 'rgba(255,255,255,0.62)' });
+  }
+
+  run(ctx);
+  if (spec.footerLeft) {
+    ctx.fillStyle = pal.line;
+    ctx.fillRect(rx, H - 62, inner, 2);
+    const t = cut(spec.footerLeft, 70);
+    drawRich(ctx, t, rx, H - 30, FONT, fitSize(ctx, t, FONT, S.footer, inner, 12), { color: pal.dim });
+  }
+  ctx.restore();
+
+  roundRect(ctx, 1, 1, W - 2, H - 2, radius);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = pal.border;
+  ctx.stroke();
+  return canvas.toBuffer('image/png');
+}
+
+
 // Style « verre fumé » : fond sombre + panneau de verre dépoli, mise en page « sobre »
 function generateGlassCard(spec) {
   const gt = getTheme(spec.guildId);
@@ -632,6 +736,7 @@ function generateGlassCard(spec) {
 function generateLogCard(spec) {
   const style = spec.logStyle || getTheme(spec.guildId).look;
   if (style === 'fume') return generateGlassCard(spec);
+  if (style === 'clair') return generateSplitCard(spec);
   if (style && style !== 'neon' && PAL[style]) return generateStyledCard(style, spec);
   return generateNeonCard(spec);
 }
