@@ -1056,7 +1056,7 @@ client.on('messageCreate', async message => {
     const ESC = '\u001b';
     const c = (code, text) => `${ESC}[${code}m${text}${ESC}[0m`;
     const ansi = text => `\`\`\`ansi\n${text}\n\`\`\``;
-    const PANEL_COLOR = 0xF59E0B;
+    const PANEL_COLOR = 0xFFFFFF;
     const avatar = client.user.displayAvatarURL();
     const hhmm = () => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
     const baseEmbed = () => new EmbedBuilder().setColor(PANEL_COLOR).setAuthor({ name: client.user.username, iconURL: avatar }).setThumbnail(avatar);
