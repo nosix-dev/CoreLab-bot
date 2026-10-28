@@ -53,16 +53,16 @@ const BG_MODES = {
 const LOOKS = {
   neon: { label: 'Néon', emoji: '💡', desc: 'Bordure lumineuse et fond coloré' },
   sobre: { label: 'Sobre sombre', emoji: '⬛', desc: 'Fond uni, sans halo, accent discret' },
-  clair: { label: 'Clair', emoji: '⬜', desc: 'Fond clair, texte sombre, sans halo' },
+  clair: { label: 'Clair (défaut)', emoji: '⬜', desc: 'Fond clair, texte sombre, sans halo' },
   compact: { label: 'Compact', emoji: '📏', desc: 'Tuile d\'icône + infos sur une ligne (toutes les cartes)' },
-  fume: { label: 'Verre fumé (défaut)', emoji: '🌫️', desc: 'Verre dépoli sombre sur fond très sombre' }
+  fume: { label: 'Verre fumé', emoji: '🌫️', desc: 'Verre dépoli sombre sur fond très sombre' }
 };
 const LOG_STYLES = LOOKS; // ancien nom (compatibilité)
 
 // Vert d'origine des mises en page (sert de référence : accent = ce vert → aucune recoloration).
 const SOURCE_ACCENT = '#2ecc71';
-// Thème par défaut d'un serveur : verre fumé en noir et blanc (halos blancs).
-const DEFAULT_THEME = Object.freeze({ preset: 'gris', accent: '#ffffff', bg: null, bgMode: 'normal', look: 'fume' });
+// Thème par défaut d'un serveur : style clair (fond clair, texte sombre), monochrome.
+const DEFAULT_THEME = Object.freeze({ preset: 'gris', accent: '#ffffff', bg: null, bgMode: 'normal', look: 'clair' });
 
 // ── Stockage (fichier JSON à la racine, écriture asynchrone sérialisée) ──
 let store = {};
