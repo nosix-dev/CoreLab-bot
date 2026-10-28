@@ -87,7 +87,72 @@ function persist() {
   const json = JSON.stringify(store, null, 2);
   writing = writing.catch(() => { }).then(() => fs.promises.writeFile(FILE, json, 'utf8'))
     .catch(e => console.error('[cardTheme] sauvegarde impossible :', e.message));
+  scheduleRemoteSave();
   return writing;
+}
+
+// ── Sauvegarde distante dans Discord (survit aux redéploiements Render sans disque payant) ──
+// Variable d'environnement THEME_STORE_CHANNEL_ID : ID d'un salon PRIVÉ (visible du bot seulement).
+// Le bot y garde un message avec le fichier card_themes.json, relu au démarrage et mis à jour à chaque changement.
+const REMOTE_NAME = 'card_themes.json';
+let remoteClient = null;
+let remoteReady = false;   // true seulement après une lecture réussie (évite d'écraser la sauvegarde avec le dépôt)
+let remoteMsg = null;
+let remoteTimer = null;
+
+async function getRemoteChannel() {
+  const id = process.env.THEME_STORE_CHANNEL_ID;
+  if (!id || !remoteClient) return null;
+  return remoteClient.channels.fetch(id).catch(() => null);
+}
+
+async function initRemote(client) {
+  remoteClient = client;
+  if (!process.env.THEME_STORE_CHANNEL_ID) {
+    console.warn('[cardTheme] THEME_STORE_CHANNEL_ID absent : les thèmes ne survivront pas aux redéploiements (sauf DATA_DIR).');
+    return;
+  }
+  try {
+    const ch = await getRemoteChannel();
+    if (!ch || !ch.messages) throw new Error('salon introuvable ou inaccessible');
+    const msgs = await ch.messages.fetch({ limit: 50 });
+    remoteMsg = msgs.find(m => m.author.id === client.user.id && m.attachments.some(a => a.name === REMOTE_NAME)) || null;
+    if (remoteMsg) {
+      const att = remoteMsg.attachments.find(a => a.name === REMOTE_NAME);
+      const res = await fetch(att.url);
+      if (!res.ok) throw new Error('téléchargement HTTP ' + res.status);
+      const remote = await res.json();
+      if (remote && typeof remote === 'object') {
+        store = remote;
+        await fs.promises.writeFile(FILE, JSON.stringify(store, null, 2), 'utf8').catch(() => { });
+        console.log('[cardTheme] thèmes restaurés depuis Discord (' + Object.keys(store).length + ' serveurs).');
+      }
+    }
+    remoteReady = true;
+    if (!remoteMsg) scheduleRemoteSave(); // première fois : on crée la sauvegarde
+  } catch (e) {
+    console.error('[cardTheme] restauration Discord impossible :', e.message);
+  }
+}
+
+function scheduleRemoteSave() {
+  if (!remoteReady) return;
+  clearTimeout(remoteTimer);
+  remoteTimer = setTimeout(saveRemote, 3000);
+}
+
+async function saveRemote() {
+  try {
+    const ch = await getRemoteChannel();
+    if (!ch || !ch.send) return;
+    const payload = { content: 'Sauvegarde des thèmes de cartes (ne pas supprimer)', files: [{ attachment: Buffer.from(JSON.stringify(store, null, 2), 'utf8'), name: REMOTE_NAME }] };
+    if (remoteMsg) {
+      try { remoteMsg = await remoteMsg.edit({ ...payload, attachments: [] }); return; } catch { remoteMsg = null; }
+    }
+    remoteMsg = await ch.send(payload);
+  } catch (e) {
+    console.error('[cardTheme] sauvegarde Discord impossible :', e.message);
+  }
 }
 
 const HEX_RE = /^#?([0-9a-f]{6})$/i;
@@ -105,7 +170,7 @@ function getTheme(guildId) {
     accent: normHex(t.accent) || SOURCE_ACCENT,
     bg: normHex(t.bg),
     bgMode: BG_MODES[t.bgMode] ? t.bgMode : 'normal',
-    look: LOOKS[t.look || t.logStyle] ? (t.look || t.logStyle) : 'neon'
+    look: LOOKS[t.look || t.logStyle] ? (t.look || t.logStyle) : 'clair'
   };
 }
 
@@ -120,7 +185,7 @@ function setTheme(guildId, patch) {
   if (patch.accent !== undefined) next.accent = normHex(patch.accent) || cur.accent;
   if (patch.bg !== undefined) next.bg = patch.bg ? normHex(patch.bg) : null;
   if (!BG_MODES[next.bgMode]) next.bgMode = 'normal';
-  if (!LOOKS[next.look]) next.look = 'neon';
+  if (!LOOKS[next.look]) next.look = 'clair';
   store[String(guildId)] = { preset: next.preset, accent: next.accent, bg: next.bg, bgMode: next.bgMode, look: next.look };
   persist();
   return getTheme(guildId);
@@ -405,6 +470,7 @@ function containerAccent(guildId, fallback = 0xFFFFFF) {
 }
 
 module.exports = {
+  initRemote,
   containerAccent,
   PRESETS,
   BG_MODES,
