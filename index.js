@@ -588,6 +588,7 @@ async function updateStarboardCount(reaction) {
 client.once('clientReady', async () => {
   console.log('══════════════════════════════════════════════');
   console.log(`CoreLab connecté : ${client.user.tag} | ${client.guilds.cache.size} serveurs`);
+  try { await require('./src/core/cardTheme').initRemote(client); } catch (e) { console.error('[cardTheme] init:', e.message); }
   try {
     await registerCommands(client);
   } catch (e) {
