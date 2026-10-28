@@ -28,6 +28,7 @@ const {
   getGuildConfig,
   getGuildBucket
 } = require('../core/config');
+const { openCardEditor } = require('../core/welcomeCardConfig');
 const {
   safeReply,
   safeComponentUpdate
@@ -527,15 +528,15 @@ function buildCategoryEmbed(catKey, cfg, guildId) {
   if (catKey === 'premium') {
     embed.addFields({
       name: '⭐ Tout ce qui est Premium sur CoreLab',
-      value: '🎨 **Personnalisation**\n' + '• 👋 Bienvenue / au revoir (message, image, boutons) → boutons ci-dessous\n' + '• 🖼️ Image de l\'annonce de niveau → bouton ci-dessous\n' + '• 🎫 Tickets : apparence, message d\'ouverture, image → `/settings ticket`\n' + '• 📜 `/reglement` et 🗳️ `/vote` : titres, couleurs, images → dans ces commandes\n\n' + '⭐ **Premium**\n' + '• 🖐️ Bouton Claim des tickets → `/settings ticket`\n' + '• 💾 `/backup` (create, load, list, delete, info)\n' + '• 🔔 Notifications suivies illimitées → `/notification`',
+      value: '🎨 **Personnalisation**\n' + '• 👋 Bienvenue / au revoir (message, image, boutons, carte par défaut entièrement modifiable) → boutons ci-dessous\n' + '• 🖼️ Image de l\'annonce de niveau → bouton ci-dessous\n' + '• 🎫 Tickets : apparence, message d\'ouverture, image → `/settings ticket`\n' + '• 📜 `/reglement` et 🗳️ `/vote` : titres, couleurs, images → dans ces commandes\n\n' + '⭐ **Premium**\n' + '• 🖐️ Bouton Claim des tickets → `/settings ticket`\n' + '• 💾 `/backup` (create, load, list, delete, info)\n' + '• 🔔 Notifications suivies illimitées → `/notification`',
       inline: false
     });
   }
   return embed;
 }
 function buildWelcomeGoodbyeButtonRows(guildId) {
-  const row1 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('config_welcome_msg_btn').setLabel('👋 Message').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('config_welcome_img_btn').setLabel('👋 Image').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_welcome_links_btn').setLabel('👋 Boutons').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_welcome_reset_btn').setLabel('👋 Réinit.').setStyle(ButtonStyle.Danger));
-  const row2 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('config_goodbye_msg_btn').setLabel('🚪 Message').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('config_goodbye_img_btn').setLabel('🚪 Image').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_goodbye_links_btn').setLabel('🚪 Boutons').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_goodbye_reset_btn').setLabel('🚪 Réinit.').setStyle(ButtonStyle.Danger));
+  const row1 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('config_welcome_msg_btn').setLabel('👋 Message').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('config_welcome_img_btn').setLabel('👋 Image').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_welcome_links_btn').setLabel('👋 Boutons').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_welcome_card_btn').setLabel('👋 Carte').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_welcome_reset_btn').setLabel('👋 Réinit.').setStyle(ButtonStyle.Danger));
+  const row2 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('config_goodbye_msg_btn').setLabel('🚪 Message').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('config_goodbye_img_btn').setLabel('🚪 Image').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_goodbye_links_btn').setLabel('🚪 Boutons').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_goodbye_card_btn').setLabel('🚪 Carte').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_goodbye_reset_btn').setLabel('🚪 Réinit.').setStyle(ButtonStyle.Danger));
   return [row1, row2];
 }
 function buildCategorySelectRow(guildId) {
@@ -625,7 +626,7 @@ async function executePanneau(interaction) {
   await interaction.editReply(configPayload(homeEmbed, [catRow]));
   const replyMessage = await interaction.fetchReply();
   const collector = replyMessage.createMessageComponentCollector({
-    filter: i => i.user.id === interaction.user.id && (i.customId === 'config_category_select' || i.customId === 'config_back_home' || i.customId.startsWith('config_setting_select_') || i.customId.startsWith('config_set_role_') || i.customId.startsWith('config_set_channel_') || i.customId === 'config_welcome_msg_btn' || i.customId === 'config_welcome_img_btn' || i.customId === 'config_welcome_links_btn' || i.customId === 'config_welcome_reset_btn' || i.customId === 'config_goodbye_msg_btn' || i.customId === 'config_goodbye_img_btn' || i.customId === 'config_goodbye_links_btn' || i.customId === 'config_goodbye_reset_btn' || i.customId === 'config_xp_add_btn' || i.customId === 'config_xp_remove_btn' || i.customId === 'config_xp_reset_btn' || i.customId === 'config_xp_roles_btn' || i.customId === 'config_logstyle_embed' || i.customId === 'config_logstyle_image' || i.customId === 'config_xp_img_btn' || i.customId === 'config_xp_role_add_btn' || i.customId === 'config_xp_role_remove_select' || i.customId === 'config_xp_back_btn' || i.customId === 'config_xp_roles_mode_btn' || i.customId === 'config_xp_role_pick' || i.customId.startsWith('config_xp_select_')),
+    filter: i => i.user.id === interaction.user.id && (i.customId === 'config_category_select' || i.customId === 'config_back_home' || i.customId.startsWith('config_setting_select_') || i.customId.startsWith('config_set_role_') || i.customId.startsWith('config_set_channel_') || i.customId === 'config_welcome_msg_btn' || i.customId === 'config_welcome_img_btn' || i.customId === 'config_welcome_links_btn' || i.customId === 'config_welcome_card_btn' || i.customId === 'config_goodbye_card_btn' || i.customId === 'config_welcome_reset_btn' || i.customId === 'config_goodbye_msg_btn' || i.customId === 'config_goodbye_img_btn' || i.customId === 'config_goodbye_links_btn' || i.customId === 'config_goodbye_reset_btn' || i.customId === 'config_xp_add_btn' || i.customId === 'config_xp_remove_btn' || i.customId === 'config_xp_reset_btn' || i.customId === 'config_xp_roles_btn' || i.customId === 'config_logstyle_embed' || i.customId === 'config_logstyle_image' || i.customId === 'config_xp_img_btn' || i.customId === 'config_xp_role_add_btn' || i.customId === 'config_xp_role_remove_select' || i.customId === 'config_xp_back_btn' || i.customId === 'config_xp_roles_mode_btn' || i.customId === 'config_xp_role_pick' || i.customId.startsWith('config_xp_select_')),
     time: 300000
   });
   collector.on('collect', async i => {
@@ -960,6 +961,13 @@ async function executePanneau(interaction) {
         return;
       }
 
+      // ── Bienvenue / Au revoir : éditeur de la carte (image par défaut) ──
+      if (i.customId === 'config_welcome_card_btn' || i.customId === 'config_goodbye_card_btn') {
+        if (!(await requireCustomization(i))) return;
+        await openCardEditor(i, i.customId === 'config_welcome_card_btn' ? 'welcome' : 'goodbye');
+        return;
+      }
+
       // ── Bienvenue / Au revoir : boutons de lien personnalisés ──
       if (i.customId === 'config_welcome_links_btn' || i.customId === 'config_goodbye_links_btn') {
         if (!(await requireCustomization(i))) return;
@@ -1005,6 +1013,11 @@ async function executePanneau(interaction) {
         const isWelcome = i.customId === 'config_welcome_reset_btn';
         const gcfg = getGuildConfig(interaction.guild.id);
         delete gcfg[isWelcome ? 'welcome_appearance' : 'goodbye_appearance'];
+        delete gcfg[isWelcome ? 'welcome_card' : 'goodbye_card'];
+        for (const ext of ['png', 'jpg', 'jpeg', 'webp', 'gif']) {
+          const bgPath = path.join(__dirname, '..', '..', 'card_backgrounds', `${interaction.guild.id}_${isWelcome ? 'welcome' : 'goodbye'}.${ext}`);
+          if (fs.existsSync(bgPath)) fs.unlinkSync(bgPath);
+        }
         persist('config');
         const dirName = isWelcome ? 'welcome_images' : 'goodbye_images';
         const dir = path.join(__dirname, '..', '..', dirName);
