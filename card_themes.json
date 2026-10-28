@@ -4,47 +4,48 @@
     "accent": "#ffffff",
     "bg": null,
     "bgMode": "doux",
-    "look": "fume"
+    "look": "clair"
   },
   "1529977373158674704": {
     "preset": "gris",
     "accent": "#ffffff",
     "bg": null,
     "bgMode": "doux",
-    "look": "fume"
+    "look": "clair"
   },
   "1492875979142598716": {
     "preset": "gris",
     "accent": "#ffffff",
     "bg": null,
     "bgMode": "normal",
-    "look": "fume"
+    "look": "clair"
   },
   "1523341494763913338": {
     "preset": "bleu",
     "accent": "#3b82f6",
     "bg": null,
-    "bgMode": "doux"
+    "bgMode": "doux",
+    "look": "clair"
   },
   "1559930523747618866": {
     "preset": "gris",
     "accent": "#ffffff",
     "bg": null,
     "bgMode": "normal",
-    "look": "fume"
+    "look": "clair"
   },
   "1462488578163740685": {
     "preset": "gris",
     "accent": "#ffffff",
     "bg": null,
     "bgMode": "profond",
-    "look": "fume"
+    "look": "clair"
   },
   "1504444554621751386": {
     "preset": "gris",
     "accent": "#ffffff",
     "bg": null,
     "bgMode": "profond",
-    "look": "sobre"
+    "look": "clair"
   }
 }
