@@ -19,12 +19,59 @@ require('dotenv').config();
 // ────────────────────────────────────────────────
 try {
   const http = require('http');
+  const os = require('os');
   const RENDER_PORT = process.env.PORT || 10000;
+
+  // CPU du process, échantillonné toutes les 5 s
+  let lastUsage = process.cpuUsage(), lastTime = Date.now(), cpuPct = 0;
+  setInterval(() => {
+    const t = Date.now() - lastTime;
+    const u = process.cpuUsage(lastUsage);
+    cpuPct = ((u.user + u.system) / 1000 / t / os.cpus().length) * 100;
+    lastUsage = process.cpuUsage();
+    lastTime = Date.now();
+  }, 5000).unref();
+
+  const buildStatus = () => {
+    const fsl = require('fs');
+    let storage = { used: 0, total: 0 };
+    try {
+      const s = fsl.statfsSync('/');
+      storage = { total: s.bsize * s.blocks, used: s.bsize * (s.blocks - s.bavail) };
+    } catch {}
+    // Mémoire : limite du conteneur si elle existe, sinon RAM de la machine
+    let memTotal = os.totalmem();
+    try {
+      const m = fsl.readFileSync('/sys/fs/cgroup/memory.max', 'utf8').trim();
+      if (m !== 'max') memTotal = Math.min(memTotal, Number(m));
+    } catch {}
+    return {
+      bot: client.isReady() ? 'online' : 'offline',
+      discord: client.ws.status === 0 ? 'ok' : 'down',
+      latency_ms: Math.max(0, Math.round(client.ws.ping)),
+      uptime_s: Math.floor((client.uptime || 0) / 1000),
+      servers: client.guilds.cache.size,
+      users: client.guilds.cache.reduce((a, g) => a + (g.memberCount || 0), 0),
+      commands: client.commands?.size || 0,
+      cpu: { percent: Math.min(100, +cpuPct.toFixed(1)), cores: os.cpus().length, model: os.cpus()[0]?.model || '' },
+      memory: { used: process.memoryUsage().rss, total: memTotal },
+      storage,
+    };
+  };
+
   http.createServer((req, res) => {
+    if (req.url.split('?')[0] === '/status') {
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-store'
+      });
+      try { return res.end(JSON.stringify(buildStatus())); }
+      catch { return res.end(JSON.stringify({ bot: 'offline' })); }
+    }
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('CoreLab en ligne');
   }).on('error', err => {
-    // Port déjà utilisé (ex. dashboard) : on ne plante pas le bot.
     console.error('[HTTP] Serveur keep-alive non démarré :', err.message);
   }).listen(RENDER_PORT, '0.0.0.0', () => {
     console.log(`[HTTP] Serveur actif sur le port ${RENDER_PORT}`);
