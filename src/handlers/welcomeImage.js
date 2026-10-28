@@ -210,6 +210,7 @@ function registerWelcomeImageHandler(client) {
                     avatarUrl: member.displayAvatarURL({ extension: 'png', size: 256 }),
                     serverName: member.guild.name,
                     memberCount: member.guild.memberCount,
+                    card: cfg.welcome_card,
                     createdTs: member.user.createdTimestamp
                 }).catch(e => { console.error('Carte de bienvenue (verre) impossible :', e.message); return null; });
             }
