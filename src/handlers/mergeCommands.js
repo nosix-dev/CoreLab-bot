@@ -173,11 +173,10 @@ const MERGES = [
   },
   {
     name: 'panel',
-    description: '🧰 Panneaux : protection, crypto, cartes, bump',
+    description: '🧰 Panneaux : protection, crypto, bump',
     subs: [
       { from: 'protect-settings', as: 'protection', en: 'protection' },
       { from: 'crypto-panel', as: 'crypto', en: 'crypto' },
-      { from: 'cartes-style', as: 'cartes', en: 'cards' },
       { from: 'bump-rappel', as: 'bump', en: 'bump' }
     ]
   },
