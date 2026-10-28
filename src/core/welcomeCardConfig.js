@@ -70,6 +70,7 @@ function summary(guildId, kind) {
     `Pastilles — n° de membre : ${val(c.pillMember)} · compte créé : ${val(c.pillCreated)}${kind === 'goodbye' ? ` · arrivé le : ${val(c.pillJoined)}` : ''}`,
     `**Style** — ${c.style === 'sombre' ? 'sombre (verre fumé)' : 'clair'} · accent : ${val(c.accent)} · fond : ${val(c.bg)} · texte : ${val(c.textColor)} · avatar : ${c.hideAvatar ? 'masqué' : 'affiché'}`,
     `**Image de fond** — ${bg ? `✅ définie (${bg.ext})` : 'aucune'}`,
+    '👁️ L\'aperçu ci-dessous se met à jour automatiquement après chaque modification.',
     '',
     'Variables dans les textes : `{user.name}` `{server.name}` `{server.member_count}`',
     'Un champ laissé vide = valeur par défaut. Mets `-` pour masquer un élément.',
@@ -86,7 +87,6 @@ function panelRows(kind) {
       new ButtonBuilder().setCustomId(`${p}bg`).setLabel('🖼️ Image de fond').setStyle(ButtonStyle.Secondary)
     ),
     new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`${p}preview`).setLabel('👁️ Aperçu').setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId(`${p}bgdel`).setLabel('Retirer le fond').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`${p}reset`).setLabel('♻️ Tout réinitialiser').setStyle(ButtonStyle.Danger)
     )
@@ -146,14 +146,23 @@ async function renderPreview(interaction, kind) {
 async function openCardEditor(i, kind) {
   const guildId = i.guild.id;
   const p = `wcard_${kind}_`;
-  const msg = await i.reply({
-    content: summary(guildId, kind),
-    components: panelRows(kind),
-    flags: MessageFlags.Ephemeral,
-    fetchReply: true
-  });
+  await i.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const refresh = () => i.editReply({ content: summary(guildId, kind), components: panelRows(kind) }).catch(() => { });
+  // Aperçu en direct : l'image du panneau est régénérée après chaque modification
+  let n = 0;
+  const buildPanel = async () => {
+    const payload = { content: summary(guildId, kind), components: panelRows(kind), files: [], attachments: [] };
+    try {
+      const buf = await renderPreview(i, kind);
+      payload.files = [new AttachmentBuilder(buf, { name: `apercu_${Date.now().toString(36)}${n++}.png` })];
+    } catch (e) {
+      console.error('[welcomeCardConfig] aperçu impossible :', e.message);
+    }
+    return payload;
+  };
+  const refresh = async () => i.editReply(await buildPanel()).catch(() => { });
+
+  const msg = await i.editReply(await buildPanel());
   const collector = msg.createMessageComponentCollector({
     filter: bi => bi.user.id === i.user.id && bi.customId.startsWith(p),
     time: PANEL_TIMEOUT_MS
@@ -183,7 +192,7 @@ async function openCardEditor(i, kind) {
           patch[k] = readText(sub.fields, k) || null; // vide → défaut
         }
         patchCard(guildId, kind, patch);
-        await sub.reply({ content: '✅ Textes enregistrés. Clique sur « 👁️ Aperçu » pour voir le rendu.', flags: MessageFlags.Ephemeral });
+        await sub.reply({ content: '✅ Textes enregistrés.', flags: MessageFlags.Ephemeral });
         return refresh();
       }
 
@@ -219,7 +228,7 @@ async function openCardEditor(i, kind) {
           accent, bg, textColor,
           hideAvatar: avatar === 'hide' ? true : avatar === 'show' ? null : undefined
         });
-        await sub.reply({ content: '✅ Style enregistré. Clique sur « 👁️ Aperçu » pour voir le rendu.', flags: MessageFlags.Ephemeral });
+        await sub.reply({ content: '✅ Style enregistré.', flags: MessageFlags.Ephemeral });
         return refresh();
       }
 
@@ -241,7 +250,7 @@ async function openCardEditor(i, kind) {
             fs.mkdirSync(CARD_BG_DIR, { recursive: true });
             removeBackground(guildId, kind);
             fs.writeFileSync(path.join(CARD_BG_DIR, `${guildId}_${kind}.${extFromType}`), buffer);
-            await bi.followUp({ content: '✅ Image de fond enregistrée. Clique sur « 👁️ Aperçu » pour voir le rendu.', flags: MessageFlags.Ephemeral });
+            await bi.followUp({ content: '✅ Image de fond enregistrée.', flags: MessageFlags.Ephemeral });
             refresh();
           } catch (e) {
             console.error('Image de fond de carte non enregistrée :', e.message);
@@ -265,12 +274,6 @@ async function openCardEditor(i, kind) {
         removeBackground(guildId, kind);
         await bi.reply({ content: '✅ Carte réinitialisée (rendu par défaut).', flags: MessageFlags.Ephemeral });
         return refresh();
-      }
-
-      if (action === 'preview') {
-        await bi.deferReply({ flags: MessageFlags.Ephemeral });
-        const buf = await renderPreview(bi, kind);
-        return bi.editReply({ content: 'Aperçu avec ton profil :', files: [new AttachmentBuilder(buf, { name: 'apercu.png' })] });
       }
     } catch (e) {
       console.error('[welcomeCardConfig]', e.message);
