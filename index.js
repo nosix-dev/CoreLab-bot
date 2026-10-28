@@ -472,7 +472,7 @@ function getStatuses(client) {
     name: '!help pour voir les commande !',
     type: 0
   }, {
-    name: 'Version 5.5.3 ⚙️',
+    name: 'Version 5.5.1 ⚙️',
     type: 0
   }];
 }
@@ -588,7 +588,6 @@ async function updateStarboardCount(reaction) {
 client.once('clientReady', async () => {
   console.log('══════════════════════════════════════════════');
   console.log(`CoreLab connecté : ${client.user.tag} | ${client.guilds.cache.size} serveurs`);
-  try { await require('./src/core/cardTheme').initRemote(client); } catch (e) { console.error('[cardTheme] init:', e.message); }
   try {
     await registerCommands(client);
   } catch (e) {
@@ -1053,45 +1052,72 @@ client.on('messageCreate', async message => {
     const seconds = Math.floor(uptime % 60000 / 1000);
     const uptimeStr = hours > 0 ? `${hours}h ${minutes}m ${seconds}s` : `${minutes}m ${seconds}s`;
     const totalCommands = client.commands?.size || 0;
-    const panelBanner = new AttachmentBuilder(PANEL_BANNER_PATH, {
-      name: 'standard.gif'
+    // Panneau de contrôle : embed sans image, blocs ANSI colorés + boutons de navigation
+    const ESC = '\u001b';
+    const c = (code, text) => `${ESC}[${code}m${text}${ESC}[0m`;
+    const ansi = text => `\`\`\`ansi\n${text}\n\`\`\``;
+    const PANEL_COLOR = 0xF59E0B;
+    const avatar = client.user.displayAvatarURL();
+    const hhmm = () => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
+    const baseEmbed = () => new EmbedBuilder().setColor(PANEL_COLOR).setAuthor({ name: client.user.username, iconURL: avatar }).setThumbnail(avatar);
+    const footerText = `${client.user.username} • Panneau principal • Aujourd'hui à ${hhmm()}`;
+    const upStr = () => {
+      const u = client.uptime;
+      const h = Math.floor(u / 3600000), m = Math.floor(u % 3600000 / 60000), sec = Math.floor(u % 60000 / 1000);
+      return h > 0 ? `${h}h ${m}m ${sec}s` : `${m}m ${sec}s`;
+    };
+    const buildHome = () => baseEmbed()
+      .setDescription(
+        `### ┃ Bienvenue sur le panneau de contrôle\n> *Système de gestion Discord avancé — en ligne et opérationnel.*\n` +
+        ansi(`${c('2;33', '◈ STATUT SYSTÈME')}\n${c('2;32', '● En ligne')}  ·  Latence ${c('2;36', Math.round(client.ws.ping) + 'ms')}  ·  Uptime ${c('2;35', upStr())}`)
+      )
+      .addFields(
+        { name: '📡 Serveurs actifs', value: ansi(`${c('2;36', client.guilds.cache.size)} serveurs`), inline: true },
+        { name: '⚙️ Commandes', value: ansi(`${c('2;36', client.commands?.size || 0)} disponibles`), inline: true },
+        { name: '🏷️ Serveur actuel', value: ansi(`${c('2;34', message.guild.name)}\n${c('2;30', `[${message.guild.id}]`)}`), inline: false },
+        { name: '👨‍💻 Développeur', value: `<@${BOT_OWNER_ID}>`, inline: false }
+      )
+      .setFooter({ text: footerText, iconURL: avatar });
+    const buildStats = () => {
+      const members = client.guilds.cache.reduce((n, g) => n + (g.memberCount || 0), 0);
+      const mem = Math.round(process.memoryUsage().rss / 1048576);
+      return baseEmbed()
+        .setDescription(
+          `### ┃ Statistiques\n> *Chiffres en direct du bot.*\n` +
+          ansi(`${c('2;33', '◈ GLOBAL')}\nServeurs    ${c('2;36', client.guilds.cache.size)}\nMembres     ${c('2;36', members.toLocaleString('fr-FR'))}\nCommandes   ${c('2;36', client.commands?.size || 0)}`)
+        )
+        .addFields(
+          { name: '📡 Latence', value: ansi(c('2;32', Math.round(client.ws.ping) + ' ms')), inline: true },
+          { name: '⏱️ Uptime', value: ansi(c('2;35', upStr())), inline: true },
+          { name: '🧠 Mémoire', value: ansi(c('2;34', mem + ' Mo')), inline: true }
+        )
+        .setFooter({ text: footerText, iconURL: avatar });
+    };
+    const buildRow = active => new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('panel_home').setLabel('Accueil').setEmoji('🏠').setStyle(active === 'home' ? ButtonStyle.Primary : ButtonStyle.Secondary).setDisabled(active === 'home'),
+      new ButtonBuilder().setCustomId('panel_stats').setLabel('Statistiques').setEmoji('📊').setStyle(active === 'stats' ? ButtonStyle.Primary : ButtonStyle.Secondary).setDisabled(active === 'stats'),
+      new ButtonBuilder().setLabel('Liens').setEmoji('🔗').setStyle(ButtonStyle.Link).setURL(`https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot%20applications.commands`)
+    );
+    const sent = await message.channel.send({
+      embeds: [buildHome()],
+      components: [buildRow('home')]
     });
-    const embed = new EmbedBuilder().setColor(0xFFFFFF).setAuthor({
-      name: "CoreLab",
-      iconURL: client.user.displayAvatarURL()
-    }).setThumbnail(client.user.displayAvatarURL()).setImage('attachment://standard.gif').addFields({
-      name: "┃ Bienvenue sur le panneau de contrôle",
-      value: "*Système de gestion Discord avancé — en ligne et opérationnel.*",
-      inline: false
-    }, {
-      name: "🔸 ÉTAT DU SYSTÈME",
-      value: `• En ligne  •  Latence **${latency}ms**  •  Disponibilité **${uptimeStr}**`,
-      inline: false
-    }, {
-      name: "🖥️ Serveurs actifs",
-      value: `\`\`\`${client.guilds.cache.size} serveurs\`\`\``,
-      inline: true
-    }, {
-      name: "⚙️ Commandes",
-      value: `\`\`\`${totalCommands} disponibles\`\`\``,
-      inline: true
-    }, {
-      name: "🏷️ Serveur actuel",
-      value: `\`\`\`${message.guild.name}\n[${message.guild.id}]\`\`\``,
-      inline: false
-    }).setFooter({
-      text: `CoreLab • Panneau principal • Aujourd'hui à ${new Date().toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })}`,
-      iconURL: client.user.displayAvatarURL()
+    const panelCollector = sent.createMessageComponentCollector({
+      filter: i => i.customId === 'panel_home' || i.customId === 'panel_stats',
+      time: 10 * 60 * 1000
     });
-    const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('Liens').setEmoji('🔗').setStyle(5).setURL(`https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot%20applications.commands`));
-    return await message.channel.send({
-      embeds: [embed],
-      components: [row],
-      files: [panelBanner]
+    panelCollector.on('collect', async i => {
+      try {
+        const toStats = i.customId === 'panel_stats';
+        await i.update({ embeds: [toStats ? buildStats() : buildHome()], components: [buildRow(toStats ? 'stats' : 'home')] });
+      } catch (e) {
+        console.error('Panneau principal :', e.message);
+      }
     });
+    panelCollector.on('end', () => {
+      sent.edit({ components: [] }).catch(() => { });
+    });
+    return sent;
   }
 
   // ────────────────────────────────────────────────
