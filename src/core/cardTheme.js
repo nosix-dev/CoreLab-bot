@@ -62,7 +62,7 @@ const BG_MODES = {
 const LOOKS_ALL = {
   neon: { label: 'Néon', emoji: '💡', desc: 'Bordure lumineuse et fond coloré' },
   sobre: { label: 'Sobre sombre', emoji: '⬛', desc: 'Fond uni, sans halo, accent discret' },
-  clair: { label: 'Clair (défaut)', emoji: '⬜', desc: 'Fond clair, texte sombre, sans halo' },
+  clair: { label: 'Gris glacier (défaut)', emoji: '⬜', desc: 'Fond gris bleuté clair, texte sombre, sans halo' },
   compact: { label: 'Compact', emoji: '📏', desc: 'Tuile d\'icône + infos sur une ligne (toutes les cartes)' },
   fume: { label: 'Verre fumé', emoji: '🌫️', desc: 'Verre dépoli sombre sur fond très sombre' }
 };
@@ -294,14 +294,14 @@ function lookFn(look) {
       const [h, s, l] = rgbToHsl(...p.rgb);
       let nh = h, ns = s, nl = l;
       if (l < 0.32) {                       // surfaces / bordures sombres
-        nh = 220;
-        ns = 0.05;
-        nl = light ? 0.985 - l * 0.55 : smoked ? 0.1 + l * 0.45 : 0.075 + l * 0.6;
+        nh = light ? 212 : 220;             // clair = « gris glacier » (gris bleuté froid)
+        ns = light ? 0.16 : 0.05;
+        nl = light ? 0.96 - l * 0.5 : smoked ? 0.1 + l * 0.45 : 0.075 + l * 0.6;
       } else if (s < 0.45) {                // blancs, gris, textes atténués
         if (light) {
-          nh = 220;
-          nl = l > 0.82 ? 0.11 : 0.12 + (1 - l) * 0.5;
-          ns = 0.05;
+          nh = 215;
+          nl = l > 0.82 ? 0.14 : 0.15 + (1 - l) * 0.5;
+          ns = 0.22;
         } else {
           ns = s * 0.25;
         }
