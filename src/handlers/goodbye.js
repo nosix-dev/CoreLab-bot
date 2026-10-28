@@ -136,6 +136,7 @@ function registerGoodbyeHandler(client) {
                     avatarUrl: member.user.displayAvatarURL({ extension: 'png', size: 256 }),
                     serverName: member.guild.name,
                     memberCount: member.guild.memberCount,
+                    card: cfg.goodbye_card,
                     createdTs: member.user.createdTimestamp,
                     joinedTs: member.joinedTimestamp
                 }).catch(e => { console.error('Carte d\'au revoir (verre) impossible :', e.message); return null; });
