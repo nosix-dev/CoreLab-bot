@@ -390,7 +390,6 @@ const PATH_NAME_OVERRIDES = {
   'marche/acheter': 'buy',
   'marche/encherir': 'bid',
   'marche/mes-annonces': 'my-listings',
-  'cartes-style': 'card-style',
   pub: 'promo',
   // « retirer » = withdraw par défaut (économie, banque de clan) mais « remove » ici :
   'config/notifications/retirer': 'remove',
