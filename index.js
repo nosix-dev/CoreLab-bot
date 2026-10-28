@@ -555,6 +555,7 @@ client.once('clientReady', async () => {
   synchroniserPseudosAuDemarrage(client);
   synchroniserRoleAuDemarrage(client);
   rehydrateIaSessions(client);
+  try { require('./src/handlers/updateNotifier').notifyUpdate(client).catch(e => console.error('❌ Annonce de mise à jour:', e.message)); } catch (e) { console.error('❌ Annonce de mise à jour:', e.message); }
   console.log('══════════════════════════════════════════════');
 });
 client.on('interactionCreate', async interaction => {
