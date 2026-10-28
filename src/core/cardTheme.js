@@ -17,7 +17,16 @@
 const fs = require('fs');
 const path = require('path');
 
-const FILE = path.join(__dirname, '..', '..', 'card_themes.json');
+// Même logique que core/data.js : si DATA_DIR est défini (ex. /var/data avec un Render Disk), le fichier
+// y est lu/écrit au lieu du dépôt → les réglages des cartes survivent aux redéploiements.
+// Au premier démarrage, on reprend le card_themes.json du dépôt comme point de départ.
+const REPO_ROOT = path.join(__dirname, '..', '..');
+const ROOT = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : REPO_ROOT;
+if (process.env.DATA_DIR) {
+  try { fs.mkdirSync(ROOT, { recursive: true }); } catch (e) { console.error('[cardTheme] DATA_DIR inutilisable :', e.message); }
+}
+const FILE = path.join(ROOT, 'card_themes.json');
+const SEED_FILE = path.join(REPO_ROOT, 'card_themes.json');
 
 // ── Presets proposés dans le menu ──
 const PRESETS = {
@@ -67,7 +76,8 @@ const DEFAULT_THEME = Object.freeze({ preset: 'gris', accent: '#ffffff', bg: nul
 // ── Stockage (fichier JSON à la racine, écriture asynchrone sérialisée) ──
 let store = {};
 try {
-  if (fs.existsSync(FILE)) store = JSON.parse(fs.readFileSync(FILE, 'utf8')) || {};
+  const source = fs.existsSync(FILE) ? FILE : SEED_FILE;
+  if (fs.existsSync(source)) store = JSON.parse(fs.readFileSync(source, 'utf8')) || {};
 } catch (e) {
   console.error('[cardTheme] lecture impossible :', e.message);
   store = {};
