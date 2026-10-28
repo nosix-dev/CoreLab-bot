@@ -212,10 +212,18 @@ function drawAvatar(ctx, img, cx, cy, r, P) {
 // Fond + palette selon le thème (/card-style)
 // ─────────────────────────────────────────────────────────────────────────
 
-function makeBackdrop(H, theme) {
+function makeBackdrop(H, theme, custom = {}) {
   const light = theme.look === 'clair';
   let back;
-  if (light) {
+  if (custom.bgHex) {
+    back = createCanvas(W, H);
+    const c = back.getContext('2d');
+    const g = c.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, shade(custom.bgHex, light ? 0.25 : -0.25));
+    g.addColorStop(0.5, custom.bgHex);
+    g.addColorStop(1, shade(custom.bgHex, light ? 0.1 : -0.5));
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+  } else if (light) {
     back = createCanvas(W, H);
     const c = back.getContext('2d');
     const g = c.createLinearGradient(0, 0, W, H);
@@ -224,6 +232,7 @@ function makeBackdrop(H, theme) {
   } else {
     back = glass.glassBackdrop(W, H, theme.accent, false, theme);
   }
+  if (custom.bgImg) drawCover(back.getContext('2d'), custom.bgImg, 0, 0, W, H);
   return { back, blur: glass.blurred(back, W, H), P: light ? LIGHT : DARK, tint: light ? 'rgba(255,255,255,0.5)' : glass.tintFor(theme, 0.55) };
 }
 
@@ -502,36 +511,93 @@ async function renderGlassEmbed(embed, o = {}) {
  * @param {string} [o.subtitle]   texte libre sous le pseudo
  * @returns {Promise<Buffer>}
  */
+// ── Personnalisation de la carte de bienvenue / au revoir ──────────────────
+// Réglages stockés dans cfg.welcome_card / cfg.goodbye_card (voir core/welcomeCardConfig.js) :
+//   title, subtitle, pillMember, pillCreated, pillJoined  (texte ; « - » = masquer la pastille/le titre)
+//   style ('clair' | 'sombre'), accent, bg, textColor (hex), hideAvatar (bool)
+// + image de fond optionnelle : card_backgrounds/<guildId>_<welcome|goodbye>.<ext>
+const CARD_BG_DIR = path.join(__dirname, '..', '..', 'card_backgrounds');
+const CARD_BG_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
+
+function findCardBackground(guildId, kind) {
+  for (const ext of CARD_BG_EXTS) {
+    const filePath = path.join(CARD_BG_DIR, `${guildId}_${kind}.${ext}`);
+    if (fs.existsSync(filePath)) return { filePath, ext };
+  }
+  return null;
+}
+
+function validHex(v) {
+  const m = String(v ?? '').trim().match(/^#?([0-9a-f]{6})$/i);
+  return m ? `#${m[1].toLowerCase()}` : null;
+}
+
+function shade(hex, amt) { // amt > 0 éclaircit, < 0 assombrit
+  const n = parseInt(hex.slice(1), 16);
+  const f = c => Math.max(0, Math.min(255, Math.round(amt >= 0 ? c + (255 - c) * amt : c * (1 + amt))));
+  return `rgb(${f((n >> 16) & 255)},${f((n >> 8) & 255)},${f(n & 255)})`;
+}
+
+function applyCardPlaceholders(text, o) {
+  return String(text)
+    .replace(/\{(?:user\.name|user\.mention|membre)\}/g, String(o.username || 'Membre'))
+    .replace(/\{(?:server\.name|serveur)\}/g, String(o.serverName || ''))
+    .replace(/\{(?:server\.member_count|nombre_membres)\}/g, Number.isFinite(o.memberCount) ? String(o.memberCount) : '');
+}
+
 async function renderWelcomeCard(o) {
   const H = 440;
-  const theme = getTheme(o.guildId);
+  const card = o.card || {};
   const kind = o.kind === 'goodbye' ? 'goodbye' : 'welcome';
-  const img = await loadRemote(o.avatarUrl);
-  const title = kind === 'goodbye' ? 'AU REVOIR' : 'BIENVENUE';
+  const baseTheme = getTheme(o.guildId);
+  const accent = validHex(card.accent);
+  const theme = {
+    ...baseTheme,
+    ...(card.style === 'sombre' ? { look: 'fume' } : card.style === 'clair' ? { look: 'clair' } : {}),
+    ...(accent ? { accent } : {})
+  };
+  const img = card.hideAvatar ? null : await loadRemote(o.avatarUrl);
+  const custom = t => (typeof t === 'string' && t.trim() ? applyCardPlaceholders(t.trim(), o) : null);
+  const hidden = t => typeof t === 'string' && t.trim() === '-';
+
+  const title = custom(card.title) || (kind === 'goodbye' ? 'AU REVOIR' : 'BIENVENUE');
   const username = String(o.username || 'Membre');
   const server = String(o.serverName || '');
-  const sub = o.subtitle || (kind === 'goodbye'
+  const sub = custom(card.subtitle) || o.subtitle || (kind === 'goodbye'
     ? (server ? `a quitté ${server}` : 'a quitté le serveur')
     : (server ? `vient de rejoindre ${server}` : 'vient de rejoindre le serveur'));
   const pills = [];
-  if (Number.isFinite(o.memberCount)) pills.push({ l: kind === 'goodbye' ? 'MEMBRES RESTANTS' : 'MEMBRE N°', v: Number(o.memberCount).toLocaleString('fr-FR') });
-  if (o.createdTs) pills.push({ l: 'COMPTE CRÉÉ', v: fmtDate(Math.floor(o.createdTs / 1000), 'd') });
-  if (kind === 'goodbye' && o.joinedTs) pills.push({ l: 'ARRIVÉ LE', v: fmtDate(Math.floor(o.joinedTs / 1000), 'd') });
-  await preloadEmojis([username, sub]);
+  if (Number.isFinite(o.memberCount) && !hidden(card.pillMember)) {
+    pills.push({ l: custom(card.pillMember) || (kind === 'goodbye' ? 'MEMBRES RESTANTS' : 'MEMBRE N°'), v: Number(o.memberCount).toLocaleString('fr-FR') });
+  }
+  if (o.createdTs && !hidden(card.pillCreated)) {
+    pills.push({ l: custom(card.pillCreated) || 'COMPTE CRÉÉ', v: fmtDate(Math.floor(o.createdTs / 1000), 'd') });
+  }
+  if (kind === 'goodbye' && o.joinedTs && !hidden(card.pillJoined)) {
+    pills.push({ l: custom(card.pillJoined) || 'ARRIVÉ LE', v: fmtDate(Math.floor(o.joinedTs / 1000), 'd') });
+  }
+  await preloadEmojis([username, sub, title, ...pills.map(p => p.l)]);
 
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
-  const { back, blur, P, tint } = makeBackdrop(H, theme);
+  const bgHex = validHex(card.bg);
+  const bgFile = findCardBackground(o.guildId, kind);
+  const bgImg = bgFile ? await loadImage(bgFile.filePath).catch(() => null) : null;
+  const { back, blur, P: baseP, tint } = makeBackdrop(H, theme, { bgHex, bgImg });
+  const textHex = validHex(card.textColor);
+  const P = textHex ? { ...baseP, text: textHex, muted: shade(textHex, baseP.light ? 0.35 : -0.35) } : baseP;
   glass.glassPanel(ctx, back, blur, OUT, OUT, W - 2 * OUT, H - 2 * OUT, 44, { tint });
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
 
   // avatar dans une grande pastille de verre
-  glass.glassPanel(ctx, back, blur, X0 - 8, 92, 256, 256, 52, { tint: P.pill });
-  drawAvatar(ctx, img, X0 + 120, 220, 100, P);
+  if (!card.hideAvatar) {
+    glass.glassPanel(ctx, back, blur, X0 - 8, 92, 256, 256, 52, { tint: P.pill });
+    drawAvatar(ctx, img, X0 + 120, 220, 100, P);
+  }
 
-  const tx = X0 + 292; const tw = W - OUT - PAD - tx;
+  const tx = card.hideAvatar ? X0 : X0 + 292; const tw = W - OUT - PAD - tx;
   ctx.fillStyle = P.muted; ctx.font = `22px ${FONT_BOLD}`;
-  ctx.fillText(title, tx, 118);
+  if (!hidden(card.title)) ctx.fillText(title, tx, 118);
   const size = (() => { let s = 60; while (s > 28 && measureRich(ctx, username, FONT_BOLD, s) > tw) s -= 2; return s; })();
   drawRich(ctx, username, tx, 118 + 18 + size, FONT_BOLD, size, { color: P.text });
   const lines = wrapRich(ctx, sub, FONT, 26, tw, 2);
@@ -540,7 +606,7 @@ async function renderWelcomeCard(o) {
   // pastilles de stats
   const pw = Math.floor((tw - 16 * (pills.length - 1)) / Math.max(1, pills.length));
   pills.forEach((p, i) => {
-    const px = tx + i * (pw + 16); const py = 296;
+    const px = tx + i * (pw + 16); const py = 312;
     glass.glassPanel(ctx, back, blur, px, py, pw, 80, 26, { tint: P.pill });
     ctx.fillStyle = P.muted; ctx.font = `15px ${FONT_BOLD}`;
     ctx.fillText(p.l, px + 22, py + 30);
@@ -615,6 +681,9 @@ function imagePayload(buffer, name = 'card.png') {
 module.exports = {
   renderGlassEmbed,
   renderWelcomeCard,
+  findCardBackground,
+  CARD_BG_DIR,
+  CARD_BG_EXTS,
   glassPayload,
   glassReply,
   glassUpdate,
