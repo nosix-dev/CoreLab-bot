@@ -2538,7 +2538,7 @@ async function createHoneypotChannel(interaction, cfg) {
   const guild = interaction.guild;
   const category = await getOrCreateProtectCategory(guild, cfg, `HoneyPot configuré par ${interaction.user.tag}`);
   const channel = await guild.channels.create({
-    name: '🚷・anti-intrusion',
+    name: '🚷・anti-scam',
     type: ChannelType.GuildText,
     parent: category.id,
     reason: `HoneyPot configuré par ${interaction.user.tag}`
