@@ -233,7 +233,7 @@ const cmd = {
         if (i.customId === IDS.reset) {
           T.resetTheme(guild.id);
           await i.deferUpdate();
-          return void await i.editReply(await panel(guild, interaction.user, '♻️ Style réinitialisé (vert par défaut, style néon).'));
+          return void await i.editReply(await panel(guild, interaction.user, '♻️ Style réinitialisé (monochrome par défaut, style clair).'));
         }
 
         if (i.customId === IDS.custom) {
