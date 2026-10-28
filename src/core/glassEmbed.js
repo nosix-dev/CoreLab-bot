@@ -56,7 +56,7 @@ const INNER_W = W - 2 * OUT - 2 * PAD;
 const X0 = OUT + PAD;
 
 const DARK = { text: '#ffffff', muted: 'rgba(255,255,255,0.62)', pill: 'rgba(255,255,255,0.07)', light: false };
-const LIGHT = { text: '#14181d', muted: 'rgba(20,24,29,0.62)', pill: 'rgba(255,255,255,0.55)', light: true };
+const LIGHT = { text: '#1b2430', muted: 'rgba(27,36,48,0.62)', pill: 'rgba(255,255,255,0.55)', light: true };
 
 // ─────────────────────────────────────────────────────────────────────────
 // Texte : mentions, horodatages, markdown
@@ -227,7 +227,7 @@ function makeBackdrop(H, theme, custom = {}) {
     back = createCanvas(W, H);
     const c = back.getContext('2d');
     const g = c.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#eef1f5'); g.addColorStop(0.5, '#cfd6e0'); g.addColorStop(1, '#e4e8ef');
+    g.addColorStop(0, '#eef1f4'); g.addColorStop(0.5, '#d5dbe2'); g.addColorStop(1, '#e6eaef');
     c.fillStyle = g; c.fillRect(0, 0, W, H);
   } else {
     back = glass.glassBackdrop(W, H, theme.accent, false, theme);
