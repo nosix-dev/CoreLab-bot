@@ -1,1 +1,30 @@
-
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.3",
+  "date": "2026-10-28",
+  "modifications": {
+    "✨ Nouveautés": [
+      "[+] **Carte de bienvenue / au revoir modifiable** : l'image par défaut se personnalise entièrement depuis `/settings` → Premium, avec les boutons **👋 Carte** et **🚪 Carte**.",
+      "[+] **Textes** : titre, sous-titre et nom des pastilles au choix, avec les variables `{user.name}`, `{server.name}` et `{server.member_count}`.",
+      "[+] **Style et couleurs** : style clair ou sombre, couleur d'accent, couleur de fond, couleur du texte, avatar affiché ou masqué.",
+      "[+] **Image de fond** : envoie ta propre image pour servir de fond à la carte.",
+      "[+] **Aperçu en direct** : le rendu se met à jour automatiquement dans le panneau après chaque modification.",
+      "[~] Les pastilles de la carte ont été légèrement descendues pour ne plus toucher un sous-titre sur deux lignes."
+    ],
+    "🛟 Serveur support": [
+      "[i] Une question, un bug, une suggestion ? Rejoins-nous en cliquant sur le bouton ci-dessous"
+    ]
+  },
+  "boutons": [
+    {
+      "label": "Inviter le bot",
+      "emoji": "🚀",
+      "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+    },
+    {
+      "label": "Rejoindre le support",
+      "emoji": "🛟",
+      "url": "https://discord.gg/WecpyxrSBT"
+    }
+  ]
+}
