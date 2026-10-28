@@ -1,0 +1,15 @@
+{
+  "channelId": "ID_DU_SALON_ICI",
+  "version": "3.5.0",
+  "titre": "Mise à jour 3.5.0",
+  "date": "2026-10-28",
+  "modifications": {
+    "✨ Nouveautés": [
+      "Les cartes sont maintenant en style clair par défaut",
+      "Exemple de nouvelle fonctionnalité"
+    ],
+    "🛠️ Corrections": [
+      "Exemple de correction de bug"
+    ]
+  }
+}
