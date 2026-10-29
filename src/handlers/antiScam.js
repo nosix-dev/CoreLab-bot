@@ -4,6 +4,7 @@ const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const { getGuildConfig } = require('../core/config');
 const { store, persist } = require('../core/data');
 const { sendLog } = require('../core/utils');
+const { sendProtectionEmbed } = require('../core/protectionLog');
 const { scanContentForPhishing } = require('../core/phishing');
 const { glassPayload } = require('../core/glassEmbed');
 
@@ -84,7 +85,7 @@ async function logAndStrike(message, type, detail) {
             { name: 'Détail', value: detail.slice(0, 1000), inline: false },
         )
         .setTimestamp();
-    await sendLog(message.guild, embed);
+    if (!(await sendProtectionEmbed(message.guild, embed))) await sendLog(message.guild, embed);
 }
 
 // ── Filtre anti-phishing (liens) ─────────────────────────────
