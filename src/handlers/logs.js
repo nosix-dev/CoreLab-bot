@@ -12,6 +12,7 @@ const { generateVoiceCardAsync } = require('./voiceCardImage');
 const { generateLogCardAsync, formatAge } = require('./logCardImage');
 const { getGuildConfig } = require('../core/config');
 const { SALON_NOTIF_AJOUT_BOT } = require('../core/constants');
+const { isMuted } = require('../core/silentMessages');
 
 // ════════════════════════════════════════════════
 // LOGS : cartes image par défaut, ou embeds si le bouton « Embed » est choisi (/settings → Logs)
@@ -231,6 +232,7 @@ function registerLogHandlers(client) {
     client.on('messageDelete', async message => {
         try {
             if (!message.guild || message.author?.bot) return;
+            if (isMuted(message.id)) return;
             const actor = await getAuditActor(message.guild, AuditLogEvent.MessageDelete, message.author?.id);
             const authorInconnu = !message.author;
             const supprimePar = actor && actor.id !== message.author?.id ? actorName(actor) : null;
@@ -265,6 +267,7 @@ function registerLogHandlers(client) {
     // ── 🗑️ Suppression en masse ──────────────────────────────────────
     client.on('messageDeleteBulk', async messages => {
         try {
+            messages = messages.filter(m => !isMuted(m.id));
             const first = messages.first();
             if (!first?.guild) return;
             const guild = first.guild;
@@ -301,6 +304,7 @@ function registerLogHandlers(client) {
     client.on('messageUpdate', async (before, after) => {
         try {
             if (!before.guild || before.author?.bot || after.author?.bot) return;
+            if (isMuted(after.id)) return;
             // Message "avant" non mis en cache (partiel) : impossible de comparer
             // fiablement son contenu (content/author valent null). C'est ce qui
             // déclenche les faux "Vide -> texte" quand Discord ré-émet un
@@ -686,6 +690,7 @@ function registerLogHandlers(client) {
     client.on('messageCreate', async message => {
         try {
             if (!message.guild || message.author?.bot) return;
+            if (isMuted(message.id)) return;
             const pills = [];
             if (message.attachments?.size) pills.push({ text: `${message.attachments.size} pièce(s) jointe(s)`, tone: 'accent' });
             if (message.stickers?.size) pills.push({ text: 'Sticker', tone: 'accent' });
