@@ -175,6 +175,24 @@ function fit(ctx, text, maxW) {
 }
 
 function renderCryptoCard(guildName, cfg, guildId = null) {
+  const cc = require('../core/compactCard');
+  if (cc.isCompact(guildId)) {
+    const items = [
+      ...Object.entries(PRESETS).map(([key, m]) => ({ label: m.tile, on: !!cfg.wallets[key] })),
+      ...customKeys(cfg).map(key => {
+        const w = cfg.wallets[key];
+        return { label: `${w.symbol}${w.network ? ` ${w.network}` : ''}`, on: true };
+      })
+    ];
+    const published = !!(cfg.channelId && cfg.messageId);
+    return cc.renderCompactSync({
+      guildId, theme: 'orange', title: '🪙 Wallets crypto', sub: guildName,
+      grid: 2, valueMax: 14,
+      blocks: items.map(t => ({ label: t.label, value: t.on ? 'Configuré' : 'Vide', dot: t.on ? '#3ddc84' : '#8b8f97' })),
+      pills: [{ text: published ? 'PUBLIÉ' : 'NON PUBLIÉ', tone: published ? 'ok' : 'accent' }],
+      footerLeft: `${items.filter(t => t.on).length}/${items.length} wallets configurés`
+    });
+  }
   const tiles = [
     ...Object.entries(PRESETS).map(([key, m]) => ({ label: m.tile, on: !!cfg.wallets[key] })),
     ...customKeys(cfg).map(key => {
