@@ -501,95 +501,6 @@ function startStatusRotation(client) {
   }, 10000);
 }
 
-// ────────────────────────────────────────────────
-// Carte verte StarBoard (photo en fond) pour le système « photo ».
-// Renvoie un AttachmentBuilder, ou null si la génération échoue
-// (l'appelant retombe alors sur l'ancien embed).
-// ────────────────────────────────────────────────
-async function buildPhotoStarCard(message, count) {
-  try {
-    // Photo : pièce jointe image (type MIME ou extension), sinon image d'un embed
-    const img = message.attachments.find(a => (a.contentType && a.contentType.startsWith('image/')) || /\.(png|jpe?g|gif|webp)(\?|$)/i.test(a.name || a.url || ''))
-      || null;
-    const embedImg = !img ? (message.embeds || []).map(e => e.image?.url || e.thumbnail?.url).find(Boolean) : null;
-    const buffer = await generateStarboardCard({
-      guildId: message.guild?.id,
-      author: message.member?.displayName || message.author?.globalName || message.author?.username || 'Inconnu',
-      score: count,
-      threshold: Number(STAR_THRESHOLD) || 5,
-      content: (message.cleanContent || '').replace(/<a?:(\w+):\d+>/g, ':$1:').trim(),
-      imageUrl: img ? img.url : (embedImg || null),
-      footer: `${client.user.username} · StarBoard`
-    });
-    return new AttachmentBuilder(buffer, {
-      name: `starboard_${message.id}_${count}.png`
-    });
-  } catch (e) {
-    console.error('Erreur génération carte StarBoard :', e.message);
-    return null;
-  }
-}
-async function updateStarboardCount(reaction) {
-  try {
-    if (reaction.partial) {
-      try {
-        await reaction.fetch();
-      } catch {
-        return;
-      }
-    }
-    let message = reaction.message;
-    if (message.partial) {
-      try {
-        message = await message.fetch();
-      } catch {
-        return;
-      }
-    }
-    if (!message.guild) return;
-    const gcfgStar = getGuildConfig(message.guild.id);
-    const starEmoji = getStarboardEmoji(gcfgStar);
-    const matchesEmoji = starEmoji.reactValue === reaction.emoji.id || !reaction.emoji.id && reaction.emoji.name === starEmoji.reactValue;
-    if (!matchesEmoji) return;
-    if (message.channel.id !== gcfgStar.photo_channel_id) return;
-    const repostId = store.starboard[message.id];
-    if (!repostId) return;
-    const repostChannel = gcfgStar.repost_channel_id ? message.guild.channels.cache.get(gcfgStar.repost_channel_id) : null;
-    if (!repostChannel) return;
-    const starReaction = message.reactions.cache.find(r => starEmoji.reactValue === r.emoji.id || !r.emoji.id && r.emoji.name === starEmoji.reactValue);
-    const count = starReaction ? starReaction.count : 0;
-    const repostMsg = await repostChannel.messages.fetch(repostId).catch(() => null);
-    if (!repostMsg) return;
-
-    // Nouvelle carte verte (remplace aussi les anciens posts à embed)
-    const card = await buildPhotoStarCard(message, count);
-    if (card) {
-      const linkRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('Message original').setStyle(ButtonStyle.Link).setURL(message.url));
-      await repostMsg.edit({
-        embeds: [],
-        files: [card],
-        attachments: [],
-        components: [linkRow]
-      });
-      return;
-    }
-
-    // Secours : ancien système (mise à jour du champ Score de l'embed)
-    if (!repostMsg.embeds[0]) return;
-    const newEmbed = EmbedBuilder.from(repostMsg.embeds[0]);
-    const fields = repostMsg.embeds[0].fields.map(f => f.name === 'Score' ? {
-      name: 'Score',
-      value: `${starEmoji.display} **${count}**`,
-      inline: true
-    } : f);
-    newEmbed.setFields(fields);
-    await repostMsg.edit({
-      embeds: [newEmbed]
-    });
-  } catch (e) {
-    console.error('Erreur maj starboard:', e.message);
-  }
-}
 client.once('clientReady', async () => {
   console.log('══════════════════════════════════════════════');
   console.log(`CoreLab connecté : ${client.user.tag} | ${client.guilds.cache.size} serveurs`);
@@ -1019,12 +930,10 @@ client.on('interactionCreate', async interaction => {
 });
 client.on('messageReactionAdd', (reaction, user) => {
   if (user.bot) return;
-  updateStarboardCount(reaction);
   handleRulesReaction(reaction, user);
 });
 client.on('messageReactionRemove', (reaction, user) => {
   if (user.bot) return;
-  updateStarboardCount(reaction);
 });
 client.on('messageCreate', async message => {
   console.log(`[MSG REÇU] "${message.content}" de ${message.author.tag}`);
@@ -1217,50 +1126,10 @@ client.on('messageCreate', async message => {
   }
   const gcfgStar = getGuildConfig(message.guild.id);
   if (gcfgStar.photo_channel_id === message.channel.id && message.attachments.size > 0) {
+    // Le bot ajoute l'émoji sous la photo ; le repost (seuil de réactions) est géré par handlers/starboard.js
     try {
       const starEmoji = getStarboardEmoji(gcfgStar);
       await message.react(starEmoji.reactValue);
-      const repostChannel = gcfgStar.repost_channel_id ? message.guild.channels.cache.get(gcfgStar.repost_channel_id) : null;
-      if (repostChannel) {
-        const firstAttachment = message.attachments.first();
-        const nomAuteur = message.member?.displayName || message.author.username;
-        const content = `${starEmoji.display} **Nouvelle photo de ${nomAuteur} !**`;
-        const linkRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('Message original').setStyle(ButtonStyle.Link).setURL(message.url));
-
-        // Carte verte StarBoard (photo en fond) à la place de l'embed
-        const card = await buildPhotoStarCard(message, 1);
-        let sent;
-        if (card) {
-          sent = await repostChannel.send({
-            content,
-            files: [card],
-            components: [linkRow],
-            allowedMentions: {
-              parse: []
-            }
-          });
-        } else {
-          // Secours : ancien embed si la carte n'a pas pu être générée
-          const emb = new EmbedBuilder()
-            .setColor(0xFFFFFF)
-            .setAuthor({ name: nomAuteur, iconURL: message.author.displayAvatarURL({ size: 128 }) })
-            .setTitle(`${starEmoji.display}  StarBoard`)
-            .addFields(
-              { name: '👤  Auteur', value: `<@${message.author.id}>`, inline: true },
-              { name: 'Score', value: `${starEmoji.display} **1**`, inline: true },
-              { name: '🔗  Message original', value: `[Cliquer ici →](${message.url})`, inline: false },
-            )
-            .setImage(firstAttachment.url)
-            .setFooter({ text: `CoreLab • StarBoard`, iconURL: client.user.displayAvatarURL() })
-            .setTimestamp(message.createdAt);
-          sent = await repostChannel.send({
-            content,
-            embeds: [emb]
-          });
-        }
-        store.starboard[message.id] = sent.id;
-        persist('starboard');
-      }
     } catch (e) {
       console.error('Starboard erreur:', e.message);
     }
