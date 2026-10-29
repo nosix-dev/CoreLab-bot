@@ -70,6 +70,17 @@ function fitText(ctx, text, font, size, maxW) {
  * @returns {Buffer} PNG
  */
 function generateStatsCard(o) {
+  const cc = require('../core/compactCard');
+  if (cc.isCompact(o.guildId)) {
+    return cc.renderCompactSync({
+      guildId: o.guildId, theme: 'green', title: '📊 Statistiques', sub: o.botName,
+      blocks: [
+        { label: 'Serveurs', value: Number(o.servers || 0).toLocaleString('fr-FR') },
+        { label: 'Membres', value: Number(o.members || 0).toLocaleString('fr-FR') }
+      ],
+      pills: [{ text: 'EN LIGNE', tone: 'ok' }]
+    });
+  }
   const canvas = createCanvas(W, H);
   const ctx = themedCtx(canvas.getContext('2d'), o.guildId);
 
