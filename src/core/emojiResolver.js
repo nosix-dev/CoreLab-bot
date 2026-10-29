@@ -15,10 +15,15 @@
 //   3. icons-map.json (icônes Lucide ; "_" et "-" équivalents)
 //   4. emojis de tous les autres serveurs du bot
 // Un ":nom:" inconnu reste tel quel. Le code (`...` et ```...```) est ignoré.
+//
+// Les emojis Unicode (📢 👋 ✅…) sont aussi remplacés par l'icône personnalisée
+// équivalente (table dans unicodeIcons.js). Un emoji sans équivalent reste
+// tel quel. Désactivable avec EMOJI_UNICODE_TO_CUSTOM=0 dans le .env.
 // ────────────────────────────────────────────────
 
 const { MessagePayload } = require('discord.js');
 const { map: iconsMap } = require('./emojis');
+const UNICODE_ICONS = require('./unicodeIcons');
 
 const SHORTCODE = /(?<![<\w:/]):([A-Za-z0-9_-]{2,32}):(?!\w)/g;
 const CODE_SEGMENT = /```[\s\S]*?```|`[^`\n]*`/g;
@@ -50,9 +55,34 @@ function findEmoji(name, guild, client) {
   return null;
 }
 
+// ── Emojis Unicode -> icônes personnalisées ──
+const VS16 = '\uFE0F';
+const UNICODE_ON = process.env.EMOJI_UNICODE_TO_CUSTOM !== '0';
+const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const unicodeLookup = new Map();
+for (const [emoji, names] of Object.entries(UNICODE_ICONS)) unicodeLookup.set(emoji.split(VS16).join(''), names);
+const UNICODE_RE = new RegExp(
+  '(' + [...unicodeLookup.keys()].sort((a, b) => b.length - a.length).map(escapeRe).join('|') + ')' +
+  '\\uFE0F?(?![\\u{1F3FB}-\\u{1F3FF}\\u200D])',
+  'gu'
+);
+
+function findUnicodeIcon(emoji) {
+  const names = unicodeLookup.get(emoji);
+  if (!names) return null;
+  const icons = iconsMap();
+  for (const n of names.split('|')) if (icons[n]) return icons[n];
+  return null;
+}
+
 function convertText(text, guild, client) {
-  if (typeof text !== 'string' || !text.includes(':')) return text;
-  const convertPart = part => part.replace(SHORTCODE, (match, name) => findEmoji(name, guild, client) || match);
+  if (typeof text !== 'string') return text;
+  const hasColon = text.includes(':');
+  const convertPart = part => {
+    let out = hasColon ? part.replace(SHORTCODE, (match, name) => findEmoji(name, guild, client) || match) : part;
+    if (UNICODE_ON) out = out.replace(UNICODE_RE, (match, emoji) => findUnicodeIcon(emoji) || match);
+    return out;
+  };
 
   let out = '';
   let last = 0;
