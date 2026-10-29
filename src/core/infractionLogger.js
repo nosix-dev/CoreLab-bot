@@ -56,11 +56,12 @@ async function journaliserInfraction(guilde, donnees) {
     server: guilde.name
   });
   const config = obtenirConfigGuilde(guilde.id);
-  const idSalon = config.infraction_channel_id;
-  if (!idSalon) return; // rien de configuré, on ne fait rien
-
-  const salon = guilde.channels.cache.get(idSalon);
-  if (!salon) return;
+  // Destinations : salon des sanctions (s'il est configuré) + salon de logs de protection
+  // (« 🛡️・logs-protection » par défaut), sans doublon si c'est le même salon.
+  const { getProtectionLogChannelId } = require('./protectionLog');
+  const ids = [...new Set([config.infraction_channel_id, getProtectionLogChannelId(config)].filter(Boolean).map(String))];
+  const salons = ids.map(id => guilde.channels.cache.get(id)).filter(c => c?.isTextBased?.());
+  if (!salons.length) return; // rien de configuré, on ne fait rien
 
   const titre = LIBELLES[donnees.type] ?? donnees.type;
   const raison = donnees.reason || 'Aucune raison fournie';
@@ -79,10 +80,12 @@ async function journaliserInfraction(guilde, donnees) {
       footerLeft: `ID ${donnees.target.id}`,
       footerRight: guilde.name
     });
-    await salon.send({
-      files: [new AttachmentBuilder(buf, { name: 'infraction.png' })],
-      allowedMentions: { parse: [] }
-    });
+    for (const salon of salons) {
+      await salon.send({
+        files: [new AttachmentBuilder(buf, { name: 'infraction.png' })],
+        allowedMentions: { parse: [] }
+      }).catch(e => console.error('Erreur envoi infraction :', e.message));
+    }
   } catch (e) {
     console.error('Erreur carte infraction :', e.message);
     // Secours texte (pas d'embed)
@@ -93,10 +96,12 @@ async function journaliserInfraction(guilde, donnees) {
       ...(donnees.duration ? [`Durée : ${donnees.duration}`] : []),
       `Raison : ${raison}`
     ];
-    await salon.send({
-      content: lignes.join('\n').slice(0, 1900),
-      allowedMentions: { parse: [] }
-    }).catch(() => { });
+    for (const salon of salons) {
+      await salon.send({
+        content: lignes.join('\n').slice(0, 1900),
+        allowedMentions: { parse: [] }
+      }).catch(() => { });
+    }
   }
 }
 module.exports = {
