@@ -11,6 +11,8 @@ try {
   console.error('Impossible de régler le timeout réseau :', e.message);
 }
 require('dotenv').config();
+// Conversion :nom: -> emoji personnalisé sur tous les messages sortants (doit être chargé tôt).
+const { loadApplicationEmojis } = require('./src/core/emojiResolver');
 
 // ────────────────────────────────────────────────
 // Serveur HTTP minimal (requis par Render pour un Web Service).
@@ -505,6 +507,7 @@ function startStatusRotation(client) {
 client.once('clientReady', async () => {
   console.log('══════════════════════════════════════════════');
   console.log(`CoreLab connecté : ${client.user.tag} | ${client.guilds.cache.size} serveurs`);
+  await loadApplicationEmojis(client);
   try {
     await registerCommands(client);
   } catch (e) {
