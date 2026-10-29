@@ -90,6 +90,21 @@ function fit(ctx, text, maxW) {
 }
 
 function renderProtectCard(guildName, cfg, guildId = null) {
+  const cc = require('./compactCard');
+  if (cc.isCompact(guildId)) {
+    const active = MODULES.filter(m => m.on(cfg)).length;
+    const locked = !!cfg.lockdown_active;
+    const ddosAlert = !!((cfg.anti_ddos_state && cfg.anti_ddos_state.until > Date.now()) || (cfg.anti_ddos_voice_state && cfg.anti_ddos_voice_state.until > Date.now()));
+    const status = ddosAlert ? 'ALERTE DDOS' : (locked ? 'VERROUILLÉ' : 'NORMAL');
+    return cc.renderCompactSync({
+      guildId, theme: ddosAlert ? 'red' : (locked ? 'orange' : 'green'),
+      title: '🛡️ Protection', sub: guildName,
+      grid: 2, valueMax: 12,
+      blocks: MODULES.map(m => ({ label: m.label, value: m.on(cfg) ? 'Actif' : 'Inactif', dot: m.on(cfg) ? '#3ddc84' : '#e0584f' })),
+      pills: [{ text: status, tone: ddosAlert ? 'bad' : (locked ? 'accent' : 'ok') }],
+      footerLeft: `${active}/${MODULES.length} modules actifs`
+    });
+  }
   // Carte compacte : peu de texte, grosse police, pour rester lisible une fois réduite par Discord.
   const COLS = 4, PAD = 26, GAP = 10, TILE_H = 58, W = 1240, HEAD = 112;
   const rows = Math.ceil(MODULES.length / COLS);
@@ -168,6 +183,24 @@ function renderProtectCard(guildName, cfg, guildId = null) {
 // ── Carte image du panneau Captcha (même style que la carte de protection) ──
 // info = { roleName, channelName, verifiedRoleName, maxAttempts, timeoutMin, kickOnFail, enabled }
 function renderCaptchaCard(guildName, info) {
+  const cc = require('./compactCard');
+  if (cc.isCompact(info.guildId || null)) {
+    const on = !!info.enabled;
+    return cc.renderCompactSync({
+      guildId: info.guildId || null, theme: on ? 'green' : 'red',
+      title: '🧩 Captcha', sub: `Vérification à l'arrivée — ${guildName}`,
+      blocks: [
+        { label: 'Rôle non vérifié', value: info.roleName || 'non défini' },
+        { label: 'Salon de vérification', value: info.channelName || 'non défini' },
+        { label: 'Rôle vérifié (optionnel)', value: info.verifiedRoleName || 'non défini' },
+        { label: 'Tentatives max', value: String(info.maxAttempts) },
+        { label: 'Timeout', value: `${info.timeoutMin} min` },
+        { label: 'Kick si échec', value: info.kickOnFail ? 'Oui' : 'Non' }
+      ],
+      quotes: [{ label: 'Exemple de code à taper', text: 'K7 M2 X', maxLines: 1 }],
+      pills: [{ text: on ? 'ACTIVÉ' : 'DÉSACTIVÉ', tone: on ? 'ok' : 'bad' }]
+    });
+  }
   const guildId = info.guildId || null;
   const W = 1240, H = 358, PAD = 26;
   const canvas = createCanvas(W, H);
@@ -349,6 +382,20 @@ function drawIcon(ctx, name, cx, cy, color) {
 }
 
 function renderConfigCard(spec) {
+  const cc = require('./compactCard');
+  if (cc.isCompact(spec.guildId || null)) {
+    const on = !!spec.enabled;
+    const tiles = (spec.tiles || []).slice(0, 4).map(t => ({
+      label: t.label, value: t.value || 'non défini', dot: (t.set || t.optional) ? '#3ddc84' : '#e0584f'
+    }));
+    const stats = (spec.stats || []).slice(0, 4).map(st => ({ label: st.label, value: String(st.value ?? '—') }));
+    return cc.renderCompactSync({
+      guildId: spec.guildId || null, theme: on ? 'green' : 'red',
+      title: `⚙️ ${spec.title}`, sub: spec.subtitle || undefined,
+      blocks: [...tiles, ...stats],
+      pills: [{ text: on ? 'ACTIVÉ' : 'DÉSACTIVÉ', tone: on ? 'ok' : 'bad' }]
+    });
+  }
   const guildId = spec.guildId || null;
   const tiles = (spec.tiles || []).slice(0, 4);
   const stats = (spec.stats || []).slice(0, 4);
