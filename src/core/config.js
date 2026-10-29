@@ -112,6 +112,9 @@ function obtenirConfigGuilde(idGuilde) {
             starboard_allow_self_star: true,
             starboard_ignore_nsfw: false,
             starboard_remove_on_unstar: true,
+            starboard_notice_text: null,
+            starboard_notice_message_id: null,
+            starboard_notice_channel_id: null,
             serverstats_enabled: false,
             serverstats_category_id: null,
             serverstats_counters: [],
@@ -189,6 +192,9 @@ function obtenirConfigGuilde(idGuilde) {
     if (config.starboard_allow_self_star === undefined) config.starboard_allow_self_star = true;
     if (config.starboard_ignore_nsfw === undefined) config.starboard_ignore_nsfw = false;
     if (config.starboard_remove_on_unstar === undefined) config.starboard_remove_on_unstar = true;
+    if (config.starboard_notice_text === undefined) config.starboard_notice_text = null;
+    if (config.starboard_notice_message_id === undefined) config.starboard_notice_message_id = null;
+    if (config.starboard_notice_channel_id === undefined) config.starboard_notice_channel_id = null;
     if (config.ia_enabled === undefined) config.ia_enabled = false;
     if (config.ia_category_id === undefined) config.ia_category_id = null;
     if (config.ia_channel_id === undefined) config.ia_channel_id = null;
