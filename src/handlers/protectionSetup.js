@@ -328,6 +328,9 @@ function buildRecap(guild, notice = null) {
     new ButtonBuilder().setCustomId(`psetup_page_${TOTAL_STEPS}`).setLabel('Précédent').setEmoji('◀️').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('psetup_reco').setLabel('Config recommandée').setEmoji('✅').setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId('psetup_dash').setLabel('Panneau complet').setEmoji('🛡️').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('psetup_done').setLabel('Terminer').setEmoji('✔️').setStyle(ButtonStyle.Success)
+  ));
+  c.addActionRowComponents(rowOf(
     new ButtonBuilder().setLabel('Support').setStyle(ButtonStyle.Link).setURL(SUPPORT_URL),
     new ButtonBuilder().setLabel('Documentation').setStyle(ButtonStyle.Link).setURL(DOCS_URL)
   ));
@@ -379,6 +382,12 @@ async function routeProtectionSetupInteraction(interaction) {
         return interaction.editReply(buildRecap(guild, '✅ Config recommandée appliquée : anti-spam, anti-@everyone, anti-phishing, anti-arnaque, anti-nuke, RaidMode, anti-DDoS et âge minimum.'));
       }
       if (id === 'psetup_dash') return interaction.editReply(buildProtectPayload(guild));
+      if (id === 'psetup_done') {
+        // Supprime le panneau (message éphémère ou public)
+        const ok = await interaction.deleteReply().then(() => true).catch(() => false);
+        if (!ok) await interaction.message?.delete().catch(() => { });
+        return;
+      }
     }
 
     if (interaction.isStringSelectMenu()) {
