@@ -93,6 +93,18 @@ async function loadAvatar(url) {
  * @returns {Promise<Buffer>} PNG
  */
 async function generateLeaderboardImage({ guildName, entries, guildId = null }) {
+  const cc = require('../core/compactCard');
+  if (cc.isCompact(guildId)) {
+    const top = entries.slice(0, 10);
+    return cc.renderCompact({
+      guildId, theme: 'orange', title: '🏆 Classement', sub: guildName,
+      grid: top.length > 5 ? 2 : 1, valueMax: 24,
+      blocks: top.length
+        ? top.map((e, i) => ({ label: `${i + 1}. ${e.name || 'Inconnu'}`, value: formatAmount(e.total) }))
+        : [{ label: '', value: 'Aucun score pour le moment' }],
+      footerRight: `Top ${top.length}`
+    });
+  }
   const list = entries.slice(0, 10);
   const twoCols = list.length > 5;
   const PAD = 40, GAP = 24, HEAD = 122, ROW_H = 92, ROW_GAP = 14;
