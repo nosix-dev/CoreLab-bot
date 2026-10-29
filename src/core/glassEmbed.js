@@ -364,6 +364,42 @@ async function renderGlassEmbed(embed, o = {}) {
     footer += (footer ? '  ·  ' : '') + fmtDate(ts, 'f');
   }
   const blocks = blocksFromEmbed(data, m);
+  // ── Style unifié : même rendu que les logs (tuile + bandeau) ──
+  const cc = require('./compactCard');
+  if (cc.isCompact(guildId)) {
+    const PALETTE = { green: '#2ecc71', red: '#ff4d5e', orange: '#ffb020', amber: '#ff7a45', violet: '#a78bfa', cyan: '#22d3ee', danger: '#ff2e4d' };
+    const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    let themeName = 'green';
+    if (typeof data.color === 'number') {
+      const c = [(data.color >> 16) & 255, (data.color >> 8) & 255, data.color & 255];
+      let best = Infinity;
+      for (const [name, hex] of Object.entries(PALETTE)) {
+        const d = rgb(hex).reduce((a, v, i) => a + (v - c[i]) ** 2, 0);
+        if (d < best) { best = d; themeName = name; }
+      }
+    }
+    const infoBlocks = [];
+    const longQuotes = [];
+    const lines = [];
+    for (const b of blocks) {
+      if (b.t === 'pills') {
+        for (const p of b.pills) {
+          if (String(p.value).length > 48) longQuotes.push({ label: p.label, text: p.value, maxLines: 6 });
+          else infoBlocks.push({ label: p.label, value: p.value });
+        }
+      } else if (b.t === 'gap') lines.push('');
+      else lines.push(b.v);
+    }
+    const text = lines.join('\n').replace(/\n{2,}/g, '\n').trim();
+    const quotes = [...(text ? [{ label: '', text, maxLines: 10 }] : []), ...longQuotes];
+    const toks = tokenize(title || '');
+    const heading = title ? (toks[0] && toks[0].t === 'emoji' ? title : `ℹ️ ${title}`) : 'ℹ️ CoreLab';
+    return cc.renderCompact({
+      guildId, theme: themeName, title: heading, sub: badge || undefined,
+      blocks: infoBlocks.slice(0, 12), quotes,
+      footerLeft: footer || undefined
+    });
+  }
 
   // images
   const urlOf = v => (v && (typeof v === 'string' ? v : (typeof v.displayAvatarURL === 'function' ? v.displayAvatarURL({ extension: 'png', size: 256 }) : null)));
@@ -549,6 +585,27 @@ async function renderWelcomeCard(o) {
   const H = 440;
   const card = o.card || {};
   const kind = o.kind === 'goodbye' ? 'goodbye' : 'welcome';
+  // Style unifié (tuile + bandeau) pour les cartes non personnalisées ; une carte personnalisée
+  // (couleur, style, fond…) garde son rendu sur mesure (option payante « Personnalisation »).
+  const ccw = require('./compactCard');
+  const customized = !!(card.accent || card.bg || card.style || card.textColor || findCardBackground(o.guildId, kind));
+  if (ccw.isCompact(o.guildId) && !customized) {
+    const txt = t => (typeof t === 'string' && t.trim() && t.trim() !== '-' ? applyCardPlaceholders(t.trim(), o) : null);
+    const day = ts => new Date(ts).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
+    const blocks = [];
+    if (Number.isFinite(o.memberCount)) blocks.push({ label: kind === 'goodbye' ? 'Membres restants' : 'Membre n°', value: String(o.memberCount) });
+    if (o.createdTs) blocks.push({ label: 'Compte créé', value: day(o.createdTs) });
+    if (o.joinedTs) blocks.push({ label: kind === 'goodbye' ? 'Était arrivé le' : 'Arrivé le', value: day(o.joinedTs) });
+    const heading = txt(card.title) || (kind === 'goodbye' ? 'AU REVOIR' : 'BIENVENUE');
+    return ccw.renderCompact({
+      guildId: o.guildId, theme: kind === 'goodbye' ? 'orange' : 'green',
+      title: `${kind === 'goodbye' ? '👋' : '🎉'} ${heading}`,
+      sub: String(o.username || 'Membre'),
+      blocks,
+      quotes: (txt(card.subtitle) || (o.subtitle && applyCardPlaceholders(o.subtitle, o))) ? [{ label: '', text: txt(card.subtitle) || applyCardPlaceholders(o.subtitle, o), maxLines: 3 }] : [],
+      footerLeft: o.serverName ? String(o.serverName) : undefined
+    });
+  }
   const baseTheme = getTheme(o.guildId);
   const accent = validHex(card.accent);
   const theme = {
