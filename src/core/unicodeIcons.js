@@ -14,7 +14,7 @@ module.exports = {
   '✨': 'sparkles',
   '🌟': 'sparkles',
   '⭐': 'star',
-  '📌': 'pin',
+  '📌': 'pins',
   '📍': 'map-pin',
   '🎨': 'palette',
   '😀': 'smile',
