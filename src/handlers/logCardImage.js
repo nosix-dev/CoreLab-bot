@@ -800,12 +800,51 @@ function generateTileBandCard(spec) {
       const bigY = top + 30 + bigSize * 0.9;
       drawRich(ctx, big, nx, bigY, FONT_BOLD, bigSize, { color: ink, align: 'center' });
       y = Math.max(y, bigY + 16);
+    } else if (blocks.length && spec.grid) {
+      // Lignes alignées (classements, panneaux) : libellé à gauche, valeur à droite
+      const cols = Math.max(1, spec.grid | 0);
+      const GAPX = 24, RH = 58, PADI = 18, FS = 24;
+      const colW = (inner - GAPX * (cols - 1)) / cols;
+      blocks.forEach((b, i) => {
+        const cx = px + (i % cols) * (colW + GAPX);
+        const cy = y + Math.floor(i / cols) * RH;
+        const mid = cy + (RH - 8) / 2 + 8;
+        roundRect(ctx, cx, cy, colW, RH - 8, 12);
+        ctx.fillStyle = pal.box;
+        ctx.fill();
+        const val = cut(String(b.value ?? ''), spec.valueMax || 40);
+        const vSize = fitSize(ctx, val, FONT_BOLD, FS, colW * 0.55, 15);
+        let edge = cx + colW - PADI;
+        edge -= drawRich(ctx, val, edge, mid, FONT_BOLD, vSize, { color: b.accent ? b.accent : pal.text, align: 'right' });
+        if (b.dot) {
+          ctx.fillStyle = b.dot;
+          ctx.beginPath();
+          ctx.arc(edge - 18, mid - 8, 8, 0, Math.PI * 2);
+          ctx.fill();
+          edge -= 30;
+        }
+        const lab = clean(b.label);
+        const lSize = fitSize(ctx, lab, FONT, FS - 2, edge - (cx + PADI) - 14, 14);
+        drawRich(ctx, lab, cx + PADI, mid, FONT, lSize, { color: pal.muted });
+      });
+      y += Math.ceil(blocks.length / cols) * RH + 6;
     } else if (blocks.length) {
       const colW = inner / 2;
       blocks.forEach((b, i) => {
         drawBlockStyled(ctx, pal, b, px + (i % 2) * colW, y + Math.floor(i / 2) * BLOCK_H, colW - 24);
       });
       y += Math.ceil(blocks.length / 2) * BLOCK_H;
+    }
+
+    // Barre de progression optionnelle (niveau, StarBoard…)
+    if (typeof spec.progress === 'number') {
+      roundRect(ctx, px, y, inner, 12, 6);
+      ctx.fillStyle = pal.line;
+      ctx.fill();
+      roundRect(ctx, px, y, Math.max(12, inner * Math.max(0, Math.min(1, spec.progress))), 12, 6);
+      ctx.fillStyle = ink;
+      ctx.fill();
+      y += 28;
     }
     return drawQuotesPills(ctx, th, pal, ink, spec, px, y, inner);
   };
