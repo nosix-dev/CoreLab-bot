@@ -156,7 +156,10 @@ function registerBlacklistHandler(client) {
     await sendBanDm(member.user, member.guild, entry.reason);
     try {
       await member.ban({ reason: `Blacklist : ${entry.reason || 'Blacklisté'}` });
-      sendLog(member.guild, logEmbed('⛔ Membre blacklisté refusé', member.id, member.user.tag, `${client.user}`, entry.reason), 'log_sanctions').catch(() => {});
+      {
+        const emb = logEmbed('⛔ Membre blacklisté refusé', member.id, member.user.tag, `${client.user}`, entry.reason);
+        require('../core/protectionLog').sendProtectionEmbed(member.guild, emb, 'SANCTION').then(ok => ok || sendLog(member.guild, emb, 'log_sanctions')).catch(() => {});
+      }
     } catch (e) {
       console.error(`[blacklist] ban à l'arrivée impossible (${member.id}) :`, e.message);
     }
