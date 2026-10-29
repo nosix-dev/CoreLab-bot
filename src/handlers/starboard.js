@@ -63,9 +63,57 @@ function parseEmojiInput(raw) {
   }
   return null;
 }
+// Émoji par défaut (même logique que getStarboardEmoji dans index.js)
+const STAR_EMOJI_ID_DEFAULT = '1548657085699461121';
+const STAR_EMOJI_DEFAULT = `<:heartwhite:${STAR_EMOJI_ID_DEFAULT}>`;
+function getStarEmoji(cfg) {
+  if (!cfg.starboard_emoji_customized) return { display: STAR_EMOJI_DEFAULT, id: STAR_EMOJI_ID_DEFAULT, name: null };
+  if (cfg.starboard_emoji_id) return { display: cfg.starboard_emoji_raw || STAR_EMOJI_DEFAULT, id: cfg.starboard_emoji_id, name: null };
+  if (cfg.starboard_emoji_raw) return { display: cfg.starboard_emoji_raw, id: null, name: cfg.starboard_emoji_raw };
+  return { display: STAR_EMOJI_DEFAULT, id: STAR_EMOJI_ID_DEFAULT, name: null };
+}
 function reactionMatchesStarboard(reaction, cfg) {
-  if (cfg.starboard_emoji_id) return String(reaction.emoji.id) === String(cfg.starboard_emoji_id);
-  return reaction.emoji.name === cfg.starboard_emoji_raw;
+  const e = getStarEmoji(cfg);
+  if (e.id) return String(reaction.emoji.id) === String(e.id);
+  return reaction.emoji.name === e.name;
+}
+// Salon de destination (repost_channel_id = ancien réglage, gardé pour compatibilité)
+function getDestChannelId(cfg) {
+  return cfg.starboard_channel_id || cfg.repost_channel_id || null;
+}
+
+// ── Message d'explication posté dans le salon photos (modifiable) ──
+const DEFAULT_NOTICE = '**Un coup de cœur pour une photo ? Appuie sur {emoji} en dessous.**\n-# Quand {seuil} membres le font, elle monte dans {salon}. Les photos qui y arrivent reçoivent le tampon.';
+function renderNotice(guild, cfg) {
+  const e = getStarEmoji(cfg);
+  const dest = getDestChannelId(cfg);
+  const raw = (cfg.starboard_notice_text && cfg.starboard_notice_text.trim()) || DEFAULT_NOTICE;
+  return raw
+    .replace(/\{emoji\}/gi, e.display)
+    .replace(/\{seuil\}/gi, String(cfg.starboard_threshold || 3))
+    .replace(/\{salon\}/gi, dest ? `<#${dest}>` : 'le starboard')
+    .slice(0, 2000);
+}
+// Publie (ou republie en bas du salon) le message d'explication dans le salon photos.
+async function publishNotice(guild) {
+  const cfg = getGuildConfig(guild.id);
+  if (!cfg.photo_channel_id) return { ok: false, error: 'Aucun salon photos configuré.' };
+  const channel = guild.channels.cache.get(String(cfg.photo_channel_id));
+  if (!channel?.isTextBased?.()) return { ok: false, error: 'Le salon photos est introuvable.' };
+  try {
+    if (cfg.starboard_notice_message_id) {
+      const oldCh = guild.channels.cache.get(String(cfg.starboard_notice_channel_id || cfg.photo_channel_id));
+      const old = oldCh?.isTextBased?.() ? await oldCh.messages.fetch(cfg.starboard_notice_message_id).catch(() => null) : null;
+      if (old) await old.delete().catch(() => { });
+    }
+    const sent = await channel.send({ content: renderNotice(guild, cfg), allowedMentions: { parse: [] } });
+    cfg.starboard_notice_message_id = sent.id;
+    cfg.starboard_notice_channel_id = channel.id;
+    persist('configuration');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: `Impossible d'envoyer le message dans ${channel} (permissions du bot ?).` };
+  }
 }
 
 // ── Dashboard ──
@@ -74,7 +122,7 @@ function buildStarboardDashboard(guild) {
   const on = v => v ? '🟢 Activé' : '🔴 Désactivé';
   const chan = id => id ? `<#${id}>` : '❌ Non configuré';
   const ignored = (cfg.starboard_ignored_channels || []).length ? cfg.starboard_ignored_channels.map(id => `<#${id}>`).join(', ') : 'Aucun';
-  return new EmbedBuilder().setTitle('⭐ Panneau de configuration — StarBoard').setDescription('Configure ici le système de StarBoard : les messages qui reçoivent assez de réactions sont republiés dans un salon dédié.').setColor(0xFFFFFF).addFields({
+  return new EmbedBuilder().setTitle('⭐ Panneau de configuration — StarBoard').setDescription('Configure ici tout le StarBoard : salon photos, salon de destination, émoji, seuil et message d\'explication. Les messages qui reçoivent assez de réactions sont republiés dans le salon de destination.').setColor(0xFFFFFF).addFields({
     name: 'Statut',
     value: on(cfg.starboard_enabled),
     inline: true
@@ -88,7 +136,15 @@ function buildStarboardDashboard(guild) {
     inline: true
   }, {
     name: 'Salon de destination',
-    value: chan(cfg.starboard_channel_id),
+    value: chan(getDestChannelId(cfg)),
+    inline: true
+  }, {
+    name: 'Salon photos',
+    value: chan(cfg.photo_channel_id),
+    inline: true
+  }, {
+    name: 'Message d\'explication',
+    value: cfg.starboard_notice_message_id ? '🟢 Publié' : '⚪ Non publié',
     inline: true
   }, {
     name: 'Auto-star (self-star)',
@@ -114,9 +170,10 @@ function buildStarboardRows(guild) {
   const cfg = getGuildConfig(guild.id);
   const row1 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('starboard_toggle_btn').setLabel(cfg.starboard_enabled ? '🟢 Activé' : '🔴 Désactivé').setStyle(cfg.starboard_enabled ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_emoji_btn').setLabel('✨ Émoji').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_emoji_reset_btn').setLabel('🔄 Réinitialiser').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_threshold_btn').setLabel('🔢 Seuil').setStyle(ButtonStyle.Secondary));
   const row2 = new ActionRowBuilder().addComponents(new ChannelSelectMenuBuilder().setCustomId('starboard_channel_select').setPlaceholder('Choisis le salon de destination').setChannelTypes(ChannelType.GuildText).setMinValues(1).setMaxValues(1));
+  const rowPhoto = new ActionRowBuilder().addComponents(new ChannelSelectMenuBuilder().setCustomId('starboard_photo_select').setPlaceholder('Choisis le salon photos (où les membres envoient leurs photos)').setChannelTypes(ChannelType.GuildText).setMinValues(1).setMaxValues(1));
   const row3 = new ActionRowBuilder().addComponents(new ChannelSelectMenuBuilder().setCustomId('starboard_ignored_select').setPlaceholder('Choisis les salons à ignorer (optionnel)').setChannelTypes(ChannelType.GuildText).setMinValues(0).setMaxValues(25));
-  const row4 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('starboard_selfstar_btn').setLabel('🙋 Auto-star').setStyle(cfg.starboard_allow_self_star ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_nsfw_btn').setLabel('🔞 Ignorer NSFW').setStyle(cfg.starboard_ignore_nsfw ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_removeonunstar_btn').setLabel('🗑️ Retrait auto').setStyle(cfg.starboard_remove_on_unstar ? ButtonStyle.Success : ButtonStyle.Secondary));
-  return [row1, row2, row3, row4];
+  const row4 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('starboard_selfstar_btn').setLabel('🙋 Auto-star').setStyle(cfg.starboard_allow_self_star ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_nsfw_btn').setLabel('🔞 Ignorer NSFW').setStyle(cfg.starboard_ignore_nsfw ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_removeonunstar_btn').setLabel('🗑️ Retrait auto').setStyle(cfg.starboard_remove_on_unstar ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_notice_edit_btn').setLabel('✏️ Message').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('starboard_notice_publish_btn').setLabel('📨 Publier').setStyle(ButtonStyle.Primary));
+  return [row1, row2, rowPhoto, row3, row4];
 }
 // Panneau complet = carte image (comme /protect-settings) + boutons/menus, en Components V2.
 // À utiliser partout à la place de { embeds:[buildStarboardDashboard()], components: buildStarboardRows() }.
@@ -137,7 +194,7 @@ async function refreshDashboard(interaction) {
 // ── Boutons simples (toggle) ──
 async function toggleStarboardEnabled(interaction) {
   const cfg = getGuildConfig(interaction.guild.id);
-  if (!cfg.starboard_channel_id) {
+  if (!getDestChannelId(cfg)) {
     return interaction.reply({
       content: '❌ Configure d\'abord un salon de destination avant d\'activer le StarBoard.',
       flags: MessageFlags.Ephemeral
@@ -312,15 +369,52 @@ async function submitThresholdModal(interaction) {
   const cfg = getGuildConfig(interaction.guild.id);
   cfg.starboard_threshold = value;
   persist('configuration');
-  return interaction.update(buildStarboardPayload(interaction.guild));
+  await interaction.update(buildStarboardPayload(interaction.guild));
+  if (cfg.photo_channel_id && cfg.starboard_notice_message_id) publishNotice(interaction.guild).catch(() => { });
+  return;
 }
 
 // ── Select menus ──
 async function saveStarboardChannel(interaction) {
   const cfg = getGuildConfig(interaction.guild.id);
   cfg.starboard_channel_id = interaction.values[0];
+  cfg.repost_channel_id = interaction.values[0]; // garde l'ancien réglage synchronisé
   persist('configuration');
-  return interaction.update(buildStarboardPayload(interaction.guild));
+  await interaction.update(buildStarboardPayload(interaction.guild));
+  // Le message d'explication mentionne le salon de destination : on le met à jour
+  if (cfg.photo_channel_id && cfg.starboard_notice_message_id) publishNotice(interaction.guild).catch(() => { });
+}
+async function savePhotoChannel(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.photo_channel_id = interaction.values[0];
+  persist('configuration');
+  await interaction.update(buildStarboardPayload(interaction.guild));
+  publishNotice(interaction.guild).catch(() => { });
+}
+// ── Message d'explication : édition ──
+async function openNoticeModal(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  const modal = new ModalBuilder().setCustomId('starboard_notice_modal').setTitle('✏️ Message du StarBoard');
+  const input = new TextInputBuilder().setCustomId('notice_value').setLabel('Texte ({emoji} {seuil} {salon} dispo)').setStyle(TextInputStyle.Paragraph).setValue((cfg.starboard_notice_text || DEFAULT_NOTICE).slice(0, 1500)).setRequired(false).setMaxLength(1500);
+  modal.addComponents(new ActionRowBuilder().addComponents(input));
+  return interaction.showModal(modal);
+}
+async function submitNoticeModal(interaction) {
+  const value = interaction.fields.getTextInputValue('notice_value').trim();
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_notice_text = value && value !== DEFAULT_NOTICE ? value : null; // vide = texte par défaut
+  persist('configuration');
+  await interaction.update(buildStarboardPayload(interaction.guild));
+  // Si le message est déjà publié, on le met à jour tout de suite
+  if (cfg.photo_channel_id && cfg.starboard_notice_message_id) publishNotice(interaction.guild).catch(() => { });
+}
+async function publishNoticeButton(interaction) {
+  const res = await publishNotice(interaction.guild);
+  if (!res.ok) {
+    return interaction.reply({ content: `❌ ${res.error}`, flags: MessageFlags.Ephemeral });
+  }
+  await interaction.update(buildStarboardPayload(interaction.guild));
+  return interaction.followUp({ content: '✅ Message publié dans le salon photos.', flags: MessageFlags.Ephemeral }).catch(() => { });
 }
 async function saveIgnoredChannels(interaction) {
   const cfg = getGuildConfig(interaction.guild.id);
@@ -387,7 +481,7 @@ async function buildStarboardCardFile(message, cfg, count) {
   }
 }
 async function upsertStarboardPost(guild, cfg, message, count) {
-  const channel = guild.channels.cache.get(String(cfg.starboard_channel_id));
+  const channel = guild.channels.cache.get(String(getDestChannelId(cfg)));
   if (!channel?.isTextBased?.()) return;
   const bucket = getGuildBucket(guild.id, 'starboardMessages', {});
   const existing = bucket[message.id];
@@ -395,7 +489,7 @@ async function upsertStarboardPost(guild, cfg, message, count) {
   // Score inchangé et déjà au nouveau format : rien à refaire
   if (existing && existing.count === count) return;
   const authorMention = message.member ? `<@${message.author.id}>` : message.author ? `@${message.author.username}` : 'Inconnu';
-  const content = `${cfg.starboard_emoji_raw} **${count}** | sent by ${authorMention}`;
+  const content = `${getStarEmoji(cfg).display} **${count}** | sent by ${authorMention}`;
   const linkRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('Jump to Message').setStyle(ButtonStyle.Link).setURL(message.url));
   const file = await buildStarboardCardFile(message, cfg, count);
   const payload = file ? {
@@ -440,7 +534,7 @@ async function removeStarboardPost(guild, cfg, message) {
   const bucket = getGuildBucket(guild.id, 'starboardMessages', {});
   const existing = bucket[message.id];
   if (!existing) return;
-  const channel = guild.channels.cache.get(String(cfg.starboard_channel_id));
+  const channel = guild.channels.cache.get(String(getDestChannelId(cfg)));
   if (channel?.isTextBased?.()) {
     const starMsg = await channel.messages.fetch(existing.starboardMessageId).catch(() => null);
     if (starMsg) await starMsg.delete().catch(() => { });
@@ -471,9 +565,12 @@ async function handleStarboardReactionChange(reaction, user) {
     if (!message.guild) return;
     const guild = message.guild;
     const cfg = getGuildConfig(guild.id);
-    if (!cfg.starboard_enabled || !cfg.starboard_channel_id) return;
+    const destId = getDestChannelId(cfg);
+    const isPhotoChannel = !!cfg.photo_channel_id && message.channel.id === String(cfg.photo_channel_id);
+    // Le salon photos fonctionne dès qu'un salon de destination existe (même ancien réglage)
+    if (!destId || !(cfg.starboard_enabled || isPhotoChannel)) return;
     if (!reactionMatchesStarboard(reaction, cfg)) return;
-    if (message.channel.id === String(cfg.starboard_channel_id)) return;
+    if (message.channel.id === String(destId)) return;
     if ((cfg.starboard_ignored_channels || []).includes(message.channel.id)) return;
     if (cfg.starboard_ignore_nsfw && message.channel.nsfw) return;
     const count = await countEffectiveStars(reaction, cfg, message.author?.id);
@@ -516,17 +613,21 @@ async function routeStarboardInteraction(interaction) {
       if (id === 'starboard_selfstar_btn') return toggleSelfStar(interaction);
       if (id === 'starboard_nsfw_btn') return toggleIgnoreNsfw(interaction);
       if (id === 'starboard_removeonunstar_btn') return toggleRemoveOnUnstar(interaction);
+      if (id === 'starboard_notice_edit_btn') return openNoticeModal(interaction);
+      if (id === 'starboard_notice_publish_btn') return publishNoticeButton(interaction);
     }
     if (interaction.isStringSelectMenu()) {
       if (id === 'starboard_emoji_pick') return pickServerEmoji(interaction);
     }
     if (interaction.isChannelSelectMenu()) {
       if (id === 'starboard_channel_select') return saveStarboardChannel(interaction);
+      if (id === 'starboard_photo_select') return savePhotoChannel(interaction);
       if (id === 'starboard_ignored_select') return saveIgnoredChannels(interaction);
     }
     if (interaction.isModalSubmit()) {
       if (id === 'starboard_emoji_modal') return submitEmojiModal(interaction);
       if (id === 'starboard_threshold_modal') return submitThresholdModal(interaction);
+      if (id === 'starboard_notice_modal') return submitNoticeModal(interaction);
     }
   } catch (e) {
     console.error('Erreur routeStarboardInteraction :', e);
@@ -543,5 +644,7 @@ module.exports = {
   routeStarboardInteraction,
   buildStarboardDashboard,
   buildStarboardRows,
-  buildStarboardPayload
+  buildStarboardPayload,
+  publishNotice,
+  getStarEmoji
 };
