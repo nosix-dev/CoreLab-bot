@@ -152,12 +152,22 @@ function buildButtonRow(list) {
   return buttons.length ? new ActionRowBuilder().addComponents(buttons) : null;
 }
 
+// Discord ne transforme pas « :pin: » en emoji dans un message de bot : on le fait ici pour l'en-tête.
+const SHORTCODES = {
+  pin: '📌', pushpin: '📌', round_pushpin: '📍', rocket: '🚀', sparkles: '✨', star: '⭐', fire: '🔥',
+  tada: '🎉', bell: '🔔', new: '🆕', tools: '🛠️', wrench: '🔧', hammer: '🔨', gear: '⚙️',
+  warning: '⚠️', white_check_mark: '✅', check: '✅', heart: '❤️', megaphone: '📢', loudspeaker: '📢'
+};
+const shortcodesToEmoji = text => String(text).replace(/:([a-z0-9_+-]+):/gi, (m, n) => SHORTCODES[n.toLowerCase()] || m);
+
 function buildMessages(data, client, hash) {
   const version = String(data.version);
   const nom = data.nom || client.user.username;
-  const statut = data.statut || 'En ligne 🟢';
+  // Pas de pastille ronde après le statut (🟢, ⚪, :green_circle:…)
+  const statut = String(data.statut || 'En ligne').replace(/\s*(?:[\u{1F7E0}-\u{1F7EB}\u26AA\u26AB\u25CB\u25EF]\uFE0F?|:\w*circle\w*:)\s*$/u, '').trim() || 'En ligne';
+  const ping = data.mention !== false; // @everyone par défaut ; "mention": false dans update.json pour le couper
   const tag = data.tag || 'Update';
-  const titre = data.titre || `📌 ${nom} - Version ${version} \`${tag}\``;
+  const titre = shortcodesToEmoji(data.titre || `📌 ${nom} - Version ${version} \`${tag}\``);
   const avatar = client.user.displayAvatarURL({ extension: 'png', size: 256 });
 
   const header =
@@ -181,6 +191,7 @@ function buildMessages(data, client, hash) {
   const row = buildButtonRow(data.boutons ?? data.bouton);
   return groups.map((blks, i) => {
     const container = new ContainerBuilder().setAccentColor(0xFFFFFF);
+    const withPing = ping && i === 0;
     if (i === 0) {
       const section = new SectionBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(header));
       if (avatar) section.setThumbnailAccessory(new ThumbnailBuilder().setURL(avatar).setDescription(`${HASH_PREFIX}${hash}`));
@@ -191,7 +202,11 @@ function buildMessages(data, client, hash) {
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent(b));
     });
     if (row && i === groups.length - 1) container.addActionRowComponents(row);
-    return { components: [container], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
+    return {
+      components: withPing ? [new TextDisplayBuilder().setContent('@everyone'), container] : [container],
+      flags: MessageFlags.IsComponentsV2,
+      allowedMentions: withPing ? { parse: ['everyone'] } : { parse: [] }
+    };
   });
 }
 
