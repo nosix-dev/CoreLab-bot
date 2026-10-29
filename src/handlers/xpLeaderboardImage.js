@@ -150,6 +150,21 @@ function drawColumn(ctx, { x, y, w, title, rows, rowH, rowGap }) {
  * @returns {Promise<Buffer>} PNG
  */
 async function generateXpLeaderboardImage({ guildName, entries, totalMembers, guildId }) {
+  const cc = require('../core/compactCard');
+  if (cc.isCompact(guildId)) {
+    const top = entries.slice(0, 10);
+    const mois = new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    const totalXp = entries.reduce((s, e) => s + e.xp, 0);
+    return cc.renderCompact({
+      guildId, theme: 'green', title: '🏆 Classement',
+      sub: `${mois} · ${fmt(totalXp)} XP · ${totalMembers ?? entries.length} actifs`,
+      grid: 1, valueMax: 32,
+      blocks: top.length
+        ? top.map((e, i) => ({ label: `${i + 1}. ${cleanName(e.name)}`, value: `${fmt(e.xp)} XP · Niv. ${e.level}` }))
+        : [{ label: '', value: 'Aucun score pour le moment' }],
+      footerLeft: `Source : CoreLab · ${cleanName(guildName)}`
+    });
+  }
   const byXp = entries.slice(0, 10);
   const byLevel = entries.slice().sort((a, b) => (b.level - a.level) || (b.xp - a.xp)).slice(0, 10);
   const n = Math.max(byXp.length, 1);
