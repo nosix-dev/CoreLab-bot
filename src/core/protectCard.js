@@ -59,7 +59,7 @@ const MODULES = [
   { key: 'anti_scam_image', kind: 'toggle', label: 'Anti-arnaque (OCR)', on: c => c.anti_scam_image, sub: () => 'images suspectes' },
   { key: 'dm_lock_enabled', kind: 'toggle', label: 'Fermeture des MP', on: c => c.dm_lock_enabled,   sub: () => 'MP des membres fermés' },
   { key: 'auth_double_detection_enabled', kind: 'toggle', label: 'Compte double', on: c => c.auth_double_detection_enabled, sub: () => 'détection des doublons' },
-  { key: 'logs',       kind: 'config', label: 'Logs',            on: c => !!(c.protection_log_channel_id || c.log_channel_id), sub: () => 'salon de journal' },
+  { key: 'logs',       kind: 'config', label: 'Logs',            on: c => !!(c.protection_log_channel_id || c.protection_setup_channel_id || c.log_channel_id), sub: () => 'salon de journal' },
   { key: 'signalement', kind: 'config', label: 'Signalements',   on: c => c.signalement_enabled,    sub: () => 'commande /report' },
   { key: 'sanctions',  kind: 'config', label: 'Sanctions',       on: c => !!c.infraction_channel_id, sub: () => 'salon des sanctions' },
   { key: 'transparence', kind: 'config', label: 'Transparence',  on: c => c.transparence_enabled,   sub: () => 'sanctions publiques' },
