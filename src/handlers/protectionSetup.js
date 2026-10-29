@@ -246,7 +246,7 @@ function navRow(page) {
   const last = page === TOTAL_STEPS;
   return rowOf(
     new ButtonBuilder().setCustomId(`psetup_page_${page - 1}`).setLabel('Précédent').setEmoji('◀️').setStyle(ButtonStyle.Secondary).setDisabled(page <= 1),
-    new ButtonBuilder().setCustomId(last ? 'psetup_recap' : `psetup_page_${page + 1}`).setLabel(last ? 'Récapitulatif' : 'Suivant').setEmoji('▶️').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(last ? 'psetup_recap_end' : `psetup_page_${page + 1}`).setLabel(last ? 'Récapitulatif' : 'Suivant').setEmoji('▶️').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId('psetup_recap').setLabel('Vue d\'ensemble').setEmoji('👁️').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setLabel('Support').setStyle(ButtonStyle.Link).setURL(SUPPORT_URL),
     new ButtonBuilder().setLabel('Documentation').setStyle(ButtonStyle.Link).setURL(DOCS_URL)
@@ -373,7 +373,7 @@ async function routeProtectionSetupInteraction(interaction) {
         const page = Math.min(Math.max(parseInt(id.slice('psetup_page_'.length), 10) || 1, 1), TOTAL_STEPS);
         return interaction.editReply(buildPage(guild, page));
       }
-      if (id === 'psetup_recap') return interaction.editReply(buildRecap(guild));
+      if (id === 'psetup_recap' || id === 'psetup_recap_end') return interaction.editReply(buildRecap(guild));
       if (id === 'psetup_reco') {
         applyRecommended(cfg);
         return interaction.editReply(buildRecap(guild, '✅ Config recommandée appliquée : anti-spam, anti-@everyone, anti-phishing, anti-arnaque, anti-nuke, RaidMode, anti-DDoS et âge minimum.'));
