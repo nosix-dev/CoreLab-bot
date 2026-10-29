@@ -10,7 +10,6 @@
 const path = require('path');
 const fs = require('fs');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
-const { themedCtx } = require('../core/cardTheme');
 
 const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
 let FONT = 'sans-serif';
@@ -31,19 +30,19 @@ const DAYS_SHORT = ['LUN.', 'MAR.', 'MER.', 'JEU.', 'VEN.', 'SAM.', 'DIM.'];
 const DAYS_LOWER = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
 
 const C = {
-  bg: '#0a1a12',
-  card: '#0e2218',
-  border: '#1e4630',
-  pill: '#122c1e',
-  pillBorder: '#204c34',
-  cell: '#0f241a',
-  cellBorder: '#173a28',
-  cellOther: '#0b1b13',
-  green: '#2ecc71',
-  greenLight: '#78eba0',
-  text: '#ebf5ee',
-  muted: '#82aa91',
-  dim: '#52705f'
+  bg: '#0a1c1f',
+  card: '#0e2427',
+  border: '#1e4a50',
+  pill: '#12303a',
+  pillBorder: '#215a63',
+  cell: '#0f2529',
+  cellBorder: '#173c42',
+  cellOther: '#0b1c20',
+  green: '#2dc7d4',
+  greenLight: '#7eeaf0',
+  text: '#ebf5f6',
+  muted: '#82a9ae',
+  dim: '#52707a'
 };
 const TYPE_COLOR = { convoi: '#2ecc71', reunion: '#4c8dff', event: '#f5a524' };
 const TYPE_LABEL = { convoi: 'Convoi', reunion: 'Réunion', event: 'Événement' };
@@ -56,7 +55,8 @@ function makeCanvas(w, h, guildId) {
   const canvas = createCanvas(w * SCALE, h * SCALE);
   const raw = canvas.getContext('2d');
   raw.scale(SCALE, SCALE);
-  return { canvas, ctx: themedCtx(raw, guildId) };
+  // Pas de themedCtx : le calendrier reste sombre (comme les autres cartes), même si le look du serveur est « clair ».
+  return { canvas, ctx: raw };
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -138,7 +138,7 @@ function drawHeader(ctx, title, subtitle, today) {
   const bw = ctx.measureText(badge).width + 56;
   const bx = W - PAD - bw, by = 44, bh = 40;
   roundRect(ctx, bx, by, bw, bh, 20);
-  ctx.fillStyle = '#14462a';
+  ctx.fillStyle = '#14464f';
   ctx.fill();
   ctx.lineWidth = 2;
   ctx.strokeStyle = C.green;
@@ -285,8 +285,8 @@ function generateAgendaMonth(o) {
   drawStats(ctx, 118, [
     { label: 'CONVOIS', value: counts.convoi ? String(counts.convoi) : 'Aucun', color: TYPE_COLOR.convoi, small: !counts.convoi, valueColor: counts.convoi ? C.text : C.muted },
     { label: 'RÉUNIONS', value: counts.reunion ? String(counts.reunion) : 'Aucun', color: TYPE_COLOR.reunion, small: !counts.reunion, valueColor: counts.reunion ? C.text : C.muted },
-    { label: 'ÉVÉNEMENTS', value: counts.event ? String(counts.event) : 'Aucun', color: TYPE_COLOR.event, small: !counts.event, valueColor: counts.event ? C.text : C.muted, border: counts.event ? '#3d8f5c' : undefined },
-    { label: 'PROCHAIN', value: o.next || 'Aucun', color: C.green, small: true, valueColor: C.greenLight, border: '#3d8f5c' }
+    { label: 'ÉVÉNEMENTS', value: counts.event ? String(counts.event) : 'Aucun', color: TYPE_COLOR.event, small: !counts.event, valueColor: counts.event ? C.text : C.muted, border: counts.event ? '#3d8f9c' : undefined },
+    { label: 'PROCHAIN', value: o.next || 'Aucun', color: C.green, small: true, valueColor: C.greenLight, border: '#3d8f9c' }
   ], true);
 
   // En-têtes des jours
@@ -309,7 +309,7 @@ function generateAgendaMonth(o) {
       const y = gridTop + r * (ch + gap);
 
       roundRect(ctx, x, y, cw, ch, 12);
-      ctx.fillStyle = isToday ? '#12331f' : (inMonth ? C.cell : C.cellOther);
+      ctx.fillStyle = isToday ? '#12333c' : (inMonth ? C.cell : C.cellOther);
       ctx.fill();
       ctx.lineWidth = isToday ? 2.5 : 1.5;
       ctx.strokeStyle = isToday ? C.greenLight : C.cellBorder;
@@ -396,7 +396,7 @@ function generateAgendaWeek(o) {
     { label: 'CONVOIS', value: counts.convoi ? String(counts.convoi) : 'Aucun', color: TYPE_COLOR.convoi, small: !counts.convoi, valueColor: counts.convoi ? C.text : C.muted },
     { label: 'RÉUNIONS', value: counts.reunion ? String(counts.reunion) : 'Aucun', color: TYPE_COLOR.reunion, small: !counts.reunion, valueColor: counts.reunion ? C.text : C.muted },
     { label: 'ÉVÉNEMENTS', value: counts.event ? String(counts.event) : 'Aucun', color: TYPE_COLOR.event, small: !counts.event, valueColor: counts.event ? C.text : C.muted },
-    { label: 'PROCHAIN', value: o.next || 'Aucun', color: C.green, small: true, valueColor: C.greenLight, border: '#3d8f5c' }
+    { label: 'PROCHAIN', value: o.next || 'Aucun', color: C.green, small: true, valueColor: C.greenLight, border: '#3d8f9c' }
   ]);
 
   let y = gridTop;
@@ -404,7 +404,7 @@ function generateAgendaWeek(o) {
     const h = rowH[i];
     const isToday = dd.y === today.y && dd.m === today.m && dd.d === today.d;
     roundRect(ctx, PAD, y, W - 2 * PAD, h, 12);
-    ctx.fillStyle = isToday ? '#12331f' : C.cell;
+    ctx.fillStyle = isToday ? '#12333c' : C.cell;
     ctx.fill();
     ctx.lineWidth = isToday ? 2.5 : 1.5;
     ctx.strokeStyle = isToday ? C.greenLight : C.cellBorder;
@@ -505,7 +505,7 @@ function generateAgendaAll(o) {
     { label: 'CONVOIS', value: counts.convoi ? String(counts.convoi) : 'Aucun', color: TYPE_COLOR.convoi, small: !counts.convoi, valueColor: counts.convoi ? C.text : C.muted },
     { label: 'RÉUNIONS', value: counts.reunion ? String(counts.reunion) : 'Aucun', color: TYPE_COLOR.reunion, small: !counts.reunion, valueColor: counts.reunion ? C.text : C.muted },
     { label: 'ÉVÉNEMENTS', value: counts.event ? String(counts.event) : 'Aucun', color: TYPE_COLOR.event, small: !counts.event, valueColor: counts.event ? C.text : C.muted },
-    { label: 'PROCHAIN', value: o.next || 'Aucun', color: C.green, small: true, valueColor: C.greenLight, border: '#3d8f5c' }
+    { label: 'PROCHAIN', value: o.next || 'Aucun', color: C.green, small: true, valueColor: C.greenLight, border: '#3d8f9c' }
   ]);
 
   let y = gridTop;
@@ -534,7 +534,7 @@ function generateAgendaAll(o) {
     for (const ev of g.list) {
       const isToday = ev.y === today.y && ev.m === today.m && ev.d === today.d;
       roundRect(ctx, PAD, y, W - 2 * PAD, rowH - 6, 10);
-      ctx.fillStyle = isToday ? '#12331f' : C.cell;
+      ctx.fillStyle = isToday ? '#12333c' : C.cell;
       ctx.fill();
       ctx.lineWidth = isToday ? 2 : 1.5;
       ctx.strokeStyle = isToday ? C.greenLight : C.cellBorder;
