@@ -361,35 +361,39 @@ async function routeProtectionSetupInteraction(interaction) {
     const cfg = getGuildConfig(guild.id);
     const id = interaction.customId || '';
 
+    // Accusé de réception immédiat : Discord coupe l'interaction au bout de 3 s
+    const selfAnswered = id === 'psetup_start' || id === 'psetup_open';
+    if (!selfAnswered && interaction.isMessageComponent?.()) await interaction.deferUpdate();
+
     if (interaction.isButton()) {
       if (id === 'psetup_start') {
         return interaction.reply({ ...buildPage(guild, 1), flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
       }
       if (id.startsWith('psetup_page_')) {
         const page = Math.min(Math.max(parseInt(id.slice('psetup_page_'.length), 10) || 1, 1), TOTAL_STEPS);
-        return interaction.update(buildPage(guild, page));
+        return interaction.editReply(buildPage(guild, page));
       }
-      if (id === 'psetup_recap') return interaction.update(buildRecap(guild));
+      if (id === 'psetup_recap') return interaction.editReply(buildRecap(guild));
       if (id === 'psetup_reco') {
         applyRecommended(cfg);
-        return interaction.update(buildRecap(guild, '✅ Config recommandée appliquée : anti-spam, anti-@everyone, anti-phishing, anti-arnaque, anti-nuke, RaidMode, anti-DDoS et âge minimum.'));
+        return interaction.editReply(buildRecap(guild, '✅ Config recommandée appliquée : anti-spam, anti-@everyone, anti-phishing, anti-arnaque, anti-nuke, RaidMode, anti-DDoS et âge minimum.'));
       }
-      if (id === 'psetup_dash') return interaction.update(buildProtectPayload(guild));
+      if (id === 'psetup_dash') return interaction.editReply(buildProtectPayload(guild));
     }
 
     if (interaction.isStringSelectMenu()) {
       if (id === 'psetup_lang') {
         const code = interaction.values[0];
         if (LANGUAGES[code]) { cfg.language = code; persist('configuration'); }
-        return interaction.update(buildPage(guild, 1));
+        return interaction.editReply(buildPage(guild, 1));
       }
       if (id.startsWith('psetup_tog_')) {
         const page = parseInt(id.slice('psetup_tog_'.length), 10);
         const defs = TOGGLES[page];
-        if (!defs) return interaction.deferUpdate();
+        if (!defs) return;
         for (const d of defs) d.set(cfg, interaction.values.includes(d.key));
         persist('configuration');
-        return interaction.update(buildPage(guild, page));
+        return interaction.editReply(buildPage(guild, page));
       }
       if (id === 'psetup_open') {
         const open = PANEL_OPENERS[interaction.values[0]];
@@ -399,16 +403,16 @@ async function routeProtectionSetupInteraction(interaction) {
 
     if (interaction.isChannelSelectMenu()) {
       const channelId = interaction.values[0];
-      if (id === 'psetup_logs') { cfg.protection_log_channel_id = channelId; persist('configuration'); return interaction.update(buildPage(guild, 1)); }
-      if (id === 'psetup_sanctions') { cfg.infraction_channel_id = channelId; persist('configuration'); return interaction.update(buildPage(guild, 1)); }
-      if (id === 'psetup_signal') { cfg.signalement_channel_id = channelId; cfg.signalement_enabled = true; persist('configuration'); return interaction.update(buildPage(guild, 4)); }
-      if (id === 'psetup_transp') { cfg.transparence_channel_id = channelId; cfg.transparence_enabled = true; persist('configuration'); return interaction.update(buildPage(guild, 4)); }
+      if (id === 'psetup_logs') { cfg.protection_log_channel_id = channelId; persist('configuration'); return interaction.editReply(buildPage(guild, 1)); }
+      if (id === 'psetup_sanctions') { cfg.infraction_channel_id = channelId; persist('configuration'); return interaction.editReply(buildPage(guild, 1)); }
+      if (id === 'psetup_signal') { cfg.signalement_channel_id = channelId; cfg.signalement_enabled = true; persist('configuration'); return interaction.editReply(buildPage(guild, 4)); }
+      if (id === 'psetup_transp') { cfg.transparence_channel_id = channelId; cfg.transparence_enabled = true; persist('configuration'); return interaction.editReply(buildPage(guild, 4)); }
     }
   } catch (e) {
     console.error('Erreur routeProtectionSetupInteraction :', e);
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '❌ Une erreur est survenue.', flags: MessageFlags.Ephemeral }).catch(() => { });
-    }
+    const msg = { content: '❌ Une erreur est survenue.', flags: MessageFlags.Ephemeral };
+    if (interaction.replied || interaction.deferred) await interaction.followUp(msg).catch(() => { });
+    else await interaction.reply(msg).catch(() => { });
   }
 }
 
