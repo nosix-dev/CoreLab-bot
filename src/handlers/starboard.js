@@ -1,335 +1,677 @@
-'use strict';
+const {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ChannelSelectMenuBuilder,
+  ChannelType,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  MessageFlags,
+  PermissionFlagsBits,
+  AttachmentBuilder,
+  StringSelectMenuBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize
+} = require('discord.js');
+const {
+  getGuildConfig,
+  getGuildBucket,
+  setGuildBucket,
+  persist
+} = require('../core/config');
+const {
+  buildSettingsPayload
+} = require('../core/settingsCard');
+const {
+  generateStarboardCard
+} = require('../core/starboardCard');
+const {
+  containerAccent
+} = require('../core/cardTheme');
+const { mute: muteMessage } = require('../core/silentMessages');
 
-// ─────────────────────────────────────────────────────────────────────────
-// Carte verte « StarBoard » (photo en fond + dégradé sombre, gros score, barre)
-// Envoyée à la place de l'embed StarBoard, comme la carte de level up.
-// ─────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────
+// Système StarBoard générique et configurable
+// (indépendant de l'ancien système "photo" codé en dur
+// dans index.js — celui-ci fonctionne sur n'importe quel
+// message, dans n'importe quel salon, avec un émoji et un
+// seuil personnalisables par serveur).
+// ────────────────────────────────────────────────
 
-const path = require('path');
-const fs = require('fs');
-const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
-const { themedCtx, getTheme } = require('./cardTheme');
-const glass = require('./glassCard');
-const compact = require('./compactCard');
-
-// ── Polices (Poppins si présente dans src/assets/fonts, sinon police système) ──
-const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
-let FONT = 'sans-serif';
-let FONT_BOLD = 'sans-serif';
-let BOLD = 'bold '; // préfixe de graisse quand Poppins n'est pas dispo (police système)
-try {
-  const b = path.join(FONT_DIR, 'Poppins-Bold.ttf');
-  const r = path.join(FONT_DIR, 'Poppins-Regular.ttf');
-  if (fs.existsSync(b) && fs.existsSync(r)) {
-    GlobalFonts.registerFromPath(b, 'StarBoardBold');
-    GlobalFonts.registerFromPath(r, 'StarBoardRegular');
-    FONT = 'StarBoardRegular';
-    FONT_BOLD = 'StarBoardBold';
-    BOLD = '';
+// ── Parsing / affichage de l'émoji ──
+function parseEmojiInput(raw) {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return null;
+  const customMatch = trimmed.match(/^<a?:\w+:(\d+)>$/);
+  if (customMatch) {
+    return {
+      raw: trimmed,
+      id: customMatch[1]
+    };
   }
-} catch { /* police système */ }
 
-const W = 1000;
-const H = 420;
-
-const C = {
-  bg: '#031a0e',
-  bg2: '#06301a',
-  border: '#22e06b',
-  glow: '#22e06b',
-  text: '#eafff1',
-  dim: '#4f9f70',
-  accent: '#2cff7a',
-  grid: 'rgba(34,224,107,0.05)'
-};
-
-const hexA = (hex, a) => {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
-};
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-function drawStar(ctx, cx, cy, R) {
-  const r = R * 0.45;
-  ctx.beginPath();
-  for (let i = 0; i < 10; i++) {
-    const rad = i % 2 === 0 ? R : r;
-    const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.save();
-  ctx.shadowColor = C.glow;
-  ctx.shadowBlur = R * 0.8;
-  ctx.fillStyle = C.accent;
-  ctx.fill();
-  ctx.restore();
-}
-
-function wrap(ctx, text, maxW, maxLines) {
-  const words = String(text || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
-  const lines = [];
-  let cur = '';
-  for (const w of words) {
-    const t = cur ? cur + ' ' + w : w;
-    if (ctx.measureText(t).width > maxW && cur) {
-      lines.push(cur);
-      cur = w;
-      if (lines.length === maxLines) break;
-    } else cur = t;
-  }
-  if (lines.length < maxLines && cur) lines.push(cur);
-  if (lines.join(' ').length < words.join(' ').length) {
-    let l = lines[lines.length - 1] || '';
-    while (l.length && ctx.measureText(l + '…').width > maxW) l = l.slice(0, -1);
-    lines[Math.max(0, lines.length - 1)] = l + '…';
-  }
-  return lines;
-}
-
-function drawCover(ctx, img, x, y, w, h) {
-  const s = Math.max(w / img.width, h / img.height);
-  const sw = w / s, sh = h / s;
-  ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
-}
-
-async function safeLoad(src) {
-  if (!src) return null;
-  try { return await loadImage(src); } catch { /* repli ci-dessous */ }
-  if (typeof src === 'string' && /^https?:\/\//i.test(src) && typeof fetch === 'function') {
-    try {
-      const r = await fetch(src);
-      if (r.ok) return await loadImage(Buffer.from(await r.arrayBuffer()));
-    } catch { /* pas de photo */ }
+  // Émoji unicode simple (rejette tout ce qui ressemble à du texte classique
+  // ou à une mention/rôle/canal mal collée dans le champ).
+  if (trimmed.length <= 8 && !/^[a-zA-Z0-9]+$/.test(trimmed)) {
+    return {
+      raw: trimmed,
+      id: null
+    };
   }
   return null;
 }
-
-
-// ── Style « verre fumé » (défaut) : la photo est en fond plein, le verre dépoli par-dessus ──
-function glassStarboard(o, photo) {
-  const score = Math.max(0, o.score | 0);
-  const th = Math.max(score, o.threshold | 0, 1);
-  const author = String(o.author || 'Inconnu');
-  const content = o.content ? String(o.content) : '';
-  const footer = o.footer || 'ScaraBot · StarBoard';
-  const accent = getTheme(o.guildId).accent;
-  const mono = glass.isMono(accent);
-  const hi = mono ? '#ffffff' : accent;
-
-  const canvas = createCanvas(W, H);
-  const ctx = canvas.getContext('2d');
-
-  // Fond : toujours le fond de la couleur choisie (la photo n'est que dans le bloc de verre)
-  const theme = getTheme(o.guildId);
-  const back = glass.glassBackdrop(W, H, accent, false, theme);
-  const blur = back; // aucun flou : le verre garde le fond net
-
-  // Panneau de verre pleine largeur ; la photo est affichée DANS le panneau (à droite)
-  const px = 6, py = 6, ph = H - 12, pw = W - 12;
-  glass.glassPanel(ctx, back, blur, px, py, pw, ph, 30, { tint: glass.tintFor(theme, photo ? 0.5 : 0.55) });
-
-  // Largeur de la colonne texte (à gauche de la photo)
-  const PH_PAD = 20;
-  const fh = ph - PH_PAD * 2, PH_W = fh; // carré dédié à la photo publiée
-  const fx = px + pw - PH_PAD - PH_W, fy = py + PH_PAD;
-  const textW = photo ? fx - (px + 44) - 28 : 860;
-  if (photo) {
-    // Ombre douce + photo arrondie dans le verre
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.45)';
-    ctx.shadowBlur = 24;
-    ctx.shadowOffsetY = 8;
-    glass.roundRect(ctx, fx, fy, PH_W, fh, 20);
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.fill();
-    ctx.restore();
-    ctx.save();
-    glass.roundRect(ctx, fx, fy, PH_W, fh, 20);
-    ctx.clip();
-    // Carré : uniquement la photo publiée (recadrée pour remplir)
-    drawCover(ctx, photo, fx, fy, PH_W, fh);
-    ctx.restore();
-    // Liseré de verre autour de la photo
-    glass.roundRect(ctx, fx + 1, fy + 1, PH_W - 2, fh - 2, 20);
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+// Émoji par défaut (même logique que getStarboardEmoji dans index.js)
+const STAR_EMOJI_ID_DEFAULT = '1548657085699461121';
+const STAR_EMOJI_DEFAULT = `<:heartwhite:${STAR_EMOJI_ID_DEFAULT}>`;
+function getStarEmoji(cfg) {
+  if (!cfg.starboard_emoji_customized) return { display: STAR_EMOJI_DEFAULT, id: STAR_EMOJI_ID_DEFAULT, name: null };
+  if (cfg.starboard_emoji_id) return { display: cfg.starboard_emoji_raw || STAR_EMOJI_DEFAULT, id: cfg.starboard_emoji_id, name: null };
+  if (cfg.starboard_emoji_raw) return { display: cfg.starboard_emoji_raw, id: null, name: cfg.starboard_emoji_raw };
+  return { display: STAR_EMOJI_DEFAULT, id: STAR_EMOJI_ID_DEFAULT, name: null };
+}
+// Texte à afficher dans les messages : un emoji perso introuvable sur le serveur s'afficherait
+// en « :heartwhite: » → on retombe sur le cœur unicode.
+function getStarDisplay(guild, cfg) {
+  const e = getStarEmoji(cfg);
+  if (e.id) {
+    const ge = guild?.emojis?.cache?.get(String(e.id));
+    return ge && ge.available !== false ? ge.toString() : '❤️';
   }
-
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left';
-  const L = px + 44;
-  ctx.fillStyle = 'rgba(255,255,255,0.65)';
-  ctx.font = `${BOLD}20px ${FONT_BOLD}`;
-  ctx.fillText('STARBOARD', L, 90);
-
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `${BOLD}32px ${FONT_BOLD}`;
-  ctx.fillText(author.slice(0, 22), L, 134);
-
-  // Gros score + étoile
-  ctx.font = `${BOLD}118px ${FONT_BOLD}`;
-  const tw = ctx.measureText(String(score)).width;
-  ctx.fillText(String(score), L, 262);
-  ctx.save();
-  ctx.shadowColor = 'rgba(255,255,255,0.6)';
-  ctx.shadowBlur = 14;
-  ctx.fillStyle = hi;
-  drawStarPath(ctx, L + tw + 118 * 0.42, 262 - 118 * 0.36, 118 * 0.28);
-  ctx.fill();
-  ctx.restore();
-
-  // Message : 1 ligne avec photo, 2 lignes sans photo
-  const maxLines = photo ? 1 : 2;
-  const barY = photo ? 336 : 344;
-  if (content) {
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = `19px ${FONT}`;
-    wrap(ctx, content, textW, maxLines).forEach((l, i) => ctx.fillText(l, L, 302 + i * 26));
-  }
-
-  // Barre de progression en verre + pied
-  glass.glassBar(ctx, L, barY, photo ? textW : 420, 14, score / th);
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
-  ctx.font = `15px ${FONT}`;
-  ctx.fillText(`${score} / ${th} étoiles · ${footer}`, L, barY + 36);
-
-  return canvas.toBuffer('image/png');
+  return e.display;
+}
+function reactionMatchesStarboard(reaction, cfg) {
+  const e = getStarEmoji(cfg);
+  if (e.id) return String(reaction.emoji.id) === String(e.id);
+  return reaction.emoji.name === e.name;
+}
+// Salon de destination (repost_channel_id = ancien réglage, gardé pour compatibilité)
+function getDestChannelId(cfg) {
+  return cfg.starboard_channel_id || cfg.repost_channel_id || null;
 }
 
-function drawStarPath(ctx, cx, cy, R) {
-  const r = R * 0.45;
-  ctx.beginPath();
-  for (let i = 0; i < 10; i++) {
-    const rad = i % 2 === 0 ? R : r;
-    const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+// ── Message d'explication posté dans le salon photos (modifiable) ──
+const DEFAULT_NOTICE = '**Un coup de cœur pour une photo ? Appuie sur {emoji} en dessous.**\n-# Quand {seuil} membres le font, elle monte dans {salon}. Les photos qui y arrivent reçoivent le tampon.';
+function renderNotice(guild, cfg) {
+  const e = { display: getStarDisplay(guild, cfg) };
+  const dest = getDestChannelId(cfg);
+  const raw = (cfg.starboard_notice_text && cfg.starboard_notice_text.trim()) || DEFAULT_NOTICE;
+  return raw
+    .replace(/\{emoji\}/gi, e.display)
+    .replace(/\{seuil\}/gi, String(cfg.starboard_threshold || 3))
+    .replace(/\{salon\}/gi, dest ? `<#${dest}>` : 'le starboard')
+    .slice(0, 2000);
+}
+// Publie (ou republie en bas du salon) le message d'explication dans le salon photos.
+async function publishNotice(guild) {
+  const cfg = getGuildConfig(guild.id);
+  if (!cfg.photo_channel_id) return { ok: false, error: 'Aucun salon photos configuré.' };
+  const channel = guild.channels.cache.get(String(cfg.photo_channel_id));
+  if (!channel?.isTextBased?.()) return { ok: false, error: 'Le salon photos est introuvable.' };
+  try {
+    if (cfg.starboard_notice_message_id) {
+      const oldCh = guild.channels.cache.get(String(cfg.starboard_notice_channel_id || cfg.photo_channel_id));
+      const old = oldCh?.isTextBased?.() ? await oldCh.messages.fetch(cfg.starboard_notice_message_id).catch(() => null) : null;
+      muteMessage(cfg.starboard_notice_message_id); // pas de log pour cette suppression
+      if (old) await old.delete().catch(() => { });
+    }
+    const sent = await channel.send({ content: renderNotice(guild, cfg), allowedMentions: { parse: [] } });
+    muteMessage(sent.id); // ni pour cet envoi, ni pour sa future suppression
+    cfg.starboard_notice_message_id = sent.id;
+    cfg.starboard_notice_channel_id = channel.id;
+    persist('configuration');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: `Impossible d'envoyer le message dans ${channel} (permissions du bot ?).` };
   }
-  ctx.closePath();
 }
 
-/**
- * @param {object} o
- * @param {string} o.author        Pseudo de l'auteur du message
- * @param {number} o.score         Nombre d'étoiles
- * @param {number} [o.threshold]   Seuil du StarBoard
- * @param {string} [o.content]     Texte du message (affiché sur 1 ligne, ou 2 sans photo)
- * @param {string|Buffer} [o.imageUrl]  Photo du message (URL ou Buffer)
- * @param {string} [o.footer]
- * @returns {Promise<Buffer>} PNG
- */
-async function generateStarboardCard(o) {
-  if (compact.isCompact(o.guildId)) {
-    const photo = await safeLoad(o.imageUrl);
-    return compact.renderCompact(compact.starboardSpec({ ...o, photo }));
-  }
-  const score = Math.max(0, o.score | 0);
-  const th = Math.max(score, o.threshold | 0, 1);
-  const author = String(o.author || 'Inconnu');
-  const content = o.content ? String(o.content) : '';
-  const footer = o.footer || 'ScaraBot · StarBoard';
-  const photo = await safeLoad(o.imageUrl);
-  if (getTheme(o.guildId).look === 'fume') return glassStarboard(o, photo);
-
-  const canvas = createCanvas(W, H);
-  const ctx = themedCtx(canvas.getContext('2d'), o.guildId);
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left';
-
-  // Fond + grille
-  const x = 24, y = 24, w = W - 48, h = H - 48;
-  ctx.save();
-  roundRect(ctx, x, y, w, h, 24);
-  const g = ctx.createLinearGradient(x, y, x + w, y + h);
-  g.addColorStop(0, C.bg);
-  g.addColorStop(1, C.bg2);
-  ctx.fillStyle = g;
-  ctx.fill();
-  ctx.clip();
-  if (photo) {
-    drawCover(ctx, photo, x, y, w, h);
-    const ov = ctx.createLinearGradient(x, 0, x + w, 0);
-    ov.addColorStop(0, hexA(C.bg, 0.97));
-    ov.addColorStop(0.5, hexA(C.bg, 0.75));
-    ov.addColorStop(1, hexA(C.bg, 0.1));
-    ctx.fillStyle = ov;
-    ctx.fillRect(x, y, w, h);
-  } else {
-    ctx.strokeStyle = C.grid;
-    ctx.lineWidth = 1;
-    for (let gx = x; gx < x + w; gx += 28) { ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, y + h); ctx.stroke(); }
-    for (let gy = y; gy < y + h; gy += 28) { ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x + w, gy); ctx.stroke(); }
-  }
-  ctx.restore();
-
-  // Cadre néon
-  ctx.save();
-  ctx.shadowColor = C.glow;
-  ctx.shadowBlur = 22;
-  ctx.strokeStyle = C.border;
-  ctx.lineWidth = 3;
-  roundRect(ctx, x, y, w, h, 24);
-  ctx.stroke();
-  ctx.restore();
-
-  const L = 66;
-  ctx.fillStyle = C.accent;
-  ctx.font = `${BOLD}22px ${FONT_BOLD}`;
-  ctx.fillText('STARBOARD', L, 90);
-
-  ctx.fillStyle = C.text;
-  ctx.font = `${BOLD}30px ${FONT_BOLD}`;
-  ctx.fillText(author.slice(0, 22), L, 132);
-
-  // Gros score + étoile
-  ctx.font = `${BOLD}118px ${FONT_BOLD}`;
-  const tw = ctx.measureText(String(score)).width;
-  ctx.save();
-  ctx.shadowColor = C.glow;
-  ctx.shadowBlur = 24;
-  ctx.fillStyle = C.accent;
-  ctx.fillText(String(score), L, 262);
-  ctx.restore();
-  drawStar(ctx, L + tw + 118 * 0.42, 262 - 118 * 0.36, 118 * 0.28);
-
-  // Message : 1 ligne avec photo, 2 lignes (plus large) sans photo
-  const maxLines = photo ? 1 : 2;
-  const barY = photo ? 336 : 344;
-  if (content) {
-    ctx.fillStyle = C.text;
-    ctx.font = `19px ${FONT}`;
-    wrap(ctx, content, photo ? 460 : 860, maxLines).forEach((l, i) => ctx.fillText(l, L, 302 + i * 26));
-  }
-
-  // Barre de progression + pied
-  const barW = 420;
-  ctx.save();
-  ctx.fillStyle = hexA(C.dim, 0.3);
-  roundRect(ctx, L, barY, barW, 12, 6);
-  ctx.fill();
-  ctx.shadowColor = C.glow;
-  ctx.shadowBlur = 10;
-  ctx.fillStyle = C.accent;
-  roundRect(ctx, L, barY, Math.max(12, Math.min(barW, barW * (score / th))), 12, 6);
-  ctx.fill();
-  ctx.restore();
-  ctx.fillStyle = C.dim;
-  ctx.font = `15px ${FONT}`;
-  ctx.fillText(`${score} / ${th} étoiles · ${footer}`, L, barY + 36);
-
-  return canvas.toBuffer('image/png');
+// Après chaque photo envoyée : le message d'explication est supprimé puis renvoyé juste après.
+// Anti-rafale : si plusieurs photos arrivent d'affilée, un seul renvoi (après la dernière).
+const noticeTimers = new Map();
+function refreshNoticeAfterPhoto(guild) {
+  const cfg = getGuildConfig(guild.id);
+  if (!cfg.starboard_notice_message_id || !cfg.photo_channel_id) return;
+  clearTimeout(noticeTimers.get(guild.id));
+  noticeTimers.set(guild.id, setTimeout(() => {
+    noticeTimers.delete(guild.id);
+    publishNotice(guild).catch(() => { });
+  }, 1500));
 }
 
-module.exports = { generateStarboardCard };
+// ── Dashboard ──
+function buildStarboardDashboard(guild) {
+  const cfg = getGuildConfig(guild.id);
+  const on = v => v ? '🟢 Activé' : '🔴 Désactivé';
+  const chan = id => id ? `<#${id}>` : '❌ Non configuré';
+  const ignored = (cfg.starboard_ignored_channels || []).length ? cfg.starboard_ignored_channels.map(id => `<#${id}>`).join(', ') : 'Aucun';
+  return new EmbedBuilder().setTitle('⭐ Panneau de configuration — StarBoard').setDescription('Configure ici tout le StarBoard : salon photos, salon de destination, émoji, seuil et message d\'explication. Les messages qui reçoivent assez de réactions sont republiés dans le salon de destination.').setColor(0xFFFFFF).addFields({
+    name: 'Statut',
+    value: on(cfg.starboard_enabled),
+    inline: true
+  }, {
+    name: 'Émoji',
+    value: cfg.starboard_emoji_customized ? cfg.starboard_emoji_raw : '❤️ Par défaut (cœur)',
+    inline: true
+  }, {
+    name: 'Seuil',
+    value: `**${cfg.starboard_threshold}** réaction(s)`,
+    inline: true
+  }, {
+    name: 'Salon de destination',
+    value: chan(getDestChannelId(cfg)),
+    inline: true
+  }, {
+    name: 'Salon photos',
+    value: chan(cfg.photo_channel_id),
+    inline: true
+  }, {
+    name: 'Message d\'explication',
+    value: cfg.starboard_notice_message_id ? '🟢 Publié' : '⚪ Non publié',
+    inline: true
+  }, {
+    name: 'Auto-star (self-star)',
+    value: on(cfg.starboard_allow_self_star),
+    inline: true
+  }, {
+    name: 'Ignorer les salons NSFW',
+    value: on(cfg.starboard_ignore_nsfw),
+    inline: true
+  }, {
+    name: 'Retrait si sous le seuil',
+    value: on(cfg.starboard_remove_on_unstar),
+    inline: true
+  }, {
+    name: 'Salons ignorés',
+    value: ignored,
+    inline: false
+  }).setFooter({
+    text: 'CoreLab • StarBoard'
+  });
+}
+function buildStarboardRows(guild) {
+  const cfg = getGuildConfig(guild.id);
+  const row1 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('starboard_toggle_btn').setLabel(cfg.starboard_enabled ? '🟢 Activé' : '🔴 Désactivé').setStyle(cfg.starboard_enabled ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_emoji_btn').setLabel('✨ Émoji').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_emoji_reset_btn').setLabel('🔄 Réinitialiser').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_threshold_btn').setLabel('🔢 Seuil').setStyle(ButtonStyle.Secondary));
+  const row2 = new ActionRowBuilder().addComponents(new ChannelSelectMenuBuilder().setCustomId('starboard_channel_select').setPlaceholder('Choisis le salon de destination').setChannelTypes(ChannelType.GuildText).setMinValues(1).setMaxValues(1));
+  const rowPhoto = new ActionRowBuilder().addComponents(new ChannelSelectMenuBuilder().setCustomId('starboard_photo_select').setPlaceholder('Choisis le salon photos').setChannelTypes(ChannelType.GuildText).setMinValues(1).setMaxValues(1));
+  const row3 = new ActionRowBuilder().addComponents(new ChannelSelectMenuBuilder().setCustomId('starboard_ignored_select').setPlaceholder('Choisis les salons à ignorer (optionnel)').setChannelTypes(ChannelType.GuildText).setMinValues(0).setMaxValues(25));
+  const row4 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('starboard_selfstar_btn').setLabel('🙋 Auto-star').setStyle(cfg.starboard_allow_self_star ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_nsfw_btn').setLabel('🔞 Ignorer NSFW').setStyle(cfg.starboard_ignore_nsfw ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_removeonunstar_btn').setLabel('🗑️ Retrait auto').setStyle(cfg.starboard_remove_on_unstar ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_notice_edit_btn').setLabel('✏️ Message').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('starboard_notice_publish_btn').setLabel('📨 Publier').setStyle(ButtonStyle.Primary));
+  return [row1, rowPhoto, row2, row3, row4];
+}
+// Panneau complet = carte image (comme /protect-settings) + boutons/menus, en Components V2.
+// À utiliser partout à la place de { embeds:[buildStarboardDashboard()], components: buildStarboardRows() }.
+function buildStarboardPayload(guild) {
+  return buildSettingsPayload({
+    guild,
+    embed: buildStarboardDashboard(guild),
+    rows: buildStarboardRows(guild),
+    file: 'starboard.png',
+    scale: 1,
+    cols: 2
+  });
+}
+async function refreshDashboard(interaction) {
+  return interaction.update(buildStarboardPayload(interaction.guild));
+}
+
+// ── Boutons simples (toggle) ──
+async function toggleStarboardEnabled(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  if (!getDestChannelId(cfg)) {
+    return interaction.reply({
+      content: '❌ Configure d\'abord un salon de destination avant d\'activer le StarBoard.',
+      flags: MessageFlags.Ephemeral
+    });
+  }
+  cfg.starboard_enabled = !cfg.starboard_enabled;
+  persist('configuration');
+  return refreshDashboard(interaction);
+}
+async function toggleSelfStar(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_allow_self_star = !cfg.starboard_allow_self_star;
+  persist('configuration');
+  return refreshDashboard(interaction);
+}
+async function toggleIgnoreNsfw(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_ignore_nsfw = !cfg.starboard_ignore_nsfw;
+  persist('configuration');
+  return refreshDashboard(interaction);
+}
+async function toggleRemoveOnUnstar(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_remove_on_unstar = !cfg.starboard_remove_on_unstar;
+  persist('configuration');
+  return refreshDashboard(interaction);
+}
+function isGuildOwner(interaction) {
+  return interaction.user.id === interaction.guild.ownerId;
+}
+
+// ── Modals ──
+async function openEmojiModal(interaction) {
+  if (!isGuildOwner(interaction)) {
+    return interaction.reply({
+      content: '❌ Seul le fondateur du serveur peut changer l\'émoji du StarBoard.',
+      flags: MessageFlags.Ephemeral
+    });
+  }
+  const cfg = getGuildConfig(interaction.guild.id);
+  const modal = new ModalBuilder().setCustomId('starboard_emoji_modal').setTitle('✨ Émoji du StarBoard');
+  const input = new TextInputBuilder().setCustomId('emoji_value').setLabel('Émoji (unicode ou emoji perso)').setStyle(TextInputStyle.Short).setPlaceholder('⭐ ou colle un émoji personnalisé').setValue(cfg.starboard_emoji_raw || '⭐').setRequired(true).setMaxLength(64);
+  modal.addComponents(new ActionRowBuilder().addComponents(input));
+  return interaction.showModal(modal);
+}
+async function submitEmojiModal(interaction) {
+  if (!isGuildOwner(interaction)) {
+    return interaction.reply({
+      content: '❌ Seul le fondateur du serveur peut changer l\'émoji du StarBoard.',
+      flags: MessageFlags.Ephemeral
+    });
+  }
+  const raw = interaction.fields.getTextInputValue('emoji_value');
+  const parsed = parseEmojiInput(raw);
+  if (!parsed) {
+    return interaction.reply({
+      content: '❌ Émoji invalide. Colle un émoji unicode (⭐) ou un émoji personnalisé du serveur.',
+      flags: MessageFlags.Ephemeral
+    });
+  }
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_emoji_raw = parsed.raw;
+  cfg.starboard_emoji_id = parsed.id;
+  cfg.starboard_emoji_customized = true;
+  persist('configuration');
+  return interaction.update(buildStarboardPayload(interaction.guild));
+}
+async function resetEmoji(interaction) {
+  if (!isGuildOwner(interaction)) {
+    return interaction.reply({
+      content: '❌ Seul le fondateur du serveur peut changer l\'émoji du StarBoard.',
+      flags: MessageFlags.Ephemeral
+    });
+  }
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_emoji_raw = '⭐';
+  cfg.starboard_emoji_id = null;
+  cfg.starboard_emoji_customized = false;
+  persist('configuration');
+  return interaction.update(buildStarboardPayload(interaction.guild));
+}
+// ── Sélecteur d'émojis du serveur (liste paginée, 25 par page) ──
+const EMOJI_PAGE_SIZE = 25;
+function getSortedGuildEmojis(guild) {
+  return [...guild.emojis.cache.values()].sort((a, b) => a.name.localeCompare(b.name, 'fr', {
+    sensitivity: 'base'
+  }));
+}
+function buildEmojiPickerPayload(guild, page = 0) {
+  const cfg = getGuildConfig(guild.id);
+  const emojis = getSortedGuildEmojis(guild);
+  const totalPages = Math.max(1, Math.ceil(emojis.length / EMOJI_PAGE_SIZE));
+  const p = Math.min(Math.max(0, page), totalPages - 1);
+  const slice = emojis.slice(p * EMOJI_PAGE_SIZE, (p + 1) * EMOJI_PAGE_SIZE);
+  const current = cfg.starboard_emoji_customized ? cfg.starboard_emoji_raw : '❤️ Par défaut (cœur)';
+  const select = new StringSelectMenuBuilder().setCustomId('starboard_emoji_pick').setPlaceholder(`Choisis un émoji du serveur (${emojis.length})`).setMinValues(1).setMaxValues(1).addOptions(slice.map(e => {
+    const opt = {
+      label: e.name.slice(0, 100),
+      value: e.id,
+      emoji: {
+        id: e.id,
+        name: e.name,
+        animated: !!e.animated
+      },
+      default: String(cfg.starboard_emoji_id) === e.id
+    };
+    if (e.animated) opt.description = 'Émoji animé';
+    return opt;
+  }));
+  const navRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`starboard_emoji_page_${p - 1}`).setLabel('◀').setStyle(ButtonStyle.Secondary).setDisabled(p <= 0), new ButtonBuilder().setCustomId('starboard_emoji_page_noop').setLabel(`${p + 1}/${totalPages}`).setStyle(ButtonStyle.Secondary).setDisabled(true), new ButtonBuilder().setCustomId(`starboard_emoji_page_${p + 1}`).setLabel('▶').setStyle(ButtonStyle.Secondary).setDisabled(p >= totalPages - 1), new ButtonBuilder().setCustomId('starboard_emoji_manual_btn').setLabel('⌨️ Unicode').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_emoji_back_btn').setLabel('↩️ Retour').setStyle(ButtonStyle.Primary));
+  const container = new ContainerBuilder().setAccentColor(containerAccent(guild.id, 0xFFFFFF));
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ✨ Émoji du StarBoard\nÉmoji actuel : ${current}\n\nChoisis un émoji du serveur dans la liste ci-dessous.\n-# ${emojis.length} émoji(s) sur le serveur • page ${p + 1}/${totalPages} • « ⌨️ Unicode » pour saisir un émoji classique`));
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+  container.addActionRowComponents(new ActionRowBuilder().addComponents(select), navRow);
+  return {
+    components: [container],
+    files: [],
+    attachments: [],
+    flags: MessageFlags.IsComponentsV2
+  };
+}
+function ownerOnlyReply(interaction) {
+  return interaction.reply({
+    content: '❌ Seul le fondateur du serveur peut changer l\'émoji du StarBoard.',
+    flags: MessageFlags.Ephemeral
+  });
+}
+async function openEmojiPicker(interaction, page = 0) {
+  if (!isGuildOwner(interaction)) return ownerOnlyReply(interaction);
+  if (!interaction.guild.emojis.cache.size) await interaction.guild.emojis.fetch().catch(() => { });
+  // Aucun émoji perso sur le serveur : on garde la saisie manuelle (unicode)
+  if (!interaction.guild.emojis.cache.size) return openEmojiModal(interaction);
+  return interaction.update(buildEmojiPickerPayload(interaction.guild, page));
+}
+async function pickServerEmoji(interaction) {
+  if (!isGuildOwner(interaction)) return ownerOnlyReply(interaction);
+  const emoji = interaction.guild.emojis.cache.get(interaction.values[0]);
+  if (!emoji) {
+    return interaction.reply({
+      content: '❌ Cet émoji n\'existe plus sur le serveur.',
+      flags: MessageFlags.Ephemeral
+    });
+  }
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_emoji_raw = emoji.toString();
+  cfg.starboard_emoji_id = emoji.id;
+  cfg.starboard_emoji_customized = true;
+  persist('configuration');
+  return interaction.update(buildStarboardPayload(interaction.guild));
+}
+async function changeEmojiPage(interaction) {
+  if (!isGuildOwner(interaction)) return ownerOnlyReply(interaction);
+  const page = parseInt(interaction.customId.replace('starboard_emoji_page_', ''), 10);
+  if (!Number.isInteger(page)) return interaction.deferUpdate().catch(() => { });
+  return interaction.update(buildEmojiPickerPayload(interaction.guild, page));
+}
+async function openThresholdModal(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  const modal = new ModalBuilder().setCustomId('starboard_threshold_modal').setTitle('🔢 Seuil du StarBoard');
+  const input = new TextInputBuilder().setCustomId('threshold_value').setLabel('Nombre de réactions requises').setStyle(TextInputStyle.Short).setValue(String(cfg.starboard_threshold || 3)).setRequired(true).setMaxLength(3);
+  modal.addComponents(new ActionRowBuilder().addComponents(input));
+  return interaction.showModal(modal);
+}
+async function submitThresholdModal(interaction) {
+  const value = parseInt(interaction.fields.getTextInputValue('threshold_value'), 10);
+  if (!Number.isInteger(value) || value < 1 || value > 500) {
+    return interaction.reply({
+      content: '❌ Seuil invalide (nombre entier entre 1 et 500).',
+      flags: MessageFlags.Ephemeral
+    });
+  }
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_threshold = value;
+  persist('configuration');
+  await interaction.update(buildStarboardPayload(interaction.guild));
+  if (cfg.photo_channel_id && cfg.starboard_notice_message_id) publishNotice(interaction.guild).catch(() => { });
+  return;
+}
+
+// ── Select menus ──
+async function saveStarboardChannel(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_channel_id = interaction.values[0];
+  cfg.repost_channel_id = interaction.values[0]; // garde l'ancien réglage synchronisé
+  persist('configuration');
+  await interaction.update(buildStarboardPayload(interaction.guild));
+  // Le message d'explication mentionne le salon de destination : on le met à jour
+  if (cfg.photo_channel_id && cfg.starboard_notice_message_id) publishNotice(interaction.guild).catch(() => { });
+}
+async function savePhotoChannel(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.photo_channel_id = interaction.values[0];
+  persist('configuration');
+  await interaction.update(buildStarboardPayload(interaction.guild));
+  publishNotice(interaction.guild).catch(() => { });
+}
+// ── Message d'explication : édition ──
+async function openNoticeModal(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  const modal = new ModalBuilder().setCustomId('starboard_notice_modal').setTitle('✏️ Message du StarBoard');
+  const input = new TextInputBuilder().setCustomId('notice_value').setLabel('Texte ({emoji} {seuil} {salon} dispo)').setStyle(TextInputStyle.Paragraph).setValue((cfg.starboard_notice_text || DEFAULT_NOTICE).slice(0, 1500)).setRequired(false).setMaxLength(1500);
+  modal.addComponents(new ActionRowBuilder().addComponents(input));
+  return interaction.showModal(modal);
+}
+async function submitNoticeModal(interaction) {
+  const value = interaction.fields.getTextInputValue('notice_value').trim();
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_notice_text = value && value !== DEFAULT_NOTICE ? value : null; // vide = texte par défaut
+  persist('configuration');
+  await interaction.update(buildStarboardPayload(interaction.guild));
+  // Si le message est déjà publié, on le met à jour tout de suite
+  if (cfg.photo_channel_id && cfg.starboard_notice_message_id) publishNotice(interaction.guild).catch(() => { });
+}
+async function publishNoticeButton(interaction) {
+  const res = await publishNotice(interaction.guild);
+  if (!res.ok) {
+    return interaction.reply({ content: `❌ ${res.error}`, flags: MessageFlags.Ephemeral });
+  }
+  await interaction.update(buildStarboardPayload(interaction.guild));
+  return interaction.followUp({ content: '✅ Message publié dans le salon photos.', flags: MessageFlags.Ephemeral }).catch(() => { });
+}
+async function saveIgnoredChannels(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  cfg.starboard_ignored_channels = interaction.values || [];
+  persist('configuration');
+  return interaction.update(buildStarboardPayload(interaction.guild));
+}
+
+// ── Construction du message republié ──
+function buildStarboardEmbed(message) {
+  const embed = new EmbedBuilder().setColor(0xFFFFFF).setFooter({
+    text: `ID: ${message.id}`
+  }).setTimestamp(message.createdAt);
+  const image = message.attachments.find(a => a.contentType?.startsWith('image/'));
+  if (image) embed.setImage(image.url);
+  return embed;
+}
+async function countEffectiveStars(reaction, cfg, authorId) {
+  let users;
+  try {
+    users = await reaction.users.fetch();
+  } catch (e) {
+    return reaction.count || 0;
+  }
+  let count = 0;
+  for (const [, u] of users) {
+    if (u.bot) continue;
+    if (!cfg.starboard_allow_self_star && u.id === authorId) continue;
+    count++;
+  }
+  return count;
+}
+// Texte du message nettoyé (mentions lisibles, émojis perso → :nom:)
+function cleanStarContent(message) {
+  const t = message.cleanContent || message.content || '';
+  return t.replace(/<a?:(\w+):\d+>/g, ':$1:').trim();
+}
+
+// Première image du message (pièce jointe, sinon image/miniature d'un embed)
+function pickStarImageUrl(message) {
+  const att = message.attachments?.find(a => a.contentType?.startsWith('image/'));
+  if (att) return att.url;
+  const emb = message.embeds?.find(e => e.image?.url || e.thumbnail?.url);
+  return emb ? emb.image?.url || emb.thumbnail?.url : null;
+}
+
+// Carte verte StarBoard (null si la génération échoue → fallback sur l'ancien embed)
+async function buildStarboardCardFile(message, cfg, count) {
+  try {
+    const buffer = await generateStarboardCard({
+      guildId: message.guild?.id,
+      author: message.member?.displayName || message.author?.globalName || message.author?.username || 'Inconnu',
+      score: count,
+      threshold: cfg.starboard_threshold,
+      content: cleanStarContent(message),
+      imageUrl: pickStarImageUrl(message)
+    });
+    return new AttachmentBuilder(buffer, {
+      name: `starboard_${message.id}_${count}.png`
+    });
+  } catch (e) {
+    console.error('Erreur de génération de la carte StarBoard :', e.message);
+    return null;
+  }
+}
+async function upsertStarboardPost(guild, cfg, message, count) {
+  const channel = guild.channels.cache.get(String(getDestChannelId(cfg)));
+  if (!channel?.isTextBased?.()) return;
+  const bucket = getGuildBucket(guild.id, 'starboardMessages', {});
+  const existing = bucket[message.id];
+
+  // Score inchangé et déjà au nouveau format : rien à refaire
+  if (existing && existing.count === count) return;
+  const authorMention = message.member ? `<@${message.author.id}>` : message.author ? `@${message.author.username}` : 'Inconnu';
+  const content = `${getStarDisplay(guild, cfg)} **${count}** | sent by ${authorMention}`;
+  const linkRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('Jump to Message').setStyle(ButtonStyle.Link).setURL(message.url));
+  const file = await buildStarboardCardFile(message, cfg, count);
+  const payload = file ? {
+    content,
+    embeds: [],
+    files: [file],
+    components: [linkRow],
+    allowedMentions: { parse: [] }
+  } : {
+    content,
+    embeds: [buildStarboardEmbed(message)],
+    components: [linkRow],
+    allowedMentions: { parse: [] }
+  };
+  if (existing) {
+    const starMsg = await channel.messages.fetch(existing.starboardMessageId).catch(() => null);
+    if (starMsg) {
+      // attachments: [] remplace l'ancienne image par la nouvelle carte
+      const ok = await starMsg.edit({
+        ...payload,
+        attachments: []
+      }).then(() => true).catch(() => false);
+      if (ok) {
+        existing.count = count;
+        setGuildBucket(guild.id, 'starboardMessages', bucket);
+      }
+      return;
+    }
+  }
+  const sent = await channel.send(payload).catch(() => null);
+  if (sent) {
+    bucket[message.id] = {
+      starboardMessageId: sent.id,
+      authorId: message.author?.id || null,
+      channelId: message.channel.id,
+      count
+    };
+    setGuildBucket(guild.id, 'starboardMessages', bucket);
+  }
+}
+async function removeStarboardPost(guild, cfg, message) {
+  const bucket = getGuildBucket(guild.id, 'starboardMessages', {});
+  const existing = bucket[message.id];
+  if (!existing) return;
+  const channel = guild.channels.cache.get(String(getDestChannelId(cfg)));
+  if (channel?.isTextBased?.()) {
+    const starMsg = await channel.messages.fetch(existing.starboardMessageId).catch(() => null);
+    if (starMsg) await starMsg.delete().catch(() => { });
+  }
+  delete bucket[message.id];
+  setGuildBucket(guild.id, 'starboardMessages', bucket);
+}
+
+// ── Traitement d'un ajout/retrait de réaction ──
+async function handleStarboardReactionChange(reaction, user) {
+  try {
+    if (user.bot) return;
+    if (reaction.partial) {
+      try {
+        await reaction.fetch();
+      } catch {
+        return;
+      }
+    }
+    let message = reaction.message;
+    if (message.partial) {
+      try {
+        message = await message.fetch();
+      } catch {
+        return;
+      }
+    }
+    if (!message.guild) return;
+    const guild = message.guild;
+    const cfg = getGuildConfig(guild.id);
+    const destId = getDestChannelId(cfg);
+    const isPhotoChannel = !!cfg.photo_channel_id && message.channel.id === String(cfg.photo_channel_id);
+    // Le salon photos fonctionne dès qu'un salon de destination existe (même ancien réglage)
+    if (!destId || !(cfg.starboard_enabled || isPhotoChannel)) return;
+    if (!reactionMatchesStarboard(reaction, cfg)) return;
+    if (message.channel.id === String(destId)) return;
+    if ((cfg.starboard_ignored_channels || []).includes(message.channel.id)) return;
+    if (cfg.starboard_ignore_nsfw && message.channel.nsfw) return;
+    const count = await countEffectiveStars(reaction, cfg, message.author?.id);
+    if (count >= cfg.starboard_threshold) {
+      await upsertStarboardPost(guild, cfg, message, count);
+    } else if (cfg.starboard_remove_on_unstar) {
+      await removeStarboardPost(guild, cfg, message);
+    }
+  } catch (e) {
+    console.error('Erreur StarBoard :', e.message);
+  }
+}
+function registerStarboardHandlers(client) {
+  client.on('messageReactionAdd', (reaction, user) => {
+    handleStarboardReactionChange(reaction, user);
+  });
+  client.on('messageReactionRemove', (reaction, user) => {
+    handleStarboardReactionChange(reaction, user);
+  });
+}
+
+// ── Routing des interactions ──
+async function routeStarboardInteraction(interaction) {
+  try {
+    if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageGuild)) {
+      return interaction.reply({
+        content: '❌ Réservé au staff (permission Gérer le serveur requise).',
+        flags: MessageFlags.Ephemeral
+      });
+    }
+    const id = interaction.customId || '';
+    if (interaction.isButton()) {
+      if (id === 'starboard_toggle_btn') return toggleStarboardEnabled(interaction);
+      if (id === 'starboard_emoji_btn') return openEmojiPicker(interaction);
+      if (id === 'starboard_emoji_manual_btn') return openEmojiModal(interaction);
+      if (id === 'starboard_emoji_back_btn') return refreshDashboard(interaction);
+      if (id.startsWith('starboard_emoji_page_')) return changeEmojiPage(interaction);
+      if (id === 'starboard_emoji_reset_btn') return resetEmoji(interaction);
+      if (id === 'starboard_threshold_btn') return openThresholdModal(interaction);
+      if (id === 'starboard_selfstar_btn') return toggleSelfStar(interaction);
+      if (id === 'starboard_nsfw_btn') return toggleIgnoreNsfw(interaction);
+      if (id === 'starboard_removeonunstar_btn') return toggleRemoveOnUnstar(interaction);
+      if (id === 'starboard_notice_edit_btn') return openNoticeModal(interaction);
+      if (id === 'starboard_notice_publish_btn') return publishNoticeButton(interaction);
+    }
+    if (interaction.isStringSelectMenu()) {
+      if (id === 'starboard_emoji_pick') return pickServerEmoji(interaction);
+    }
+    if (interaction.isChannelSelectMenu()) {
+      if (id === 'starboard_channel_select') return saveStarboardChannel(interaction);
+      if (id === 'starboard_photo_select') return savePhotoChannel(interaction);
+      if (id === 'starboard_ignored_select') return saveIgnoredChannels(interaction);
+    }
+    if (interaction.isModalSubmit()) {
+      if (id === 'starboard_emoji_modal') return submitEmojiModal(interaction);
+      if (id === 'starboard_threshold_modal') return submitThresholdModal(interaction);
+      if (id === 'starboard_notice_modal') return submitNoticeModal(interaction);
+    }
+  } catch (e) {
+    console.error('Erreur routeStarboardInteraction :', e);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: '❌ Une erreur est survenue.',
+        flags: MessageFlags.Ephemeral
+      }).catch(() => { });
+    }
+  }
+}
+module.exports = {
+  registerStarboardHandlers,
+  routeStarboardInteraction,
+  buildStarboardDashboard,
+  buildStarboardRows,
+  buildStarboardPayload,
+  publishNotice,
+  refreshNoticeAfterPhoto,
+  getStarEmoji
+};
