@@ -297,4 +297,6 @@ module.exports = {
   '🔆': 'cloud-sun',
   '🧹': 'brush',
   '🥳': 'party-popper',
+  '⭐': 'star',
+  '📜': 'scroll',
 };
