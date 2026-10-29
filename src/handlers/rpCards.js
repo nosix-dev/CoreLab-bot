@@ -67,6 +67,22 @@ function yymmddFromFr(dateFr, fallback = '900101') {
 // ────────────────────────────────────────────────
 
 async function generateCarteIdentite(profile, avatarUrl) {
+  { const cc = require('../core/compactCard');
+    if (cc.isCompact(profile.guildId || null)) {
+      return cc.renderCompact({
+        guildId: profile.guildId || null, theme: 'violet', title: "🪪 Carte d'identité",
+        sub: `${fmt(profile.prenom, '')} ${fmt(profile.nom, '')}`.trim().toUpperCase(),
+        blocks: [
+          { label: 'Né(e) le', value: fmt(profile.dateNaissance) },
+          { label: 'Lieu de naissance', value: fmt(profile.lieuNaissance) },
+          { label: 'Sexe', value: fmt(profile.sexe) },
+          { label: 'Nationalité', value: fmt(profile.nationalite) },
+          { label: 'Délivrée le', value: fmt(profile.dateDelivrance) },
+          { label: 'Expire le', value: fmt(profile.dateExpiration) }
+        ],
+        footerLeft: `N° ${fmt(profile.numeroCi)}`, footerRight: 'Carte fictive · RP'
+      });
+    } }
   const W = 1011, H = 638;
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
@@ -199,6 +215,22 @@ async function generateCarteIdentite(profile, avatarUrl) {
 const CATEGORIES_PERMIS = ['AM', 'A1', 'A2', 'A', 'B1', 'B', 'BE', 'C1', 'C', 'D1', 'D'];
 
 async function generatePermis(profile, avatarUrl) {
+  { const cc = require('../core/compactCard');
+    if (cc.isCompact(profile.guildId || null)) {
+      const cats = (profile.permisCategories || '').split(',').filter(Boolean);
+      return cc.renderCompact({
+        guildId: profile.guildId || null, theme: 'amber', title: '🚗 Permis de conduire',
+        sub: `${fmt(profile.prenom, '')} ${fmt(profile.nom, '')}`.trim().toUpperCase(),
+        blocks: [
+          { label: 'Né(e) le', value: fmt(profile.dateNaissance) },
+          { label: 'Lieu de naissance', value: fmt(profile.lieuNaissance) },
+          { label: 'Délivré le', value: fmt(profile.dateDelivrance) },
+          { label: 'Expire le', value: fmt(profile.dateExpiration) }
+        ],
+        pills: cats.length ? cats.map(c => ({ text: c, tone: 'accent' })) : [{ text: 'Aucune catégorie', tone: 'bad' }],
+        footerLeft: `N° ${fmt(profile.numeroPermis)}`, footerRight: 'Permis fictif · RP'
+      });
+    } }
   const W = 1011, H = 638;
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
@@ -366,6 +398,22 @@ async function generatePermis(profile, avatarUrl) {
 // ────────────────────────────────────────────────
 
 async function generatePasseport(profile, avatarUrl) {
+  { const cc = require('../core/compactCard');
+    if (cc.isCompact(profile.guildId || null)) {
+      return cc.renderCompact({
+        guildId: profile.guildId || null, theme: 'cyan', title: '🛂 Passeport',
+        sub: `${fmt(profile.prenom, '')} ${fmt(profile.nom, '')}`.trim().toUpperCase(),
+        blocks: [
+          { label: 'Né(e) le', value: fmt(profile.dateNaissance) },
+          { label: 'Lieu de naissance', value: fmt(profile.lieuNaissance) },
+          { label: 'Sexe', value: fmt(profile.sexe) },
+          { label: 'Nationalité', value: fmt(profile.nationalite) },
+          { label: 'Délivré le', value: fmt(profile.dateDelivrance) },
+          { label: 'Expire le', value: fmt(profile.dateExpiration) }
+        ],
+        footerLeft: `N° ${fmt(profile.numeroCi)}`, footerRight: 'Passeport fictif · RP'
+      });
+    } }
   const W = 1400, H = 900;
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
