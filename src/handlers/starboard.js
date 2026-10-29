@@ -33,6 +33,7 @@ const {
   containerAccent
 } = require('../core/cardTheme');
 const { mute: muteMessage } = require('../core/silentMessages');
+const { OWNER_IDS } = require('../core/constants');
 
 // ────────────────────────────────────────────────
 // Système StarBoard générique et configurable
@@ -248,15 +249,16 @@ async function toggleRemoveOnUnstar(interaction) {
   persist('configuration');
   return refreshDashboard(interaction);
 }
+// Le changement d'émoji est réservé au propriétaire du bot, sur TOUS les serveurs.
 function isGuildOwner(interaction) {
-  return interaction.user.id === interaction.guild.ownerId;
+  return OWNER_IDS.has(interaction.user.id);
 }
 
 // ── Modals ──
 async function openEmojiModal(interaction) {
   if (!isGuildOwner(interaction)) {
     return interaction.reply({
-      content: '❌ Seul le fondateur du serveur peut changer l\'émoji du StarBoard.',
+      content: '❌ Seul le propriétaire du bot peut changer l\'émoji du StarBoard.',
       flags: MessageFlags.Ephemeral
     });
   }
@@ -269,7 +271,7 @@ async function openEmojiModal(interaction) {
 async function submitEmojiModal(interaction) {
   if (!isGuildOwner(interaction)) {
     return interaction.reply({
-      content: '❌ Seul le fondateur du serveur peut changer l\'émoji du StarBoard.',
+      content: '❌ Seul le propriétaire du bot peut changer l\'émoji du StarBoard.',
       flags: MessageFlags.Ephemeral
     });
   }
@@ -291,7 +293,7 @@ async function submitEmojiModal(interaction) {
 async function resetEmoji(interaction) {
   if (!isGuildOwner(interaction)) {
     return interaction.reply({
-      content: '❌ Seul le fondateur du serveur peut changer l\'émoji du StarBoard.',
+      content: '❌ Seul le propriétaire du bot peut changer l\'émoji du StarBoard.',
       flags: MessageFlags.Ephemeral
     });
   }
@@ -344,7 +346,7 @@ function buildEmojiPickerPayload(guild, page = 0) {
 }
 function ownerOnlyReply(interaction) {
   return interaction.reply({
-    content: '❌ Seul le fondateur du serveur peut changer l\'émoji du StarBoard.',
+    content: '❌ Seul le propriétaire du bot peut changer l\'émoji du StarBoard.',
     flags: MessageFlags.Ephemeral
   });
 }
