@@ -152,6 +152,12 @@ const {
   registerLogHandlers
 } = require('./src/handlers/logs');
 const {
+  handleDirectMessage: modmailHandleDM,
+  handleStaffMessage: modmailHandleStaff,
+  routeModmailInteraction,
+  registerModmailHandler
+} = require('./src/handlers/modmail');
+const {
   checkSlashPermissions,
   routeTicketInteraction,
   routeReglementInteraction,
@@ -587,6 +593,9 @@ client.on('interactionCreate', async interaction => {
     if (id.startsWith('evt_')) {
       return handleEventButton(interaction).catch(e => console.error('[Event] bouton :', e));
     }
+    if (id.startsWith('modmail_')) {
+      return routeModmailInteraction(interaction).catch(e => console.error('[Modmail] interaction :', e));
+    }
     if (id.startsWith('ticket_')) {
       return routeTicketInteraction(interaction);
     }
@@ -943,14 +952,7 @@ client.on('messageCreate', async message => {
   console.log(`[MSG REÇU] "${message.content}" de ${message.author.tag}`);
   if (message.author.bot) return;
   if (!message.guild) {
-    if (message.author.id !== BOT_OWNER_ID) {
-      try {
-        const owner = await client.users.fetch(BOT_OWNER_ID);
-        await owner.send(`📩 **${message.author.tag}** (${message.author.id}) t'a envoyé un DM :\n${message.content || '*[sans texte]*'}`);
-      } catch (e) {
-        console.error('Erreur notif DM owner:', e.message);
-      }
-    }
+    // Commandes préfixées en MP (ex. !deletedm, !dm, !broadcast)
     if (message.content.startsWith(client.prefix)) {
       const name = message.content.slice(client.prefix.length).trim().split(/\s+/)[0].toLowerCase();
       const handler = client.prefixCommands?.[name];
@@ -960,9 +962,22 @@ client.on('messageCreate', async message => {
         } catch (e) {
           console.error(`[DM] Erreur commande DM ${name}:`, e);
         }
+        return;
       }
     }
+    // Modmail : le MP est transmis au staff du serveur (plus aucun transfert au propriétaire du bot)
+    try {
+      await modmailHandleDM(message, client);
+    } catch (e) {
+      console.error('[Modmail] Erreur MP :', e);
+    }
     return;
+  }
+  // Modmail : un message du staff dans un salon Modmail est renvoyé en MP au membre
+  try {
+    if (await modmailHandleStaff(message, client)) return;
+  } catch (e) {
+    console.error('[Modmail] Erreur réponse staff :', e);
   }
   const isRealMention = message.content.includes(`<@${client.user.id}>`) || message.content.includes(`<@!${client.user.id}>`);
   if (isRealMention && !message.mentions.everyone) {
@@ -1254,6 +1269,7 @@ registerGoodbyeHandler(client);
 registerXpHandler(client);
 registerProtectionHandlers(client);
 registerStarboardHandlers(client);
+registerModmailHandler(client);
 registerAntiScamHandler(client);
 registerNicknameGuardHandler(client);
 registerPartnershipAutoHandler(client);
