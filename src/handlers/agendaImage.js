@@ -261,10 +261,7 @@ function agendaCompact(o, title, sub, list, max) {
 }
 
 function generateAgendaMonth(o) {
-  if (require('../core/compactCard').isCompact(o.guildId)) {
-    const list = o.events.filter(e => e.m === o.month && e.y === o.year);
-    return agendaCompact(o, `${MONTHS[o.month - 1]} ${o.year}`, `Vue du mois · ${o.monthCount} événement${o.monthCount > 1 ? 's' : ''}`, list, 12);
-  }
+  // La vue mois dessine toujours la vraie grille calendrier (pas la carte compacte).
   const { year, month, today } = o;
   const first = dowMon(year, month, 1);
   const dim = new Date(Date.UTC(year, month, 0)).getUTCDate();
