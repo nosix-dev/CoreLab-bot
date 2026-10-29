@@ -312,6 +312,16 @@ function fitText(ctx, text, maxW) {
 // logoSource : Buffer / chemin de l'icône du serveur (bloc de gauche)
 // bannerPath : chemin de la bannière choisie (dessinée sous la carte verte)
 async function renderTicketPanelCard({ title, reasons, logoSource, bannerPath, guildId = null }) {
+  const cc = require('../core/compactCard');
+  if (cc.isCompact(guildId)) {
+    return cc.renderCompact({
+      guildId, theme: 'cyan', title: `🎫 ${title}`,
+      sub: `${reasons.length} catégorie${reasons.length > 1 ? 's' : ''}`,
+      grid: 1, valueMax: 44,
+      blocks: reasons.slice(0, 8).map(r => ({ label: r.label, value: r.description || '—' })),
+      footerRight: reasons.length > 8 ? `+ ${reasons.length - 8} autre${reasons.length - 8 > 1 ? 's' : ''}` : undefined
+    });
+  }
   const { themedCtx } = require('../core/cardTheme');
   const { createCanvas, loadImage } = require('@napi-rs/canvas');
   const F = ticketFonts();
@@ -467,9 +477,14 @@ async function buildTicketPublishPayload(cfg, panelChannelId, guild, bannerPath 
       guildId: guild?.id || null
     });
     files.push(new AttachmentBuilder(png, { name: 'ticket-panel.png' }));
-    container.addMediaGalleryComponents(
-      new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://ticket-panel.png'))
-    );
+    const galleryItems = [new MediaGalleryItemBuilder().setURL('attachment://ticket-panel.png')];
+    // Style unifié : la bannière choisie n'est plus dessinée dans la carte, on l'affiche juste dessous
+    if (bannerPath && fs.existsSync(bannerPath) && require('../core/compactCard').isCompact(guild?.id || null)) {
+      const bannerName = `ticket-banner${path.extname(bannerPath) || '.png'}`;
+      files.push(new AttachmentBuilder(bannerPath, { name: bannerName }));
+      galleryItems.push(new MediaGalleryItemBuilder().setURL(`attachment://${bannerName}`));
+    }
+    container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(...galleryItems));
   } catch (e) {
     console.error('[Ticket] Erreur carte du panneau publié :', e.message);
     // Repli sans carte : titre + liste des raisons en texte
