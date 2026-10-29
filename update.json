@@ -1,1 +1,24 @@
-
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.4",
+  "date": "2026-10-29",
+  "modifications": {
+    "✨ Nouveautés": [
+      "[+] **StarBoard : photo sur la carte** : un carré avec la photo postée dans l'autre salon s'affiche maintenant en bas à droite de la carte.",
+      "[+] **Agenda** : `/agenda view` ouvre directement la grille du mois en cours. Le bouton **Tout** donne toujours la liste complète."
+    ],
+    "🔧 Corrections": [
+      "[~] **StarBoard** : l'emoji s'affiche en ❤️ au lieu de `:heartwhite:` quand l'emoji personnalisé n'est pas utilisable.",
+      "[~] **Agenda** : la vue mois affiche à nouveau la vraie grille calendrier au lieu d'une simple liste.",
+      "[~] **Agenda** : le calendrier reste toujours sombre, même avec le style de cartes clair.",
+      "[~] **StarBoard** : le changement d'emoji est réservé au propriétaire du bot, sur tous les serveurs."
+    ]
+  },
+  "boutons": [
+    {
+      "label": "Inviter le bot",
+      "emoji": "🚀",
+      "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+    }
+  ]
+}
