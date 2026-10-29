@@ -478,7 +478,7 @@ function getStatuses(client) {
     name: '!help pour voir les commande !',
     type: 0
   }, {
-    name: 'Version 5.5.1 ⚙️',
+    name: 'Version 5.5.3 ⚙️',
     type: 0
   }];
 }
