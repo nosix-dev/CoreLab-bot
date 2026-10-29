@@ -745,7 +745,10 @@ function generateTileBandCard(spec) {
   const pal = PAL.sobre;
   const ink = th.accent;
   const px = 48;
-  const inner = W - 2 * px;
+  // spec.photo (image déjà chargée) : carré à droite ; le contenu se resserre à gauche
+  const PHOTO_S = 190;
+  const hasPhoto = !!spec.photo;
+  const inner = W - 2 * px - (hasPhoto ? PHOTO_S + 28 : 0);
 
   const toks = tokenize(clean(spec.title));
   let rest = clean(spec.title);
@@ -846,13 +849,13 @@ function generateTileBandCard(spec) {
       ctx.fill();
       y += 28;
     }
-    return drawQuotesPills(ctx, th, pal, ink, spec, px, y, inner);
+    return drawQuotesPills(ctx, th, pal, ink, spec, px, y, inner, px + inner);
   };
 
   // Passe 1 : mesure de la hauteur
   const probe = createCanvas(W, 3000);
   const yEnd = run(probe.getContext('2d'));
-  const H = Math.max(260, Math.ceil(yEnd + 78));
+  const H = Math.max(260, Math.ceil(yEnd + 78), hasPhoto ? BAND_H + 20 + PHOTO_S + 78 : 0);
 
   // Passe 2 : rendu (pas de recoloration : le vert / rouge du bandeau indique le type de log)
   const canvas = createCanvas(W, H);
@@ -865,6 +868,21 @@ function generateTileBandCard(spec) {
   ctx.fillStyle = pal.bg;
   ctx.fillRect(0, 0, W, H);
   run(ctx);
+  if (hasPhoto) {
+    const sx = W - px - PHOTO_S, sy = H - 78 - PHOTO_S;
+    ctx.save();
+    roundRect(ctx, sx, sy, PHOTO_S, PHOTO_S, 18);
+    ctx.clip();
+    const img = spec.photo;
+    const sc = Math.max(PHOTO_S / img.width, PHOTO_S / img.height);
+    const sw = PHOTO_S / sc, sh = PHOTO_S / sc;
+    ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, sx, sy, PHOTO_S, PHOTO_S);
+    ctx.restore();
+    roundRect(ctx, sx, sy, PHOTO_S, PHOTO_S, 18);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = rgba(th.accent, 0.55);
+    ctx.stroke();
+  }
   footerStyled(ctx, pal, spec, H, px, false);
   ctx.restore();
 
