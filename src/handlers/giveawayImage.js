@@ -162,6 +162,20 @@ async function loadAvatar(url) {
  * @param {{prize:string, winnersCount:number, endsAt:number, roleName?:string|null, hostName?:string}} o
  */
 async function generateGiveawayImage({ prize, winnersCount, endsAt, roleName = null, hostName = '', guildId = null }) {
+  const cc = require('../core/compactCard');
+  if (cc.isCompact(guildId)) {
+    return cc.renderCompact({
+      guildId, theme: 'orange', title: '🎁 Concours',
+      blocks: [
+        { label: 'Gagnants', value: String(winnersCount) },
+        { label: 'Fin le', value: formatDate(endsAt) },
+        ...(roleName ? [{ label: 'Rôle requis', value: roleName }] : [])
+      ],
+      quotes: [{ label: 'Lot à gagner', text: String(prize), maxLines: 2 }],
+      footerLeft: hostName ? `Organisé par ${hostName}` : undefined,
+      footerRight: 'Clique sur Participer !'
+    });
+  }
   const H = 500;
   const canvas = createCanvas(W, H);
   const ctx = themedCtx(canvas.getContext('2d'), guildId, THEME_OPTS);
@@ -215,6 +229,18 @@ async function generateGiveawayImage({ prize, winnersCount, endsAt, roleName = n
  * @param {{prize:string, winners:Array<{name:string, avatarURL?:string|null}>, participantsCount?:number}} o
  */
 async function generateGiveawayResultImage({ prize, winners, participantsCount = null, guildId = null }) {
+  const cc = require('../core/compactCard');
+  if (cc.isCompact(guildId)) {
+    const top = winners.slice(0, 6);
+    const more = winners.length - top.length;
+    return cc.renderCompact({
+      guildId, theme: 'orange', title: '🏆 Concours terminé',
+      sub: participantsCount != null ? `${participantsCount} participant${participantsCount > 1 ? 's' : ''}` : 'Lot remporté',
+      blocks: top.map((w, i) => ({ label: top.length > 1 ? `Gagnant ${i + 1}` : 'Gagnant', value: w.name || 'Inconnu' })),
+      quotes: [{ label: 'Lot', text: String(prize), maxLines: 2 }, ...(top.length ? [] : [{ label: 'Résultat', text: 'Aucun participant valide', dim: true }])],
+      footerLeft: more > 0 ? `+ ${more} autre${more > 1 ? 's' : ''} gagnant${more > 1 ? 's' : ''}` : undefined
+    });
+  }
   const shown = winners.slice(0, 6);
   const extra = winners.length - shown.length;
   const has = shown.length > 0;
@@ -291,6 +317,25 @@ async function generateGiveawayResultImage({ prize, winners, participantsCount =
  * @param {{prize?:string|null, durationLabel?:string|null, winnersCount?:number|null, roleName?:string|null, winMessage?:string|null}} o
  */
 function generateGiveawayConfigImage({ prize = null, durationLabel = null, winnersCount = null, roleName = null, winMessage = null, guildId = null }) {
+  const cc = require('../core/compactCard');
+  if (cc.isCompact(guildId)) {
+    const required = [prize, durationLabel, winnersCount];
+    const done = required.filter(Boolean).length;
+    const ready = done === required.length;
+    const dot = on => (on ? '#3ddc84' : '#8b8f97');
+    return cc.renderCompactSync({
+      guildId, theme: 'orange', title: '🎁 Configuration du giveaway',
+      sub: `${done}/${required.length} infos obligatoires`,
+      blocks: [
+        { label: 'Lot', value: prize || 'Non défini', dot: dot(!!prize) },
+        { label: 'Durée', value: durationLabel || 'Non définie', dot: dot(!!durationLabel) },
+        { label: 'Gagnants', value: winnersCount ? String(winnersCount) : 'Non défini', dot: dot(!!winnersCount) },
+        { label: 'Rôle requis', value: roleName || 'Aucun', dot: dot(!!roleName) }
+      ],
+      quotes: [{ label: 'Message gagnant', text: winMessage || 'Par défaut', dim: !winMessage, maxLines: 2 }],
+      pills: [{ text: ready ? 'PRÊT' : 'INCOMPLET', tone: ready ? 'ok' : 'bad' }]
+    });
+  }
   const PAD = 30, GAP = 12, HEAD = 118, TILE_H = 104, COLS = 3;
   const H = HEAD + TILE_H * 2 + GAP + PAD;
   const canvas = createCanvas(W, H);
