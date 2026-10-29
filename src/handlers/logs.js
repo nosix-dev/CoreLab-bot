@@ -8,7 +8,7 @@ const {
     AttachmentBuilder,
     EmbedBuilder,
 } = require('discord.js');
-const { generateVoiceCardAsync } = require('./voiceCardImage');
+const compactCard = require('../core/compactCard');
 const { generateLogCardAsync, formatAge } = require('./logCardImage');
 const { getGuildConfig } = require('../core/config');
 const { SALON_NOTIF_AJOUT_BOT } = require('../core/constants');
@@ -150,7 +150,7 @@ async function buildPayload(guild, spec, opts = {}) {
 
     try {
         const buf = opts.voice
-            ? await generateVoiceCardAsync({ guildId: guild.id, guildName: guild.name, time: heureFR(), ...spec })
+            ? await compactCard.renderCompact(compactCard.voiceSpec({ guildId: guild.id, guildName: guild.name, time: heureFR(), ...spec }))
             : await generateLogCardAsync({ guildId: guild.id, time: heureFR(), ...spec });
         return {
             // Pour les logs vocaux, une ligne de texte avec le nom (visible dans la notification)
