@@ -244,6 +244,29 @@ async function generateWalletCardImage(opts) {
   const accent     = isFounder ? '#f4c542' : isPremium ? '#8ec9ff' : '#4b5563';
   const accentSoft = isFounder ? 'rgba(244,197,66,0.18)' : isPremium ? 'rgba(142,201,255,0.16)' : 'rgba(255,255,255,0.08)';
   const tier       = computeTier(total);
+  const cc = require('../core/compactCard');
+  if (cc.isCompact(opts.guildId)) {
+    const pct = goalAmount > 0 ? Math.max(0, Math.min(1, total / goalAmount)) : 0;
+    const pills = [];
+    if (isFounder) pills.push({ text: 'Fondateur', tone: 'accent' });
+    else if (isPremium) pills.push({ text: 'Premium', tone: 'accent' });
+    if (weekDelta != null) pills.push({ text: `Semaine ${formatSigned(weekDelta)}`, tone: weekDelta >= 0 ? 'ok' : 'bad' });
+    if (monthPct != null) pills.push({ text: `Mois ${formatSignedPct(monthPct)}`, tone: monthPct >= 0 ? 'ok' : 'bad' });
+    return cc.renderCompact({
+      guildId: opts.guildId, theme: isFounder ? 'orange' : isPremium ? 'cyan' : 'green',
+      title: '💳 Porte-monnaie', sub: username,
+      blocks: [
+        { label: 'Portefeuille', value: `${formatAmount(wallet)} ${currencyName}` },
+        { label: 'Banque', value: `${formatAmount(bank)} ${currencyName}` },
+        { label: 'Total', value: `${formatAmount(total)} ${currencyName}` },
+        { label: 'Niveau bancaire', value: `Niv. ${tier.level} · ${tier.name}` }
+      ],
+      progress: pct,
+      pills,
+      footerLeft: `Objectif : ${formatAmount(goalAmount)}`,
+      footerRight: `${Math.floor(pct * 100)}%`
+    });
+  }
 
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx    = themedCtx(canvas.getContext('2d'), opts.guildId, { tintDark: true });
