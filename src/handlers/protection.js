@@ -56,9 +56,10 @@ const nukeTracker = new Map(); // guildId -> Map(executorId -> [timestamps])
 const SPAM_MAX_MESSAGES = 6;
 const SPAM_WINDOW_MS = 7000;
 const SPAM_TIMEOUT_MS = 5 * 60 * 1000;
+const { getProtectionLogChannelId } = require('../core/protectionLog');
 async function sendProtectionLog(guild, embed, files = []) {
   const cfg = getGuildConfig(guild.id);
-  const channelId = cfg.protection_log_channel_id || cfg.log_channel_id;
+  const channelId = getProtectionLogChannelId(cfg);
   if (channelId) {
     const channel = guild.channels.cache.get(String(channelId));
     if (channel?.isTextBased?.()) {
@@ -1810,7 +1811,7 @@ function buildProtectDashboard(guild) {
     }, {
       name: '🗂️ Modération & Suivi',
       value: line(
-        ['Logs', !!(cfg.protection_log_channel_id || cfg.log_channel_id)],
+        ['Logs', !!getProtectionLogChannelId(cfg)],
         ['Signalements', cfg.signalement_enabled],
         ['Sanctions', !!cfg.infraction_channel_id],
         ['Transparence', cfg.transparence_enabled],
@@ -2432,7 +2433,7 @@ async function saveTagRole(interaction) {
 
 // ── Logs : sélection du salon ──
 function buildLogsPanel(guild, cfg, notice = null) {
-  const chId = cfg.protection_log_channel_id || cfg.log_channel_id;
+  const chId = getProtectionLogChannelId(cfg);
   const chName = nameOf(guild, 'channel', chId);
   const card = buildConfigImage({
     guildId: guild?.id,
@@ -3286,9 +3287,25 @@ async function routeProtectionInteraction(interaction) {
     }
   }
 }
+// Panneaux de réglage détaillés, réutilisés par l'assistant d'installation (protectionSetup.js)
+const PANEL_OPENERS = {
+  raidmode: openRaidmodePanel,
+  antiddos: openDdosPanel,
+  antiddosvoice: openDdosVoicePanel,
+  captcha: openCaptchaConfig,
+  minage: openMinAgePanel,
+  logs: openLogsConfig,
+  signalement: openSignalementConfig,
+  sanctions: openSanctionsConfig,
+  transparence: openTransparenceConfig,
+  tagrole: openTagRoleConfig,
+  auth: openAuthConfig,
+  honeypot: openHoneypotConfig
+};
 module.exports = {
   registerProtectionHandlers,
   routeProtectionInteraction,
   buildProtectDashboard,
-  buildProtectRows
+  buildProtectRows,
+  PANEL_OPENERS
 };
