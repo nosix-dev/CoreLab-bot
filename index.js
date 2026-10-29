@@ -210,6 +210,7 @@ const {
 } = require('./src/handlers/aiChat');
 const {
   registerStarboardHandlers,
+  refreshNoticeAfterPhoto,
   routeStarboardInteraction
 } = require('./src/handlers/starboard');
 const {
@@ -1130,6 +1131,7 @@ client.on('messageCreate', async message => {
     try {
       const starEmoji = getStarboardEmoji(gcfgStar);
       await message.react(starEmoji.reactValue);
+      refreshNoticeAfterPhoto(message.guild); // message d'explication renvoyé après la photo (sans log)
     } catch (e) {
       console.error('Starboard erreur:', e.message);
     }
