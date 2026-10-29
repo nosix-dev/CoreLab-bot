@@ -187,6 +187,11 @@ const {
 const {
   registerWelcomeHandler
 } = require('./src/handlers/welcome');
+const { withChangeLog } = require('./src/core/protectionChangeLog');
+const {
+  registerProtectionSetupHandler,
+  routeProtectionSetupInteraction
+} = require('./src/handlers/protectionSetup');
 const {
   getGuildBucket,
   setGuildBucket
@@ -643,7 +648,7 @@ client.on('interactionCreate', async interaction => {
         }
       }, 2000);
       try {
-        await cmd.execute(interaction, client);
+        await withChangeLog(interaction, () => cmd.execute(interaction, client));
       } finally {
         clearTimeout(autoDeferTimer);
       }
@@ -673,8 +678,11 @@ client.on('interactionCreate', async interaction => {
     if (id.startsWith('partner_')) {
       return routePartnershipInteraction(interaction);
     }
+    if (id.startsWith('psetup_')) {
+      return withChangeLog(interaction, () => routeProtectionSetupInteraction(interaction));
+    }
     if (id.startsWith('protect_')) {
-      return routeProtectionInteraction(interaction);
+      return withChangeLog(interaction, () => routeProtectionInteraction(interaction));
     }
     if (id.startsWith('ia_')) {
       return routeIaInteraction(interaction);
@@ -1367,6 +1375,7 @@ console.log('Lancement CoreLab (JavaScript)...');
 registerLogHandlers(client);
 registerWelcomeImageHandler(client);
 registerWelcomeHandler(client);
+registerProtectionSetupHandler(client);
 registerGoodbyeHandler(client);
 registerXpHandler(client);
 registerProtectionHandlers(client);
