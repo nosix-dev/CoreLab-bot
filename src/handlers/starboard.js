@@ -73,6 +73,16 @@ function getStarEmoji(cfg) {
   if (cfg.starboard_emoji_raw) return { display: cfg.starboard_emoji_raw, id: null, name: cfg.starboard_emoji_raw };
   return { display: STAR_EMOJI_DEFAULT, id: STAR_EMOJI_ID_DEFAULT, name: null };
 }
+// Texte à afficher dans les messages : un emoji perso introuvable sur le serveur s'afficherait
+// en « :heartwhite: » → on retombe sur le cœur unicode.
+function getStarDisplay(guild, cfg) {
+  const e = getStarEmoji(cfg);
+  if (e.id) {
+    const ge = guild?.emojis?.cache?.get(String(e.id));
+    return ge && ge.available !== false ? ge.toString() : '❤️';
+  }
+  return e.display;
+}
 function reactionMatchesStarboard(reaction, cfg) {
   const e = getStarEmoji(cfg);
   if (e.id) return String(reaction.emoji.id) === String(e.id);
@@ -86,7 +96,7 @@ function getDestChannelId(cfg) {
 // ── Message d'explication posté dans le salon photos (modifiable) ──
 const DEFAULT_NOTICE = '**Un coup de cœur pour une photo ? Appuie sur {emoji} en dessous.**\n-# Quand {seuil} membres le font, elle monte dans {salon}. Les photos qui y arrivent reçoivent le tampon.';
 function renderNotice(guild, cfg) {
-  const e = getStarEmoji(cfg);
+  const e = { display: getStarDisplay(guild, cfg) };
   const dest = getDestChannelId(cfg);
   const raw = (cfg.starboard_notice_text && cfg.starboard_notice_text.trim()) || DEFAULT_NOTICE;
   return raw
@@ -505,7 +515,7 @@ async function upsertStarboardPost(guild, cfg, message, count) {
   // Score inchangé et déjà au nouveau format : rien à refaire
   if (existing && existing.count === count) return;
   const authorMention = message.member ? `<@${message.author.id}>` : message.author ? `@${message.author.username}` : 'Inconnu';
-  const content = `${getStarEmoji(cfg).display} **${count}** | sent by ${authorMention}`;
+  const content = `${getStarDisplay(guild, cfg)} **${count}** | sent by ${authorMention}`;
   const linkRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('Jump to Message').setStyle(ButtonStyle.Link).setURL(message.url));
   const file = await buildStarboardCardFile(message, cfg, count);
   const payload = file ? {
