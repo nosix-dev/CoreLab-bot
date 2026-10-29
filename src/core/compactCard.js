@@ -76,6 +76,7 @@ function starboardSpec(o) {
     blocks: [{ label: 'Score', value: `${score} / ${th} étoiles` }],
     quotes: o.content ? [{ label: 'Message', text: String(o.content), maxLines: 3 }] : [],
     progress: score / th,
+    photo: o.photo || null,
     footerLeft: o.footer || 'ScaraBot · StarBoard'
   };
 }
