@@ -267,7 +267,7 @@ const agenda = {
     .setDescription('Calendrier des événements du serveur')
     .addSubcommand(sub => sub
       .setName('view')
-      .setDescription('Voir le calendrier (tout, ou un mois précis)')
+      .setDescription('Voir le calendrier du mois (ou d\'un mois précis)')
       .addIntegerOption(o => o.setName('mois').setDescription('Mois (1-12) : affiche la grille de ce mois').setMinValue(1).setMaxValue(12).setRequired(false))
       .addIntegerOption(o => o.setName('annee').setDescription('Année : affiche la grille du mois choisi').setMinValue(2000).setMaxValue(2100).setRequired(false)))
     .addSubcommand(sub => sub
@@ -304,8 +304,7 @@ const agenda = {
       const today = parisParts(Date.now());
       const mois = interaction.options.getInteger('mois');
       const annee = interaction.options.getInteger('annee');
-      // Sans option : on voit TOUS les événements à venir ; avec mois/année : grille du mois
-      if (!mois && !annee) return interaction.editReply(await buildAgenda(interaction.guild, { view: 'all', y: today.y, m: today.m, d: today.d }));
+      // Sans option : grille du mois en cours (le bouton « Tout » donne la liste complète)
       const y = clampYear(annee || today.y);
       const m = mois || today.m;
       const d = (y === today.y && m === today.m) ? today.d : 1;
