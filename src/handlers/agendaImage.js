@@ -237,7 +237,34 @@ function drawChip(ctx, x, y, w, h, ev, dim) {
  * @param {string} o.next          texte « prochain événement » (ou 'Aucun')
  * @returns {Buffer} PNG
  */
+
+// ── Style unifié (même rendu que les logs) ──
+function agendaCompact(o, title, sub, list, max) {
+  const cc = require('../core/compactCard');
+  const counts = { convoi: 0, reunion: 0, event: 0 };
+  for (const e of list) if (counts[e.type] !== undefined) counts[e.type]++;
+  const shown = list.slice(0, max);
+  return cc.renderCompactSync({
+    guildId: o.guildId, theme: 'cyan', title: `📅 ${title}`, sub,
+    grid: 1, valueMax: 36,
+    blocks: shown.length
+      ? shown.map(e => ({ label: `${pad2(e.d)}/${pad2(e.m)} · ${hhmm(e)}`, value: `${e.name}${e.place ? ` · ${e.place}` : ''}`, dot: TYPE_COLOR[e.type] }))
+      : [{ label: '', value: 'Aucun événement' }],
+    pills: [
+      { text: `${counts.convoi} convoi${counts.convoi > 1 ? 's' : ''}`, tone: 'accent' },
+      { text: `${counts.reunion} réunion${counts.reunion > 1 ? 's' : ''}`, tone: 'accent' },
+      { text: `${counts.event} événement${counts.event > 1 ? 's' : ''}`, tone: 'accent' }
+    ],
+    footerLeft: `Prochain : ${o.next || 'Aucun'}`,
+    footerRight: list.length > max ? `+ ${list.length - max} autre${list.length - max > 1 ? 's' : ''}` : (o.botName || undefined)
+  });
+}
+
 function generateAgendaMonth(o) {
+  if (require('../core/compactCard').isCompact(o.guildId)) {
+    const list = o.events.filter(e => e.m === o.month && e.y === o.year);
+    return agendaCompact(o, `${MONTHS[o.month - 1]} ${o.year}`, `Vue du mois · ${o.monthCount} événement${o.monthCount > 1 ? 's' : ''}`, list, 12);
+  }
   const { year, month, today } = o;
   const first = dowMon(year, month, 1);
   const dim = new Date(Date.UTC(year, month, 0)).getUTCDate();
@@ -339,6 +366,10 @@ function generateAgendaMonth(o) {
  * @param {object} o   mêmes champs que generateAgendaMonth + { start:{y,m,d} } (lundi) et { place(ev) }
  */
 function generateAgendaWeek(o) {
+  if (require('../core/compactCard').isCompact(o.guildId)) {
+    const s0 = addDays(o.start.y, o.start.m, o.start.d, 0), e0 = addDays(o.start.y, o.start.m, o.start.d, 6);
+    return agendaCompact(o, 'Agenda de la semaine', `Du ${pad2(s0.d)}/${pad2(s0.m)} au ${pad2(e0.d)}/${pad2(e0.m)} · ${o.weekCount} événement${o.weekCount > 1 ? 's' : ''}`, o.events, 12);
+  }
   const { today } = o;
   const days = Array.from({ length: 7 }, (_, i) => addDays(o.start.y, o.start.m, o.start.d, i));
   const byDay = groupByDay(o.events);
@@ -449,6 +480,9 @@ function generateAgendaWeek(o) {
  * @param {object} o  { guildId, botName, today, events:[{y,m,d,hh,mm,name,type,place}], next }
  */
 function generateAgendaAll(o) {
+  if (require('../core/compactCard').isCompact(o.guildId)) {
+    return agendaCompact(o, 'Agenda', `Tous les événements à venir · ${o.events.length}`, o.events, 12);
+  }
   const { today } = o;
   const MAX = 20;
   const shown = o.events.slice(0, MAX);
