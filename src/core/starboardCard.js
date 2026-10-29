@@ -231,7 +231,10 @@ function drawStarPath(ctx, cx, cy, R) {
  * @returns {Promise<Buffer>} PNG
  */
 async function generateStarboardCard(o) {
-  if (compact.isCompact(o.guildId)) return compact.renderCompact(compact.starboardSpec(o));
+  if (compact.isCompact(o.guildId)) {
+    const photo = await safeLoad(o.imageUrl);
+    return compact.renderCompact(compact.starboardSpec({ ...o, photo }));
+  }
   const score = Math.max(0, o.score | 0);
   const th = Math.max(score, o.threshold | 0, 1);
   const author = String(o.author || 'Inconnu');
