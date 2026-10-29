@@ -193,16 +193,6 @@ const CONFIG_CATEGORIES = {
     titleKey: 'cat_channels_title',
     descKey: 'cat_channels_desc',
     settings: [{
-      labelKey: 'setting_photo_channel',
-      value: 'photo_channel_id',
-      emoji: '📸',
-      type: 'channel'
-    }, {
-      labelKey: 'setting_repost_channel',
-      value: 'repost_channel_id',
-      emoji: '🩵',
-      type: 'channel'
-    }, {
       labelKey: 'setting_ticket_channel',
       value: 'ticket_channel_id',
       emoji: '🎫',
