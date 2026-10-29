@@ -137,6 +137,8 @@ function generateGlassLevelUp(o) {
 }
 
 function generateLevelUpCard(o) {
+  const compactCard = require('../core/compactCard');
+  if (compactCard.isCompact(o.guildId)) return compactCard.renderCompactSync(compactCard.levelUpSpec(o));
   if (getTheme(o.guildId).look === 'fume') return generateGlassLevelUp(o);
   const canvas = createCanvas(W, H);
   const ctx = themedCtx(canvas.getContext('2d'), o.guildId);
