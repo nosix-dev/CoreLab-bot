@@ -32,6 +32,7 @@ const {
 const {
   containerAccent
 } = require('../core/cardTheme');
+const { mute: muteMessage } = require('../core/silentMessages');
 
 // ────────────────────────────────────────────────
 // Système StarBoard générique et configurable
@@ -104,9 +105,11 @@ async function publishNotice(guild) {
     if (cfg.starboard_notice_message_id) {
       const oldCh = guild.channels.cache.get(String(cfg.starboard_notice_channel_id || cfg.photo_channel_id));
       const old = oldCh?.isTextBased?.() ? await oldCh.messages.fetch(cfg.starboard_notice_message_id).catch(() => null) : null;
+      muteMessage(cfg.starboard_notice_message_id); // pas de log pour cette suppression
       if (old) await old.delete().catch(() => { });
     }
     const sent = await channel.send({ content: renderNotice(guild, cfg), allowedMentions: { parse: [] } });
+    muteMessage(sent.id); // ni pour cet envoi, ni pour sa future suppression
     cfg.starboard_notice_message_id = sent.id;
     cfg.starboard_notice_channel_id = channel.id;
     persist('configuration');
@@ -114,6 +117,19 @@ async function publishNotice(guild) {
   } catch (e) {
     return { ok: false, error: `Impossible d'envoyer le message dans ${channel} (permissions du bot ?).` };
   }
+}
+
+// Après chaque photo envoyée : le message d'explication est supprimé puis renvoyé juste après.
+// Anti-rafale : si plusieurs photos arrivent d'affilée, un seul renvoi (après la dernière).
+const noticeTimers = new Map();
+function refreshNoticeAfterPhoto(guild) {
+  const cfg = getGuildConfig(guild.id);
+  if (!cfg.starboard_notice_message_id || !cfg.photo_channel_id) return;
+  clearTimeout(noticeTimers.get(guild.id));
+  noticeTimers.set(guild.id, setTimeout(() => {
+    noticeTimers.delete(guild.id);
+    publishNotice(guild).catch(() => { });
+  }, 1500));
 }
 
 // ── Dashboard ──
@@ -646,5 +662,6 @@ module.exports = {
   buildStarboardRows,
   buildStarboardPayload,
   publishNotice,
+  refreshNoticeAfterPhoto,
   getStarEmoji
 };
