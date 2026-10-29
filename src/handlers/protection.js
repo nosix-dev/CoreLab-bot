@@ -1731,6 +1731,7 @@ function registerProtectionHandlers(client) {
   client.on('messageDelete', async message => {
     try {
       if (!message.guild) return;
+      if (require('../core/silentMessages').isMuted(message.id)) return;
       await checkGhostPing(message);
     } catch (e) {
       console.error('Erreur handler protection (messageDelete) :', e);
