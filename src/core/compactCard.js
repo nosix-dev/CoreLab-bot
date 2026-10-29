@@ -14,11 +14,16 @@ let _lc = null;
 const lc = () => _lc || (_lc = require('../handlers/logCardImage'));
 
 /** Le serveur utilise-t-il le style Compact ? */
+// Style unifié : TOUTES les cartes utilisent la mise en page des logs « Message envoyé »
+// (tuile d'icône + bandeau coloré). Mettre à false pour revenir au choix /cartes-style.
+const UNIFIED_LOOK = true;
+
 function isCompact(guildId) {
+  if (UNIFIED_LOOK) return true;
   try { return getTheme(guildId).look === 'compact'; } catch { return false; }
 }
 
-const base = spec => ({ theme: 'green', ...spec, logStyle: 'compact' });
+const base = spec => ({ theme: 'green', ...spec, logStyle: 'tuile' });
 
 /** Rendu synchrone (les emojis déjà en cache sont dessinés). */
 function renderCompactSync(spec) {
@@ -96,6 +101,7 @@ function voiceSpec(o) {
   blocks.push({ label: o.type === 'leave' ? 'Membres restants' : 'Membres présents', value: String(Number.isFinite(o.members) ? o.members : 0) });
   return {
     guildId: o.guildId,
+    theme: { join: 'green', leave: 'red', move: 'orange' }[o.type] || 'green',
     title: titles[o.type] || titles.join,
     time: o.time,
     sub: o.tag && o.tag !== o.username ? `${o.username}  ·  ${o.tag}` : o.username,
