@@ -1,8 +1,8 @@
 'use strict';
 
 // ───────────────────────────────────────────────────────────
-// Moteur de cartes pour les logs. 4 styles au choix (/cartes-style → « Style des logs ») :
-//   neon (historique, même look que level up / vocal), sobre, clair, compact.
+// Moteur de cartes pour les logs. Style par défaut : « tuile + bandeau » (tuile d'icône + bandeau coloré).
+//   Autres styles (spec.logStyle) : neon, sobre, clair, compact, fume.
 //
 // await generateLogCardAsync({            // recommandé : télécharge les emojis avant de dessiner
 //   guildId, theme, title, time, sub,
@@ -732,9 +732,115 @@ function generateGlassCard(spec) {
   return canvas.toBuffer('image/png');
 }
 
-// Point d'entrée : choisit le style du serveur (ou spec.logStyle pour forcer un aperçu)
+// ───────────────────────────────────────────────────────────
+// Style « tuile + bandeau » (défaut) : fond sombre, bandeau en-tête teinté de la couleur du log
+// (vert = connexion, rouge = déconnexion…) avec tuile d'icône à gauche, titre, sous-titre et heure ;
+// puis infos en pile à gauche + gros nombre à droite, citations, pastilles et pied de carte.
+// ───────────────────────────────────────────────────────────
+const BAND_H = 112;
+const TILE_S = 72;
+
+function generateTileBandCard(spec) {
+  const th = THEMES[spec.theme] || THEMES.green;
+  const pal = PAL.sobre;
+  const ink = th.accent;
+  const px = 48;
+  const inner = W - 2 * px;
+
+  const toks = tokenize(clean(spec.title));
+  let rest = clean(spec.title);
+  let icon = null;
+  if (toks[0] && toks[0].t === 'emoji') {
+    icon = toks[0].raw;
+    rest = clean(toks.slice(1).map(t => (t.t === 'emoji' ? t.raw : t.v)).join(''));
+  }
+  const title = rest.toUpperCase();
+
+  const run = ctx => {
+    ctx.textBaseline = 'alphabetic';
+
+    // Bandeau teinté
+    ctx.fillStyle = mixHex(pal.bg, th.accent, 0.14);
+    ctx.fillRect(0, 0, W, BAND_H);
+    ctx.fillStyle = rgba(th.accent, 0.35);
+    ctx.fillRect(0, BAND_H - 2, W, 2);
+
+    // Tuile d'icône
+    const ty = (BAND_H - TILE_S) / 2;
+    roundRect(ctx, px, ty, TILE_S, TILE_S, 18);
+    ctx.fillStyle = rgba(th.accent, 0.25);
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = rgba(th.accent, 0.55);
+    ctx.stroke();
+    if (icon) drawRich(ctx, icon, px + TILE_S / 2, ty + TILE_S / 2 + 13, FONT_BOLD, 38, { align: 'center' });
+
+    // Titre, sous-titre, heure
+    const tx = px + TILE_S + 22;
+    const timeW = spec.time ? 110 : 0;
+    const tSize = fitSize(ctx, title, FONT_BOLD, 25, W - px - tx - timeW, 16);
+    drawRich(ctx, title, tx, spec.sub ? 54 : 66, FONT_BOLD, tSize, { color: pal.text });
+    if (spec.sub) {
+      const sub = cut(spec.sub, 60);
+      drawRich(ctx, sub, tx, 86, FONT, fitSize(ctx, sub, FONT, 20, W - px - tx - timeW, 15), { color: pal.muted });
+    }
+    if (spec.time) drawRich(ctx, clean(spec.time), W - px, 54, FONT, S.time, { color: pal.dim, align: 'right' });
+
+    // Corps : infos à gauche, gros nombre à droite
+    let y = BAND_H + 20;
+    const blocks = spec.blocks || [];
+    const hasBig = spec.bigValue !== undefined && spec.bigValue !== null && spec.bigValue !== '';
+    const top = y;
+    if (hasBig) {
+      for (const b of blocks) y = drawBlockStyled(ctx, pal, b, px, y, 560);
+      const nx = W - px - 150;
+      drawRich(ctx, clean(spec.bigLabel || '').toUpperCase(), nx, top + 18, FONT_BOLD, S.label, { color: pal.muted, align: 'center' });
+      const big = String(spec.bigValue);
+      const bigSize = fitSize(ctx, big, FONT_BOLD, 110, 300, 40);
+      const bigY = top + 30 + bigSize * 0.9;
+      drawRich(ctx, big, nx, bigY, FONT_BOLD, bigSize, { color: ink, align: 'center' });
+      y = Math.max(y, bigY + 16);
+    } else if (blocks.length) {
+      const colW = inner / 2;
+      blocks.forEach((b, i) => {
+        drawBlockStyled(ctx, pal, b, px + (i % 2) * colW, y + Math.floor(i / 2) * BLOCK_H, colW - 24);
+      });
+      y += Math.ceil(blocks.length / 2) * BLOCK_H;
+    }
+    return drawQuotesPills(ctx, th, pal, ink, spec, px, y, inner);
+  };
+
+  // Passe 1 : mesure de la hauteur
+  const probe = createCanvas(W, 3000);
+  const yEnd = run(probe.getContext('2d'));
+  const H = Math.max(260, Math.ceil(yEnd + 78));
+
+  // Passe 2 : rendu (pas de recoloration : le vert / rouge du bandeau indique le type de log)
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext('2d');
+  const radius = 22;
+
+  ctx.save();
+  roundRect(ctx, 1, 1, W - 2, H - 2, radius);
+  ctx.clip();
+  ctx.fillStyle = pal.bg;
+  ctx.fillRect(0, 0, W, H);
+  run(ctx);
+  footerStyled(ctx, pal, spec, H, px, false);
+  ctx.restore();
+
+  roundRect(ctx, 1, 1, W - 2, H - 2, radius);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = pal.border;
+  ctx.stroke();
+  return canvas.toBuffer('image/png');
+}
+
+
+// Point d'entrée : style « tuile + bandeau » par défaut (ou spec.logStyle pour forcer un autre style)
 function generateLogCard(spec) {
-  const style = spec.logStyle || getTheme(spec.guildId).look;
+  const style = spec.logStyle || 'tuile';
+  if (style === 'tuile') return generateTileBandCard(spec);
   if (style === 'fume') return generateGlassCard(spec);
   if (style === 'clair') return generateSplitCard(spec);
   if (style && style !== 'neon' && PAL[style]) return generateStyledCard(style, spec);
