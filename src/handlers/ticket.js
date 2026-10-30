@@ -223,54 +223,38 @@ function buildTicketConfigRows() {
 
 // Payload complet « carte image » (même rendu que /settings et /protect-settings).
 // À utiliser pour /settings ticket ET pour rafraîchir le panneau après une modification.
-// → EMBED classique (pas de Components V2) : titre, courte description, carte image
-//   (renderSettingsCard) en grande image d'embed, boutons en dessous.
+// → Components V2 : conteneur avec titre, carte image (même rendu que les logs), boutons.
 async function buildTicketConfigPayload(cfg, channelId, guild, opts = {}) {
-  const FILE = 'config-ticket.png';
   const tilesEmbed = buildTicketConfigEmbed(cfg, channelId);
+  // Pas de description dans le conteneur : le titre, la carte et les boutons suffisent
+  tilesEmbed.setDescription(null);
   const rows = buildTicketConfigRows();
-  const flags = opts.ephemeral ? MessageFlags.Ephemeral : undefined;
-
-  const display = new EmbedBuilder()
-    .setTitle('🎫 Gestion des tickets — ce salon')
-    .setColor(0xFFFFFF);
-  if (opts.notice) display.setDescription(String(opts.notice));
-
   try {
-    const { renderSettingsCard, cardDataFromEmbed } = require('../core/settingsCard');
+    const { buildSettingsPayload, cardDataFromEmbed } = require('../core/settingsCard');
     const data = cardDataFromEmbed(tilesEmbed, guild);
     const stateTiles = data.tiles.filter(t => t.state !== null);
     const subtitle = stateTiles.length
       ? `${stateTiles.filter(t => t.state).length}/${stateTiles.length} options actives`
       : `${data.tiles.length} paramètre(s)`;
-    // Même rendu que les logs (tuile d'icône + bandeau) quand le style unifié est actif
-    const compactCard = require('../core/compactCard');
-    const png = compactCard.isCompact(guild?.id)
-      ? await compactCard.renderCompact(compactCard.settingsSpec({ ...data, subtitle }, guild?.id))
-      : renderSettingsCard({
-        title: data.title,
-        subtitle,
-        tiles: data.tiles,
-        pill: null,
-        cols: 2,
-        width: 900,
-        guildId: guild?.id || null
-      });
-    display.setImage(`attachment://${FILE}`)
-      .setFooter({ text: 'Utilise les boutons ci-dessous pour gérer les tickets de ce salon.' });
-    const payload = {
-      embeds: [display],
-      files: [new AttachmentBuilder(png, { name: FILE })],
-      components: rows,
-      attachments: []
-    };
-    if (flags) payload.flags = flags;
+    // Components V2 : conteneur avec titre, carte (même rendu que les logs), boutons
+    const payload = buildSettingsPayload({
+      guild,
+      embed: tilesEmbed,
+      rows,
+      file: 'config-ticket.png',
+      notice: opts.notice ? String(opts.notice) : null,
+      hint: 'Utilise les boutons ci-dessous pour gérer les tickets de ce salon.',
+      heading: '🎫 Gestion des tickets — ce salon',
+      subtitle,
+      pill: null
+    });
+    if (opts.ephemeral) payload.flags = (payload.flags ?? MessageFlags.IsComponentsV2) | MessageFlags.Ephemeral;
     return payload;
   } catch (e) {
-    console.error('[Ticket] Erreur rendu carte du panneau :', e.message);
+    console.error('[Ticket] Erreur rendu panneau :', e.message);
     // Repli sans image : l'embed avec ses champs
     const payload = { embeds: [tilesEmbed], components: rows, attachments: [] };
-    if (flags) payload.flags = flags;
+    if (opts.ephemeral) payload.flags = MessageFlags.Ephemeral;
     return payload;
   }
 }
