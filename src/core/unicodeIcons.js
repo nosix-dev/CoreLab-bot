@@ -299,4 +299,6 @@ module.exports = {
   '🧹': 'brush',
   '🥳': 'party-popper',
   '📜': 'scroll',
+  '🎫': 'ticket',
+  '🎟️': 'ticket',
 };
