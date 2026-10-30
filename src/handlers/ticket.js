@@ -225,7 +225,7 @@ function buildTicketConfigRows() {
 // À utiliser pour /settings ticket ET pour rafraîchir le panneau après une modification.
 // → EMBED classique (pas de Components V2) : titre, courte description, carte image
 //   (renderSettingsCard) en grande image d'embed, boutons en dessous.
-function buildTicketConfigPayload(cfg, channelId, guild, opts = {}) {
+async function buildTicketConfigPayload(cfg, channelId, guild, opts = {}) {
   const FILE = 'config-ticket.png';
   const tilesEmbed = buildTicketConfigEmbed(cfg, channelId);
   const rows = buildTicketConfigRows();
@@ -243,15 +243,19 @@ function buildTicketConfigPayload(cfg, channelId, guild, opts = {}) {
     const subtitle = stateTiles.length
       ? `${stateTiles.filter(t => t.state).length}/${stateTiles.length} options actives`
       : `${data.tiles.length} paramètre(s)`;
-    const png = renderSettingsCard({
-      title: data.title,
-      subtitle,
-      tiles: data.tiles,
-      pill: null,
-      cols: 2,
-      width: 900,
-      guildId: guild?.id || null
-    });
+    // Même rendu que les logs (tuile d'icône + bandeau) quand le style unifié est actif
+    const compactCard = require('../core/compactCard');
+    const png = compactCard.isCompact(guild?.id)
+      ? await compactCard.renderCompact(compactCard.settingsSpec({ ...data, subtitle }, guild?.id))
+      : renderSettingsCard({
+        title: data.title,
+        subtitle,
+        tiles: data.tiles,
+        pill: null,
+        cols: 2,
+        width: 900,
+        guildId: guild?.id || null
+      });
     display.setImage(`attachment://${FILE}`)
       .setFooter({ text: 'Utilise les boutons ci-dessous pour gérer les tickets de ce salon.' });
     const payload = {

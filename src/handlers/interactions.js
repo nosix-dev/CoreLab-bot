@@ -272,7 +272,7 @@ async function handleTicketComponent(interaction) {
     // Rafraîchit la carte du panneau (la tuile « Bouton Claim » change d'état),
     // puis confirme en message éphémère séparé.
     try {
-      await safeComponentUpdate(interaction, buildTicketConfigPayload(cfg, interaction.channel.id, interaction.guild));
+      await safeComponentUpdate(interaction, await buildTicketConfigPayload(cfg, interaction.channel.id, interaction.guild));
     } catch (e) {
       console.error('Erreur rafraîchissement panneau ticket (claim) :', e.message);
     }

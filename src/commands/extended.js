@@ -1299,7 +1299,7 @@ async function executePanneau(interaction) {
 async function executeTicket(interaction) {
   const cfg = getGuildConfig(interaction.guild.id);
   const { buildTicketConfigPayload } = require('../handlers/ticket');
-  await safeReply(interaction, buildTicketConfigPayload(cfg, interaction.channel.id, interaction.guild, { ephemeral: true }));
+  await safeReply(interaction, await buildTicketConfigPayload(cfg, interaction.channel.id, interaction.guild, { ephemeral: true }));
 }
 async function executeVocalTemp(interaction) {
   const cfg = getGuildConfig(interaction.guild.id);
