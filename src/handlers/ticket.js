@@ -15,7 +15,9 @@ const {
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
   SeparatorBuilder,
-  SeparatorSpacingSize
+  SeparatorSpacingSize,
+  SectionBuilder,
+  ThumbnailBuilder
 } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -426,60 +428,57 @@ async function renderTicketPanelCard({ title, reasons, logoSource, bannerPath, g
   return canvas.toBuffer('image/png');
 }
 
-// Payload du panneau publié (Components V2) : conteneur avec texte d'intro,
-// carte (image) et boutons de raisons à l'intérieur.
-// bannerPath : chemin de l'image choisie (🖼️ Bannière), intégrée à la carte.
-// L'icône du serveur est récupérée automatiquement pour le bloc de gauche.
+// Payload du panneau publié — Components V2 100 % natif (aucune image générée) :
+//   • bannière choisie (🖼️ Bannière) en haut du conteneur
+//   • section : titre + texte d'intro, icône du serveur en miniature à droite
+//   • liste des raisons avec leur description (si elles en ont)
+//   • séparateur, puis boutons de raisons
 async function buildTicketPublishPayload(cfg, panelChannelId, guild, bannerPath = null) {
   const chKey = String(panelChannelId);
   const reasons = cfg.ticket_reasons?.[chKey] || [];
   const appearance = cfg.ticket_appearance?.[chKey] || {};
   const rows = buildTicketReasonButtons(reasons, panelChannelId);
   const intro = appearance.description || "Besoin d'aide ? Sélectionne la catégorie qui correspond le mieux à ton problème.";
+  const { cleanText } = require('../core/settingsCard');
+  const title = cleanText(appearance.title || '', guild) || 'Ouvrir un ticket';
   const container = new ContainerBuilder().setAccentColor(appearance.color ?? 0xFFFFFF);
   const files = [];
-  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(intro.slice(0, 3000)));
-  try {
-    const { cleanText } = require('../core/settingsCard');
-    const title = cleanText(appearance.title || '', guild) || 'Ouvrir un ticket';
 
-    // Icône du serveur (PNG statique) pour le bloc de gauche
-    let logoSource = null;
-    const iconUrl = guild?.iconURL({ extension: 'png', size: 256, forceStatic: true });
-    if (iconUrl) {
-      try {
-        const res = await fetch(iconUrl);
-        if (res.ok) logoSource = Buffer.from(await res.arrayBuffer());
-      } catch { /* pas d'icône → bloc par défaut */ }
-    }
+  // 1. Bannière en haut
+  if (bannerPath && fs.existsSync(bannerPath)) {
+    const bannerName = `ticket-banner${path.extname(bannerPath) || '.png'}`;
+    files.push(new AttachmentBuilder(bannerPath, { name: bannerName }));
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(`attachment://${bannerName}`))
+    );
+  }
 
-    const png = await renderTicketPanelCard({
-      title,
-      reasons: reasons.map((r, i) => ({
-        label: cleanText(r.label, guild),
-        description: cleanText(r.description || '', guild),
-        hex: reasonCardHex(r.color, i)
-      })),
-      logoSource,
-      bannerPath,
-      guildId: guild?.id || null
+  // 2. Titre + intro, icône du serveur en miniature
+  const head = [`## 🎫 ${title}`.slice(0, 250), intro.slice(0, 2000)].join('\n');
+  const iconUrl = guild?.iconURL({ extension: 'png', size: 256, forceStatic: true });
+  if (iconUrl) {
+    container.addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(head))
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
+    );
+  } else {
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(head));
+  }
+
+  // 3. Descriptions des raisons (seulement si au moins une en a une)
+  if (reasons.some(r => r.description)) {
+    const lines = reasons.slice(0, 25).map(r => {
+      const emoji = sanitizeEmoji(r.emoji);
+      const label = cleanText(r.label, guild);
+      const desc = cleanText(r.description || '', guild);
+      return `${emoji ? emoji + ' ' : '• '}**${label}**${desc ? ` — ${desc}` : ''}`;
     });
-    files.push(new AttachmentBuilder(png, { name: 'ticket-panel.png' }));
-    const galleryItems = [new MediaGalleryItemBuilder().setURL('attachment://ticket-panel.png')];
-    // Style unifié : la bannière choisie n'est plus dessinée dans la carte, on l'affiche juste dessous
-    if (bannerPath && fs.existsSync(bannerPath) && require('../core/compactCard').isCompact(guild?.id || null)) {
-      const bannerName = `ticket-banner${path.extname(bannerPath) || '.png'}`;
-      files.push(new AttachmentBuilder(bannerPath, { name: bannerName }));
-      galleryItems.push(new MediaGalleryItemBuilder().setURL(`attachment://${bannerName}`));
-    }
-    container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(...galleryItems));
-  } catch (e) {
-    console.error('[Ticket] Erreur carte du panneau publié :', e.message);
-    // Repli sans carte : titre + liste des raisons en texte
-    const lines = [`# ${appearance.title || '🔍 Ouvrir un ticket de support'}`];
-    for (const r of reasons) lines.push(`• **${r.label}** — ${r.description || 'Aucune description'}`);
+    container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n').slice(0, 3500)));
   }
+
+  // 4. Boutons de raisons
   if (rows.length) {
     container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
     for (const row of rows.slice(0, 5)) container.addActionRowComponents(row);
