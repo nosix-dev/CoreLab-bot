@@ -1,3 +1,5 @@
+// Restauration des données depuis la sauvegarde Discord (avant que le bot ne charge ses fichiers)
+try { require('child_process').execFileSync(process.execPath, [require('path').join(__dirname, 'restore.js')], { stdio: 'inherit', timeout: 60000 }); } catch (e) { console.error('[Restore] ignoré :', e.message); }
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 // Réseau : IPv4 en priorité (IPv6 cassé sur certains nœuds) + délai de connexion plus long
@@ -525,6 +527,7 @@ client.once('clientReady', async () => {
   startMarche(client);
   startStatusRotation(client);
   maintenance.restaurer(client);
+  try { require('./src/core/discordBackup').demarrer(client); } catch (e) { console.error('❌ Backup Discord:', e.message); }
   synchroniserPseudosAuDemarrage(client);
   synchroniserRoleAuDemarrage(client);
   rehydrateIaSessions(client);
