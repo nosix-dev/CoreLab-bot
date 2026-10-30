@@ -151,9 +151,9 @@ function buildButtonRow(list) {
   return buttons.length ? new ActionRowBuilder().addComponents(buttons) : null;
 }
 
-// Discord ne transforme pas « :pin: » en emoji dans un message de bot : on le fait ici pour l'en-tête.
+// Discord ne transforme pas « :shield: » en emoji dans un message de bot : on le fait ici pour l'en-tête.
 const SHORTCODES = {
-  pin: '📌', pushpin: '📌', round_pushpin: '📍', rocket: '🚀', sparkles: '✨', star: '⭐', fire: '🔥',
+  shield: '🛡️', pin: '📌', pushpin: '📌', round_pushpin: '📍', rocket: '🚀', sparkles: '✨', star: '⭐', fire: '🔥',
   tada: '🎉', bell: '🔔', new: '🆕', tools: '🛠️', wrench: '🔧', hammer: '🔨', gear: '⚙️',
   warning: '⚠️', white_check_mark: '✅', check: '✅', heart: '❤️', megaphone: '📢', loudspeaker: '📢'
 };
@@ -166,7 +166,7 @@ const parseColor = (v, def) => {
 
 /**
  * Format de update.json (tous les champs sauf channelId / version sont optionnels) :
- *  titre     : titre (sinon « 📌 <bot> (<version>) »)
+ *  titre     : titre (sinon « 🛡️ <bot> (<version>) »)
  *  article   : { label, emoji?, url } -> bouton en haut à droite du titre
  *  intro     : phrase d'intro sous le titre (markdown, **gras** ok)
  *  modifications : { "📨 Section": ["[+] ...", "[~] ..."] }
@@ -181,7 +181,7 @@ function buildMessages(data, client, hash) {
   const version = String(data.version);
   const nom = data.nom || client.user.username;
   const ping = data.mention !== false; // @everyone par défaut
-  const titre = shortcodesToEmoji(data.titre || `📌 ${nom} (${version})`);
+  const titre = shortcodesToEmoji(data.titre || `🛡️ ${nom} (${version})`);
   const color = parseColor(data.couleur, 0xED4245);
   const noteColor = parseColor(data.couleurNote, 0xFEE75C);
 
