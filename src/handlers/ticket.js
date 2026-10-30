@@ -428,15 +428,14 @@ async function renderTicketPanelCard({ title, reasons, logoSource, bannerPath, g
   return canvas.toBuffer('image/png');
 }
 
-// Payload du panneau publié — Components V2 100 % natif, look « hub de support » :
-//   • bannière choisie (🖼️ Bannière) en haut du conteneur
-//   • titre + intro, icône du serveur en miniature à droite
-//   • ligne de statut (délai de réponse + tickets ouverts)
-//   • une section par raison : nom, description et bouton « Ouvrir » à droite
-//   • petit pied de panneau avec les règles
-// Aucune image générée. Limite Discord : 40 composants par message → 8 sections
-// maximum ; au-delà, repli sur une liste + rangées de boutons.
-const TICKET_MAX_SECTIONS = 8;
+// Payload du panneau publié — EMBED classique (même contenu que l'ancien look « hub de support ») :
+//   • titre, texte d'intro et ligne de statut (délai de réponse + tickets ouverts)
+//   • icône du serveur en miniature (en haut à droite)
+//   • un champ par raison : nom + description (3 par ligne)
+//   • bannière choisie (🖼️ Bannière) en grande image, sous les champs
+//   • pied de page avec les règles
+//   • boutons de raisons sous l'embed (25 max)
+// Aucune image générée.
 async function buildTicketPublishPayload(cfg, panelChannelId, guild, bannerPath = null) {
   const chKey = String(panelChannelId);
   const reasons = cfg.ticket_reasons?.[chKey] || [];
@@ -444,74 +443,48 @@ async function buildTicketPublishPayload(cfg, panelChannelId, guild, bannerPath 
   const intro = appearance.description || "Une question, un souci ? L'équipe te répond ici.";
   const { cleanText } = require('../core/settingsCard');
   const title = cleanText(appearance.title || '', guild) || "Centre d'aide";
-  const container = new ContainerBuilder().setAccentColor(appearance.color ?? 0x3DDC84);
+  const rows = buildTicketReasonButtons(reasons, panelChannelId);
   const files = [];
-  const sepSmall = () => new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const sepBig = () => new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Large);
 
-  // 1. Bannière en haut
-  if (bannerPath && fs.existsSync(bannerPath)) {
-    const bannerName = `ticket-banner${path.extname(bannerPath) || '.png'}`;
-    files.push(new AttachmentBuilder(bannerPath, { name: bannerName }));
-    container.addMediaGalleryComponents(
-      new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(`attachment://${bannerName}`))
-    );
-  }
-
-  // 2. Titre + intro (+ icône du serveur) et ligne de statut
+  // Ligne de statut (personnalisable via appearance.statusLine)
   const open = Math.max(0, cfg.ticket_open_count || 0);
   const status = appearance.statusLine
     || `🟢 Réponse en général sous 24 h · ${open} ticket${open > 1 ? 's' : ''} ouvert${open > 1 ? 's' : ''}`;
-  const head = [`## ${title}`.slice(0, 250), intro.slice(0, 2000), `-# ${status}`.slice(0, 300)].join('\n');
+
+  const embed = new EmbedBuilder()
+    .setTitle(title.slice(0, 256))
+    .setDescription(`${intro.slice(0, 3000)}\n\n*${status}*`.slice(0, 4000))
+    .setColor(appearance.color ?? 0x3DDC84);
+
+  // Icône du serveur en miniature
   const iconUrl = guild?.iconURL({ extension: 'png', size: 256, forceStatic: true });
-  if (iconUrl) {
-    container.addSectionComponents(
-      new SectionBuilder()
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(head))
-        .setThumbnailAccessory(new ThumbnailBuilder().setURL(iconUrl))
-    );
-  } else {
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(head));
-  }
-  container.addSeparatorComponents(sepBig());
+  if (iconUrl) embed.setThumbnail(iconUrl);
 
-  // 3. Raisons
-  if (reasons.length && reasons.length <= TICKET_MAX_SECTIONS) {
-    // Une section par raison : texte à gauche, bouton « Ouvrir » à droite
-    reasons.forEach((r, i) => {
-      const label = cleanText(r.label, guild) || 'Ticket';
-      const desc = cleanText(r.description || '', guild);
-      const btn = new ButtonBuilder()
-        .setCustomId(`ticket_reason_${panelChannelId}_${r.value}`)
-        .setLabel('Ouvrir')
-        .setStyle(reasonButtonStyle(r.color, i));
-      const emojiOk = sanitizeEmoji(r.emoji);
-      if (emojiOk) btn.setEmoji(emojiOk);
-      const text = `**${label}**${desc ? `\n-# ${desc}` : ''}`.slice(0, 1000);
-      container.addSectionComponents(
-        new SectionBuilder()
-          .addTextDisplayComponents(new TextDisplayBuilder().setContent(text))
-          .setButtonAccessory(btn)
-      );
-      if (i < reasons.length - 1) container.addSeparatorComponents(sepSmall());
-    });
-  } else if (reasons.length) {
-    // Beaucoup de raisons : liste en texte + rangées de boutons (20 max pour rester sous 40 composants)
-    const shown = reasons.slice(0, 20);
-    const lines = shown.map(r => {
-      const desc = cleanText(r.description || '', guild);
-      return `• **${cleanText(r.label, guild)}**${desc ? ` — ${desc}` : ''}`;
-    });
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n').slice(0, 3000)));
-    for (const row of buildTicketReasonButtons(shown, panelChannelId).slice(0, 4)) container.addActionRowComponents(row);
+  // Une raison = un champ (3 par ligne)
+  const fields = reasons.slice(0, 25).map(r => {
+    const emoji = sanitizeEmoji(r.emoji);
+    const label = cleanText(r.label, guild) || 'Ticket';
+    const desc = cleanText(r.description || '', guild) || 'Clique sur le bouton pour ouvrir un ticket';
+    return {
+      name: `${emoji ? emoji + ' ' : ''}${label}`.slice(0, 256),
+      value: desc.slice(0, 1024),
+      inline: true
+    };
+  });
+  if (fields.length) embed.addFields(fields);
+
+  // Bannière choisie : grande image en bas de l'embed
+  if (bannerPath && fs.existsSync(bannerPath)) {
+    const bannerName = `ticket-banner${path.extname(bannerPath) || '.png'}`;
+    files.push(new AttachmentBuilder(bannerPath, { name: bannerName }));
+    embed.setImage(`attachment://${bannerName}`);
   }
 
-  // 4. Pied de panneau
-  container.addSeparatorComponents(sepSmall());
-  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-    (appearance.footerText || "-# Un ticket par problème · Reste poli avec l'équipe").slice(0, 300)
-  ));
-  return { components: [container], files, flags: MessageFlags.IsComponentsV2 };
+  // Pied de page (le préfixe « -# » des anciens textes est retiré, il n'existe pas dans un pied d'embed)
+  const footer = String(appearance.footerText || "Un ticket par problème · Reste poli avec l'équipe").replace(/^-#\s*/, '');
+  embed.setFooter({ text: footer.slice(0, 2000) });
+
+  return { embeds: [embed], files, components: rows.slice(0, 5) };
 }
 
 // Panneau de gestion d'un formulaire (questions + image + publication).
