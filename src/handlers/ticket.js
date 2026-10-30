@@ -454,7 +454,7 @@ async function buildTicketPublishPayload(cfg, panelChannelId, guild, bannerPath 
   const embed = new EmbedBuilder()
     .setTitle(title.slice(0, 256))
     .setDescription(`${intro.slice(0, 3000)}\n\n*${status}*`.slice(0, 4000))
-    .setColor(appearance.color ?? 0x3DDC84);
+    .setColor(appearance.color ?? 0xFFFFFF);
 
   // Icône du serveur en miniature
   const iconUrl = guild?.iconURL({ extension: 'png', size: 256, forceStatic: true });
