@@ -12,7 +12,7 @@
 // Modifier update.json + commit + déployer = nouveau message.
 //
 // Anti-doublon : une empreinte du fichier est cachée dans le message envoyé
-// (texte alternatif du logo) ; au démarrage le bot la cherche dans les derniers
+// (lien invisible dans le pied du message) ; au démarrage le bot la cherche dans les derniers
 // messages du salon, donc ça marche même si l'hébergeur efface les fichiers locaux.
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -23,9 +23,6 @@ const {
   ContainerBuilder,
   SectionBuilder,
   TextDisplayBuilder,
-  ThumbnailBuilder,
-  SeparatorBuilder,
-  SeparatorSpacingSize,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -72,7 +69,10 @@ function hashOf(data) {
 }
 
 const HASH_PREFIX = 'update:';
-const hashNeedle = hash => `"description":"${HASH_PREFIX}${hash}"`;
+// Ancien marqueur (logo) + nouveau marqueur (lien invisible dans le pied du message).
+const oldHashNeedle = hash => `"description":"${HASH_PREFIX}${hash}"`;
+const hashNeedle = hash => `#update-${hash}`;
+const hiddenMarker = hash => `[\u200B](https://discord.com/#update-${hash})`;
 
 // Ligne « Version : x » du message : sert aussi de marqueur pour retrouver l'annonce dans le salon.
 const versionLine = version => `**Version :** ${version}\n`;
@@ -82,16 +82,22 @@ const markerNeedle = version => JSON.stringify(versionLine(version)).slice(1, -1
 
 const tagOf = line => (String(line).match(/^\[(.)\]/) || [])[1] || null;
 
+// Puces façon « embed » : ✨ = nouveauté, 🔴 = changement classique.
+const PUCES = { '+': '✨', '~': '🔴', '!': '⚠️', 'i': 'ℹ️' };
+const PUCE_DEFAUT = '🔴';
+
 /**
- * `modifications` : objet { "✨ Nouveautés": ["[+] ...", "[~] ...", "[!] ..."], "🛟 Serveur support": [...] }
- * (ou simple liste de textes). Les lignes qui commencent par [+] [~] [!] [i] sont gardées telles quelles ;
- * une ligne vide est ajoutée automatiquement quand le type de ligne change, comme dans les anciennes annonces.
+ * `modifications` : objet { "📨 Titre de section": ["[+] ...", "[~] ...", "[!] ...", "[i] ..."] } (ou simple liste).
+ * Le tag [+] [~] [!] [i] est remplacé par une puce ; sans tag => 🔴.
  * Retourne une liste de sections { titre, lignes[] }.
  */
 function buildSections(modifs) {
   const clean = items => (Array.isArray(items) ? items : [items])
     .map(x => String(x ?? '').trim()).filter(Boolean)
-    .map(x => (x.startsWith('[') ? x : `• ${x}`));
+    .map(x => {
+      const t = tagOf(x);
+      return `${(t && PUCES[t]) || PUCE_DEFAUT} ${t ? x.replace(/^\[.\]\s*/, '') : x}`;
+    });
   if (Array.isArray(modifs)) return [{ titre: null, lignes: clean(modifs) }];
   if (modifs && typeof modifs === 'object') {
     return Object.entries(modifs).map(([titre, items]) => ({ titre, lignes: clean(items) })).filter(s => s.lignes.length);
@@ -99,22 +105,13 @@ function buildSections(modifs) {
   return [];
 }
 
-function joinLines(lignes) {
-  let out = '';
-  let prev = null;
-  for (const l of lignes) {
-    const t = tagOf(l);
-    out += (out ? (prev !== null && t !== prev ? '\n\n' : '\n') : '') + l;
-    prev = t;
-  }
-  return out;
-}
+const joinLines = lignes => lignes.join('\n');
 
 /** Découpe en blocs de texte ≤ MAX_CHARS : un bloc par section (coupé aux sauts de ligne si trop long). */
 function buildBlocks(sections) {
   const blocks = [];
   for (const sec of sections) {
-    const head = sec.titre ? `## ${sec.titre}\n` : '';
+    const head = sec.titre ? `### ${sec.titre}\n` : '';
     let cur = [];
     let first = true;
     const flush = () => {
@@ -139,16 +136,18 @@ function frDate(input) {
   return parts.map(p => (p.type === 'month' ? p.value.charAt(0).toUpperCase() + p.value.slice(1) : p.value)).join('');
 }
 
-/** `boutons` : liste de { label, emoji?, url } (ou un seul objet `bouton`). 5 boutons maximum. */
+/** Un bouton lien { label, emoji?, url } ou null si l'URL est invalide. */
+function linkButton(b, defLabel) {
+  if (!b || !/^https?:\/\//i.test(String(b.url || ''))) return null;
+  const btn = new ButtonBuilder().setStyle(ButtonStyle.Link).setURL(String(b.url)).setLabel(String(b.label || defLabel).slice(0, 80));
+  if (b.emoji) btn.setEmoji(String(b.emoji));
+  return btn;
+}
+
+/** `boutons` : liste de { label, emoji?, url } (ou un seul objet `bouton`). 5 boutons maximum. Ligne de boutons en bas (optionnel). */
 function buildButtonRow(list) {
-  const buttons = (Array.isArray(list) ? list : [list])
-    .filter(b => b && /^https?:\/\//i.test(String(b.url || '')))
-    .slice(0, 5)
-    .map(b => {
-      const btn = new ButtonBuilder().setStyle(ButtonStyle.Link).setURL(String(b.url)).setLabel(String(b.label || 'Lien').slice(0, 80));
-      if (b.emoji) btn.setEmoji(String(b.emoji));
-      return btn;
-    });
+  if (!list) return null;
+  const buttons = (Array.isArray(list) ? list : [list]).slice(0, 5).map(b => linkButton(b, 'Lien')).filter(Boolean);
   return buttons.length ? new ActionRowBuilder().addComponents(buttons) : null;
 }
 
@@ -160,50 +159,92 @@ const SHORTCODES = {
 };
 const shortcodesToEmoji = text => String(text).replace(/:([a-z0-9_+-]+):/gi, (m, n) => SHORTCODES[n.toLowerCase()] || m);
 
+const parseColor = (v, def) => {
+  const m = String(v ?? '').trim().replace(/^#|^0x/i, '');
+  return /^[0-9a-f]{6}$/i.test(m) ? parseInt(m, 16) : def;
+};
+
+/**
+ * Format de update.json (tous les champs sauf channelId / version sont optionnels) :
+ *  titre     : titre (sinon « 📌 <bot> (<version>) »)
+ *  article   : { label, emoji?, url } -> bouton en haut à droite du titre
+ *  intro     : phrase d'intro sous le titre (markdown, **gras** ok)
+ *  modifications : { "📨 Section": ["[+] ...", "[~] ..."] }
+ *  pied      : petite ligne de bas de message (markdown, [liens](url) ok)
+ *  support   : { label, emoji?, url } -> bouton à droite du pied
+ *  boutons   : [{ label, emoji?, url }] -> ligne de boutons en bas (si tu n'utilises pas `support`)
+ *  note      : second encadré (accent jaune) sous le message principal
+ *  couleur / couleurNote : "#RRGGBB" (barre colorée à gauche)
+ *  mention   : false pour couper le @everyone
+ */
 function buildMessages(data, client, hash) {
   const version = String(data.version);
   const nom = data.nom || client.user.username;
-  // Pas de pastille ronde après le statut (🟢, ⚪, :green_circle:…)
-  const statut = String(data.statut || 'En ligne').replace(/\s*(?:[\u{1F7E0}-\u{1F7EB}\u26AA\u26AB\u25CB\u25EF]\uFE0F?|:\w*circle\w*:)\s*$/u, '').trim() || 'En ligne';
-  const ping = data.mention !== false; // @everyone par défaut ; "mention": false dans update.json pour le couper
-  const tag = data.tag || 'Update';
-  const titre = shortcodesToEmoji(data.titre || `📌 ${nom} - Version ${version} \`${tag}\``);
-  const avatar = client.user.displayAvatarURL({ extension: 'png', size: 256 });
-
-  const header =
-    `## ${titre}\n` +
-    versionLine(version) +
-    `**Statut :** ${statut}\n` +
-    `**Dernière mise à jour :** ${frDate(data.date)}`;
+  const ping = data.mention !== false; // @everyone par défaut
+  const titre = shortcodesToEmoji(data.titre || `📌 ${nom} (${version})`);
+  const color = parseColor(data.couleur, 0xED4245);
+  const noteColor = parseColor(data.couleurNote, 0xFEE75C);
 
   let blocks = buildBlocks(buildSections(data.modifications ?? data.changes));
   if (!blocks.length) blocks = ['*Aucun détail fourni.*'];
 
-  // Regroupe les blocs en messages (4000 caractères de texte max chacun, en-tête compris pour le 1er).
+  const intro = data.intro ? String(data.intro).slice(0, MAX_CHARS) : '';
+  const head = `## ${titre}`;
+
+  // Regroupe les blocs en messages (4000 caractères de texte max chacun).
   const groups = [[]];
-  let size = header.length;
+  let size = head.length + intro.length;
   for (const b of blocks) {
     if (groups[groups.length - 1].length && size + b.length > MAX_CHARS) { groups.push([]); size = 0; }
     groups[groups.length - 1].push(b);
     size += b.length;
   }
 
-  const row = buildButtonRow(data.boutons ?? data.bouton);
+  const articleBtn = linkButton(data.article, 'Lire l\'article');
+  const supportBtn = linkButton(data.support, 'Support');
+  const row = supportBtn ? null : buildButtonRow(data.boutons ?? data.bouton);
+  const pied = data.pied ? `-# ${String(data.pied).replace(/\n+/g, ' ')}` : '';
+
   return groups.map((blks, i) => {
-    const container = new ContainerBuilder().setAccentColor(0xFFFFFF);
+    const last = i === groups.length - 1;
+    const container = new ContainerBuilder().setAccentColor(color);
     const withPing = ping && i === 0;
+
     if (i === 0) {
-      const section = new SectionBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(header));
-      if (avatar) section.setThumbnailAccessory(new ThumbnailBuilder().setURL(avatar).setDescription(`${HASH_PREFIX}${hash}`));
-      container.addSectionComponents(section);
+      if (articleBtn) {
+        container.addSectionComponents(
+          new SectionBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(head)).setButtonAccessory(articleBtn)
+        );
+      } else {
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(head));
+      }
+      if (intro) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(intro));
     }
-    blks.forEach((b, j) => {
-      if (i === 0 || j > 0) container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
-      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(b));
-    });
-    if (row && i === groups.length - 1) container.addActionRowComponents(row);
+    blks.forEach(b => container.addTextDisplayComponents(new TextDisplayBuilder().setContent(b)));
+
+    if (last) {
+      // Le marqueur invisible (anti-doublon) est dans le dernier message : annonce complète = marqueur présent.
+      const footText = `${pied} ${hiddenMarker(hash)}`.trim();
+      if (supportBtn) {
+        container.addSectionComponents(
+          new SectionBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(footText)).setButtonAccessory(supportBtn)
+        );
+      } else {
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(footText));
+      }
+      if (row) container.addActionRowComponents(row);
+    }
+
+    const components = [];
+    if (withPing) components.push(new TextDisplayBuilder().setContent('@everyone'));
+    components.push(container);
+    if (last && data.note) {
+      components.push(
+        new ContainerBuilder().setAccentColor(noteColor).addTextDisplayComponents(new TextDisplayBuilder().setContent(String(data.note).slice(0, MAX_CHARS)))
+      );
+    }
     return {
-      components: withPing ? [new TextDisplayBuilder().setContent('@everyone'), container] : [container],
+      components,
       flags: MessageFlags.IsComponentsV2,
       allowedMentions: withPing ? { parse: ['everyone'] } : { parse: [] }
     };
@@ -217,6 +258,7 @@ function buildMessages(data, client, hash) {
  */
 async function alreadyPosted(channel, botId, hash, version) {
   const hashN = hashNeedle(hash);
+  const oldHashN = oldHashNeedle(hash);
   const legacyN = markerNeedle(version);
   let before;
   for (let page = 0; page < HISTORY_PAGES; page++) {
@@ -233,7 +275,7 @@ async function alreadyPosted(channel, botId, hash, version) {
       let hay = '';
       try { hay += JSON.stringify(m.components ?? []); } catch { /* ignoré */ }
       try { hay += JSON.stringify(m.toJSON?.() ?? {}); } catch { /* ignoré */ }
-      if (hay.includes(hashN)) return true;
+      if (hay.includes(hashN) || hay.includes(oldHashN)) return true;
       // Annonce d'avant l'empreinte (même version, sans empreinte cachée) : considérée comme déjà envoyée.
       return hay.includes(legacyN) && !hay.includes(`"description":"${HASH_PREFIX}`);
     });
