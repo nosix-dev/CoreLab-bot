@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { dossierPersistant, fichierPersistant } = require('../core/persistentPath');
 const {
   SlashCommandBuilder,
   PermissionFlagsBits,
@@ -909,7 +910,7 @@ async function executePanneau(interaction) {
           try {
             const res = await fetch(attachment.url);
             const buffer = Buffer.from(await res.arrayBuffer());
-            const dir = path.join(__dirname, '..', '..', dirName);
+            const dir = dossierPersistant(dirName);
             if (!fs.existsSync(dir)) fs.mkdirSync(dir, {
               recursive: true
             });
@@ -1005,12 +1006,12 @@ async function executePanneau(interaction) {
         delete gcfg[isWelcome ? 'welcome_appearance' : 'goodbye_appearance'];
         delete gcfg[isWelcome ? 'welcome_card' : 'goodbye_card'];
         for (const ext of ['png', 'jpg', 'jpeg', 'webp', 'gif']) {
-          const bgPath = path.join(__dirname, '..', '..', 'card_backgrounds', `${interaction.guild.id}_${isWelcome ? 'welcome' : 'goodbye'}.${ext}`);
+          const bgPath = path.join(dossierPersistant('card_backgrounds'), `${interaction.guild.id}_${isWelcome ? 'welcome' : 'goodbye'}.${ext}`);
           if (fs.existsSync(bgPath)) fs.unlinkSync(bgPath);
         }
         persist('config');
         const dirName = isWelcome ? 'welcome_images' : 'goodbye_images';
-        const dir = path.join(__dirname, '..', '..', dirName);
+        const dir = dossierPersistant(dirName);
         for (const ext of ['gif', 'png', 'jpg', 'jpeg', 'webp']) {
           const imgPath = path.join(dir, `${interaction.guild.id}.${ext}`);
           if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
@@ -1206,7 +1207,7 @@ async function executePanneau(interaction) {
           max: 1
         });
         imgCollector.on('collect', async m => {
-          const dir = path.join(__dirname, '..', '..', 'xp_images');
+          const dir = dossierPersistant('xp_images');
           if (m.content.trim().toLowerCase() === 'supprimer') {
             if (fs.existsSync(dir)) {
               for (const ext of XP_IMAGE_EXTENSIONS) {

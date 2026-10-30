@@ -13,8 +13,9 @@
 
 const fs = require("fs");
 const path = require("path");
+const { dossierPersistant, fichierPersistant } = require('./persistentPath');
 
-const DATA_DIR = path.join(__dirname, "..", "..", "data");
+const DATA_DIR = dossierPersistant('data');
 const FILE = path.join(DATA_DIR, "command_stats.json");
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });

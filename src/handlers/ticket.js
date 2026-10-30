@@ -21,6 +21,7 @@ const {
 } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const { dossierPersistant, fichierPersistant } = require('../core/persistentPath');
 const {
   getGuildConfig
 } = require('../core/config');
@@ -35,7 +36,7 @@ const {
 const {
   toCV2Payload
 } = require("../core/componentsV2");
-const DOSSIER_IMAGES_FORMULAIRE = path.join(__dirname, '..', 'data', 'form_images');
+const DOSSIER_IMAGES_FORMULAIRE = dossierPersistant('src/data/form_images', 'form_images');
 async function sauvegarderImageFormulaireLocalement(guildId, slug, attachment) {
   if (!fs.existsSync(DOSSIER_IMAGES_FORMULAIRE)) fs.mkdirSync(DOSSIER_IMAGES_FORMULAIRE, {
     recursive: true

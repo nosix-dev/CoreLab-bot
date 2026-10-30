@@ -13,10 +13,11 @@ const {
 } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const { dossierPersistant, fichierPersistant } = require('../core/persistentPath');
 const { sendLog } = require('../core/utils');
 const { glassPayload } = require('../core/glassEmbed');
 
-const FILE = path.join(__dirname, '..', '..', 'blacklist_members.json');
+const FILE = fichierPersistant('blacklist_members.json');
 let data = {};
 try { if (fs.existsSync(FILE)) data = JSON.parse(fs.readFileSync(FILE, 'utf-8')); } catch { data = {}; }
 

@@ -353,12 +353,7 @@ const AUTORESPONSE_FILE = FILES.AUTORESPONSE;
 const TICKET_FORMS_FILE = FILES.TICKET_FORMS;
 const PREMIUM_FILE = FILES.PREMIUM;
 const AUTO_TRANSLATE_FILE = FILES.AUTO_TRANSLATE;
-const WELCOME_IMAGES_DIR = 'welcome_images';
-if (!fs.existsSync(WELCOME_IMAGES_DIR)) {
-  fs.mkdirSync(WELCOME_IMAGES_DIR, {
-    recursive: true
-  });
-}
+const WELCOME_IMAGES_DIR = require('./src/core/persistentPath').dossierPersistant('welcome_images');
 function load_data(filePath, defaultValue = {}) {
   return loadData(filePath, defaultValue);
 }

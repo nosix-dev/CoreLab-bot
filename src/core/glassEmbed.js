@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 const path = require('path');
+const { dossierPersistant, fichierPersistant } = require('./persistentPath');
 const fs = require('fs');
 const {
   AttachmentBuilder,
@@ -552,7 +553,7 @@ async function renderGlassEmbed(embed, o = {}) {
 //   title, subtitle, pillMember, pillCreated, pillJoined  (texte ; « - » = masquer la pastille/le titre)
 //   style ('clair' | 'sombre'), accent, bg, textColor (hex), hideAvatar (bool)
 // + image de fond optionnelle : card_backgrounds/<guildId>_<welcome|goodbye>.<ext>
-const CARD_BG_DIR = path.join(__dirname, '..', '..', 'card_backgrounds');
+const CARD_BG_DIR = dossierPersistant('card_backgrounds');
 const CARD_BG_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
 
 function findCardBackground(guildId, kind) {

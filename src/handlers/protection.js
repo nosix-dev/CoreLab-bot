@@ -28,6 +28,7 @@ const {
   ComponentType
 } = require('discord.js');
 const path = require('path');
+const { dossierPersistant, fichierPersistant } = require('../core/persistentPath');
 const fs = require('fs');
 const {
   getGuildConfig,
@@ -2750,7 +2751,7 @@ async function saveHoneypotIgnoredRole(interaction) {
 //   honeypot_thumbnail.<ext>  (miniature)
 // avec <ext> = png, jpg, jpeg, gif ou mp4. Le bot détecte automatiquement le
 // format (si plusieurs fichiers existent, le plus récent est utilisé).
-const HONEYPOT_MEDIA_DIR = path.join(__dirname, '..', 'data', 'protect_images');
+const HONEYPOT_MEDIA_DIR = dossierPersistant('src/data/protect_images', 'protect_images');
 const HONEYPOT_MEDIA_RE = /\.(png|jpe?g|gif|mp4)$/i;
 
 // Renvoie { path, name, ext, isVideo } ou null si aucun fichier n'est présent

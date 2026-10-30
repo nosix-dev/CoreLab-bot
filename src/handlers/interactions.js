@@ -19,6 +19,7 @@ const {
 } = require('../core/colorPalette');
 const fs = require('fs');
 const path = require('path');
+const { dossierPersistant, fichierPersistant } = require('../core/persistentPath');
 const {
   handleReglementRoleSelect,
   handleReglementModalSubmit,
@@ -87,7 +88,7 @@ const {
 const {
   toCV2Payload
 } = require("../core/componentsV2");
-const DOSSIER_IMAGES_TICKET = path.join(__dirname, '..', 'data', 'ticket_images');
+const DOSSIER_IMAGES_TICKET = dossierPersistant('src/data/ticket_images', 'ticket_images');
 if (!fs.existsSync(DOSSIER_IMAGES_TICKET)) fs.mkdirSync(DOSSIER_IMAGES_TICKET, {
   recursive: true
 });

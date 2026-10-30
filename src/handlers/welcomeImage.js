@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { dossierPersistant, fichierPersistant } = require('../core/persistentPath');
 const {
     AttachmentBuilder,
     MessageFlags,
@@ -25,7 +26,7 @@ const SUPPORTED_IMAGE_EXTENSIONS = ['gif', 'png', 'jpg', 'jpeg', 'webp'];
 // Cherche le fichier d'image de bienvenue quelle que soit son extension
 // (le gif doit garder son extension .gif pour s'animer dans l'embed)
 function findWelcomeImageFile(guildId) {
-    const dir = path.join(__dirname, '..', '..', 'welcome_images');
+    const dir = dossierPersistant('welcome_images');
     for (const ext of SUPPORTED_IMAGE_EXTENSIONS) {
         const filePath = path.join(dir, `${guildId}.${ext}`);
         if (fs.existsSync(filePath)) return { filePath, ext };
@@ -35,7 +36,7 @@ function findWelcomeImageFile(guildId) {
 
 function getWelcomeImagePath(guildId) {
     const found = findWelcomeImageFile(guildId);
-    return found ? found.filePath : path.join(__dirname, '..', '..', 'welcome_images', `${guildId}.png`);
+    return found ? found.filePath : path.join(dossierPersistant('welcome_images'), `${guildId}.png`);
 }
 
 // Remplace {membre}, {serveur}, {nombre_membres} (anciennes variables) ainsi que

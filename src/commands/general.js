@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { dossierPersistant, fichierPersistant } = require('../core/persistentPath');
 const {
   SlashCommandBuilder,
   PermissionFlagsBits,
@@ -126,7 +127,7 @@ function ensureConfig(guildId) {
 const {
   generateStatsCard
 } = require('../handlers/statsImage');
-const DOSSIER_IMAGES_PLANIFICATION = path.join(__dirname, '..', 'data', 'scheduled_images');
+const DOSSIER_IMAGES_PLANIFICATION = dossierPersistant('src/data/scheduled_images', 'scheduled_images');
 async function sauvegarderImagePlanificationLocalement(guildId, scheduleId, attachment) {
   if (!fs.existsSync(DOSSIER_IMAGES_PLANIFICATION)) fs.mkdirSync(DOSSIER_IMAGES_PLANIFICATION, {
     recursive: true
