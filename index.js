@@ -462,6 +462,8 @@ client.HACKED_DM_CACHE = HACKED_DM_CACHE;
 client.HACKED_LINK_CACHE = HACKED_LINK_CACHE;
 client.TRANSLATIONS = TRANSLATIONS;
 client.RAPIDAPI_KEY = RAPIDAPI_KEY;
+const maintenance = require('./src/core/maintenance');
+maintenance.installer(client);
 client.BOT_OWNER_ID = BOT_OWNER_ID;
 client.STAR_THRESHOLD = STAR_THRESHOLD;
 client.load_data = load_data;
@@ -471,6 +473,7 @@ client.prefixCommands = {
   deletedm: deleteDm,
   dm,
   pub,
+  maintenance: maintenance.commande,
   ...automodPrefixCommands,
   ...extendedPrefixCommands
 };
@@ -488,6 +491,7 @@ function getStatuses(client) {
 function startStatusRotation(client) {
   setInterval(() => {
     if (!client.isReady()) return;
+    if (maintenance.actif()) { maintenance.appliquerPresence(client); return; }
     try {
       const statuses = getStatuses(client);
       const current = statuses[statusIndex];
@@ -520,6 +524,7 @@ client.once('clientReady', async () => {
   startCombat();
   startMarche(client);
   startStatusRotation(client);
+  maintenance.restaurer(client);
   synchroniserPseudosAuDemarrage(client);
   synchroniserRoleAuDemarrage(client);
   rehydrateIaSessions(client);
@@ -952,6 +957,7 @@ client.on('messageCreate', async message => {
       const name = message.content.slice(client.prefix.length).trim().split(/\s+/)[0].toLowerCase();
       const handler = client.prefixCommands?.[name];
       if (handler) {
+        if (maintenance.bloquerPrefixe(message)) return;
         try {
           await handler(message, client);
         } catch (e) {
@@ -1166,6 +1172,7 @@ client.on('messageCreate', async message => {
   const name = message.content.slice(client.prefix.length).trim().split(/\s+/)[0].toLowerCase();
   const handler = client.prefixCommands?.[name];
   if (!handler) return;
+  if (maintenance.bloquerPrefixe(message)) return;
   // broadcast réservé au propriétaire du bot uniquement
   if (name === 'broadcast' && message.author.id !== BOT_OWNER_ID) return;
   try {
