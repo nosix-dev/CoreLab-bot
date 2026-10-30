@@ -1387,7 +1387,8 @@ async function handleHoneypotReview(message, cfg, reviewChannel, originalAttachm
   const sent = await reviewChannel.send(toCV2Payload({
     embeds: [embed],
     components: [row],
-    files
+    files,
+    inlineFields: true
   })).catch(e => {
     console.error('Erreur envoi carte de revue HoneyPot :', e?.message || e);
     return null;

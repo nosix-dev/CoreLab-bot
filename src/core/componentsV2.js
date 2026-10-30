@@ -31,13 +31,41 @@ function toEmbedData(embed) {
 }
 
 /**
+ * Rendu "horizontal" des champs : les champs `inline` consécutifs sont placés
+ * sur la même ligne (3 par ligne max, comme un embed classique), séparés par " • ".
+ * Les champs non inline gardent le rendu vertical (titre puis valeur).
+ */
+function formatFieldsInline(fields) {
+    const blocks = [];
+    let run = [];
+    const flush = () => {
+        for (let i = 0; i < run.length; i += 3) {
+            blocks.push(run.slice(i, i + 3).map((f) => `**${f.name}** ${f.value}`).join('  •  '));
+        }
+        run = [];
+    };
+    for (const f of fields) {
+        if (f.inline) {
+            run.push(f);
+        } else {
+            flush();
+            blocks.push(`**${f.name}**\n${f.value}`);
+        }
+    }
+    flush();
+    // Lignes d'un même groupe inline collées, groupes séparés par une ligne vide
+    return blocks.join('\n\n');
+}
+
+/**
  * Convertit un embed (EmbedBuilder ou objet brut compatible) en ContainerBuilder
  * (Components V2), en conservant la barre colorée à gauche via l'accent color.
  * @param {import('discord.js').EmbedBuilder | Object} embed
  * @returns {ContainerBuilder}
  */
-function containerFromEmbed(embed) {
+function containerFromEmbed(embed, options = {}) {
     const data = toEmbedData(embed) || {};
+    const inlineFields = !!options.inlineFields;
     const container = new ContainerBuilder();
 
     if (data.color !== undefined && data.color !== null) {
@@ -73,9 +101,11 @@ function containerFromEmbed(embed) {
 
     // ── Champs (fields) ──
     if (Array.isArray(data.fields) && data.fields.length > 0) {
-        const fieldsText = data.fields
-            .map((f) => `**${f.name}**\n${f.value}`)
-            .join('\n\n');
+        const fieldsText = inlineFields
+            ? formatFieldsInline(data.fields)
+            : data.fields
+                .map((f) => `**${f.name}**\n${f.value}`)
+                .join('\n\n');
         container.addSeparatorComponents(new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small));
         container.addTextDisplayComponents(new TextDisplayBuilder().setContent(fieldsText));
     }
@@ -119,7 +149,7 @@ function containerFromEmbed(embed) {
  * @returns {Object}
  */
 function toCV2Payload(payload = {}) {
-    const { embeds = [], components = [], content, ephemeral, flags = 0, ...rest } = payload;
+    const { embeds = [], components = [], content, ephemeral, flags = 0, inlineFields = false, ...rest } = payload;
 
     let finalFlags = flags | MessageFlags.IsComponentsV2;
     if (ephemeral) finalFlags |= MessageFlags.Ephemeral;
@@ -130,7 +160,7 @@ function toCV2Payload(payload = {}) {
     }
     for (const embed of embeds) {
         if (!embed) continue;
-        topLevel.push(containerFromEmbed(embed));
+        topLevel.push(containerFromEmbed(embed, { inlineFields }));
     }
     topLevel.push(...components);
 
