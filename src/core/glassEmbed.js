@@ -233,8 +233,27 @@ function makeBackdrop(H, theme, custom = {}) {
   } else {
     back = glass.glassBackdrop(W, H, theme.accent, false, theme);
   }
-  if (custom.bgImg) drawCover(back.getContext('2d'), custom.bgImg, 0, 0, W, H);
-  return { back, blur: glass.blurred(back, W, H), P: light ? LIGHT : DARK, tint: light ? 'rgba(255,255,255,0.5)' : glass.tintFor(theme, 0.55) };
+  if (custom.bgImg) {
+    const bctx = back.getContext('2d');
+    const blurPx = Number(custom.bgBlur) || 0;
+    if (blurPx > 0) {
+      // flou : on réduit l'image puis on la ré-étire (rapide et sans dépendre de ctx.filter)
+      const f = Math.max(1, blurPx / 2.5);
+      const sw = Math.max(8, Math.round(W / f)); const sh = Math.max(8, Math.round(H / f));
+      const small = createCanvas(sw, sh);
+      const sctx = small.getContext('2d');
+      sctx.imageSmoothingEnabled = true; sctx.imageSmoothingQuality = 'high';
+      drawCover(sctx, custom.bgImg, 0, 0, sw, sh);
+      bctx.imageSmoothingEnabled = true; bctx.imageSmoothingQuality = 'high';
+      bctx.drawImage(small, 0, 0, sw, sh, 0, 0, W, H);
+    } else {
+      drawCover(bctx, custom.bgImg, 0, 0, W, H);
+    }
+    const dim = Number(custom.bgDim) || 0;
+    if (dim > 0) { bctx.fillStyle = `rgba(0,0,0,${Math.min(0.9, dim / 100)})`; bctx.fillRect(0, 0, W, H); }
+  }
+  const ta = Number.isFinite(custom.tintAlpha) ? Math.max(0, Math.min(1, custom.tintAlpha)) : null;
+  return { back, blur: glass.blurred(back, W, H), P: light ? LIGHT : DARK, tint: light ? `rgba(255,255,255,${ta ?? 0.5})` : glass.tintFor(theme, ta ?? 0.55) };
 }
 
 function colorHex(c) {
@@ -548,10 +567,58 @@ async function renderGlassEmbed(embed, o = {}) {
  * @param {string} [o.subtitle]   texte libre sous le pseudo
  * @returns {Promise<Buffer>}
  */
+// ── Avatar à forme variable (rond / carré arrondi / carré) pour la carte de bienvenue ──
+function rrPath(ctx, x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+function avatarPath(ctx, cx, cy, r, shape) {
+  if (shape === 'carre') rrPath(ctx, cx - r, cy - r, 2 * r, 2 * r, r * 0.1);
+  else if (shape === 'arrondi') rrPath(ctx, cx - r, cy - r, 2 * r, 2 * r, r * 0.36);
+  else { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); }
+}
+function drawAvatarShaped(ctx, img, cx, cy, r, P, o = {}) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+  avatarPath(ctx, cx, cy, r, o.shape);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
+  ctx.restore();
+  if (img) {
+    ctx.save();
+    avatarPath(ctx, cx, cy, r, o.shape); ctx.clip();
+    drawCover(ctx, img, cx - r, cy - r, r * 2, r * 2);
+    ctx.restore();
+  }
+  if (o.ring === false) return;
+  avatarPath(ctx, cx, cy, r + 1, o.shape);
+  if (o.ringHex) ctx.strokeStyle = o.ringHex;
+  else if (P.light) ctx.strokeStyle = 'rgba(20,24,29,0.35)';
+  else {
+    const g = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+    g.addColorStop(0, 'rgba(255,255,255,0.85)'); g.addColorStop(0.5, 'rgba(255,255,255,0.15)'); g.addColorStop(1, 'rgba(255,255,255,0.55)');
+    ctx.strokeStyle = g;
+  }
+  ctx.lineWidth = 4; ctx.stroke();
+}
+function hexToRgba(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
 // ── Personnalisation de la carte de bienvenue / au revoir ──────────────────
 // Réglages stockés dans cfg.welcome_card / cfg.goodbye_card (voir core/welcomeCardConfig.js) :
 //   title, subtitle, pillMember, pillCreated, pillJoined  (texte ; « - » = masquer la pastille/le titre)
 //   style ('clair' | 'sombre'), accent, bg, textColor (hex), hideAvatar (bool)
+//   nameColor, titleColor, subColor, pillBg, ringColor (hex)
+//   avatarShape ('arrondi' | 'carre'), avatarPos ('droite'), avatarSize ('petit' | 'grand'), avatarRing (false)
+//   height ('compacte' | 'haute'), radius ('carre' | 'leger' | 'rond'), nameSize ('petit' | 'moyen' | 'enorme'), dateFormat ('texte')
+//   customPillLabel, customPillValue, footer (texte) · bgDim (0-90), bgBlur (0-30), glassOpacity (0-100)
 // + image de fond optionnelle : card_backgrounds/<guildId>_<welcome|goodbye>.<ext>
 const CARD_BG_DIR = dossierPersistant('card_backgrounds');
 const CARD_BG_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
@@ -583,13 +650,19 @@ function applyCardPlaceholders(text, o) {
 }
 
 async function renderWelcomeCard(o) {
-  const H = 440;
   const card = o.card || {};
+  const H = ({ compacte: 380, haute: 500 })[card.height] || 440;
+  // Mise en page : normale (440) dessinée telle quelle, haute (500) recentrée, compacte (380) avec ses propres positions
+  const dy = H > 440 ? (H - 440) / 2 : 0;
+  const L = H < 440
+    ? { titleY: 88, nameGap: 16, subGap: 40, subLine: 30, pillY: 256, avY: 190, footerY: 356 }
+    : { titleY: 118, nameGap: 18, subGap: 46, subLine: 34, pillY: 312, avY: 220, footerY: 413 };
   const kind = o.kind === 'goodbye' ? 'goodbye' : 'welcome';
   // Style unifié (tuile + bandeau) pour les cartes non personnalisées ; une carte personnalisée
   // (couleur, style, fond…) garde son rendu sur mesure (option payante « Personnalisation »).
   const ccw = require('./compactCard');
-  const customized = !!(card.accent || card.bg || card.style || card.textColor || findCardBackground(o.guildId, kind));
+  const PLAIN_KEYS = new Set(['title', 'subtitle', 'pillMember', 'pillCreated', 'pillJoined', 'hideAvatar']);
+  const customized = !!(Object.keys(card).some(k => !PLAIN_KEYS.has(k)) || findCardBackground(o.guildId, kind));
   if (ccw.isCompact(o.guildId) && !customized) {
     const txt = t => (typeof t === 'string' && t.trim() && t.trim() !== '-' ? applyCardPlaceholders(t.trim(), o) : null);
     const day = ts => new Date(ts).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
@@ -624,52 +697,100 @@ async function renderWelcomeCard(o) {
   const sub = custom(card.subtitle) || o.subtitle || (kind === 'goodbye'
     ? (server ? `a quitté ${server}` : 'a quitté le serveur')
     : (server ? `vient de rejoindre ${server}` : 'vient de rejoindre le serveur'));
+  const dstyle = card.dateFormat === 'texte' ? 'D' : 'd';
   const pills = [];
   if (Number.isFinite(o.memberCount) && !hidden(card.pillMember)) {
     pills.push({ l: custom(card.pillMember) || (kind === 'goodbye' ? 'MEMBRES RESTANTS' : 'MEMBRE N°'), v: Number(o.memberCount).toLocaleString('fr-FR') });
   }
   if (o.createdTs && !hidden(card.pillCreated)) {
-    pills.push({ l: custom(card.pillCreated) || 'COMPTE CRÉÉ', v: fmtDate(Math.floor(o.createdTs / 1000), 'd') });
+    pills.push({ l: custom(card.pillCreated) || 'COMPTE CRÉÉ', v: fmtDate(Math.floor(o.createdTs / 1000), dstyle) });
   }
   if (kind === 'goodbye' && o.joinedTs && !hidden(card.pillJoined)) {
-    pills.push({ l: custom(card.pillJoined) || 'ARRIVÉ LE', v: fmtDate(Math.floor(o.joinedTs / 1000), 'd') });
+    pills.push({ l: custom(card.pillJoined) || 'ARRIVÉ LE', v: fmtDate(Math.floor(o.joinedTs / 1000), dstyle) });
   }
-  await preloadEmojis([username, sub, title, ...pills.map(p => p.l)]);
+  // pastille libre (texte au choix, variables autorisées)
+  const extraValue = hidden(card.customPillValue) ? null : custom(card.customPillValue);
+  if (extraValue) pills.push({ l: hidden(card.customPillLabel) ? '' : (custom(card.customPillLabel) || ''), v: extraValue });
+  const footer = hidden(card.footer) ? null : custom(card.footer);
+  await preloadEmojis([username, sub, title, ...(footer ? [footer] : []), ...pills.map(p => p.l), ...pills.map(p => p.v)]);
 
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
   const bgHex = validHex(card.bg);
   const bgFile = findCardBackground(o.guildId, kind);
   const bgImg = bgFile ? await loadImage(bgFile.filePath).catch(() => null) : null;
-  const { back, blur, P: baseP, tint } = makeBackdrop(H, theme, { bgHex, bgImg });
+  const glassOp = Number(card.glassOpacity);
+  const { back, blur, P: baseP, tint } = makeBackdrop(H, theme, {
+    bgHex, bgImg,
+    bgDim: Number(card.bgDim) || 0,
+    bgBlur: Number(card.bgBlur) || 0,
+    tintAlpha: card.glassOpacity !== undefined && Number.isFinite(glassOp) ? glassOp / 100 : undefined
+  });
   const textHex = validHex(card.textColor);
   const P = textHex ? { ...baseP, text: textHex, muted: shade(textHex, baseP.light ? 0.35 : -0.35) } : baseP;
-  glass.glassPanel(ctx, back, blur, OUT, OUT, W - 2 * OUT, H - 2 * OUT, 44, { tint });
-  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  const nameCol = validHex(card.nameColor) || P.text;
+  const titleCol = validHex(card.titleColor) || P.muted;
+  const subCol = validHex(card.subColor) || P.muted;
+  const pillHex = validHex(card.pillBg);
+  const pillTint = pillHex ? hexToRgba(pillHex, 0.55) : P.pill;
+  const ringHex = validHex(card.ringColor);
 
-  // avatar dans une grande pastille de verre
+  const R = ({ carre: 10, leger: 26, rond: 70 })[card.radius] ?? 44;
+  const pillR = R <= 10 ? 10 : R <= 26 ? 16 : R >= 70 ? 34 : 26;
+  glass.glassPanel(ctx, back, blur, OUT, OUT, W - 2 * OUT, H - 2 * OUT, R, { tint });
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  ctx.translate(0, dy);
+
+  // avatar dans une grande pastille de verre (taille, forme et côté au choix)
+  const AS = ({ petit: 0.8, grand: 1.15 })[card.avatarSize] || 1;
+  const BOX = Math.round(256 * AS); const AR = Math.round(100 * AS);
+  const avRight = card.avatarPos === 'droite';
+  const boxX = avRight ? W - OUT - 50 - BOX : X0 - 8;
+  let tx; let tw;
+  if (card.hideAvatar) { tx = X0; tw = W - OUT - PAD - tx; }
+  else if (avRight) { tx = X0; tw = boxX - 36 - tx; }
+  else { tx = boxX + BOX + 36; tw = W - OUT - PAD - tx; }
   if (!card.hideAvatar) {
-    glass.glassPanel(ctx, back, blur, X0 - 8, 92, 256, 256, 52, { tint: P.pill });
-    drawAvatar(ctx, img, X0 + 120, 220, 100, P);
+    const boxR = card.avatarShape === 'carre' ? 14 : card.avatarShape === 'arrondi' ? 40 : 52;
+    glass.glassPanel(ctx, back, blur, boxX, L.avY - BOX / 2, BOX, BOX, Math.round(boxR * AS), { tint: pillTint });
+    drawAvatarShaped(ctx, img, boxX + BOX / 2, L.avY, AR, P, { shape: card.avatarShape, ring: card.avatarRing !== false, ringHex });
   }
 
-  const tx = card.hideAvatar ? X0 : X0 + 292; const tw = W - OUT - PAD - tx;
-  ctx.fillStyle = P.muted; ctx.font = `22px ${FONT_BOLD}`;
-  if (!hidden(card.title)) ctx.fillText(title, tx, 118);
-  const size = (() => { let s = 60; while (s > 28 && measureRich(ctx, username, FONT_BOLD, s) > tw) s -= 2; return s; })();
-  drawRich(ctx, username, tx, 118 + 18 + size, FONT_BOLD, size, { color: P.text });
+  ctx.fillStyle = titleCol; ctx.font = `22px ${FONT_BOLD}`;
+  if (!hidden(card.title)) ctx.fillText(title, tx, L.titleY);
+  const maxName = ({ petit: 44, moyen: 52, enorme: 72 })[card.nameSize] || 60;
+  const size = (() => { let s = maxName; while (s > 28 && measureRich(ctx, username, FONT_BOLD, s) > tw) s -= 2; return s; })();
+  let nameTxt = username; // pseudo vraiment trop long, même à la taille minimale : on coupe avec « … »
+  if (measureRich(ctx, nameTxt, FONT_BOLD, size) > tw) {
+    const chars = [...nameTxt];
+    while (chars.length > 1 && measureRich(ctx, `${chars.join('')}…`, FONT_BOLD, size) > tw) chars.pop();
+    nameTxt = `${chars.join('')}…`;
+  }
+  drawRich(ctx, nameTxt, tx, L.titleY + L.nameGap + size, FONT_BOLD, size, { color: nameCol });
   const lines = wrapRich(ctx, sub, FONT, 26, tw, 2);
-  lines.forEach((ln, i) => drawRich(ctx, ln, tx, 118 + 18 + size + 46 + i * 34, FONT, 26, { color: P.muted }));
+  lines.forEach((ln, i) => drawRich(ctx, ln, tx, L.titleY + L.nameGap + size + L.subGap + i * L.subLine, FONT, 26, { color: subCol }));
 
-  // pastilles de stats
+  // pastilles de stats (les textes trop longs rétrécissent pour rester dans la pastille)
   const pw = Math.floor((tw - 16 * (pills.length - 1)) / Math.max(1, pills.length));
   pills.forEach((p, i) => {
-    const px = tx + i * (pw + 16); const py = 312;
-    glass.glassPanel(ctx, back, blur, px, py, pw, 80, 26, { tint: P.pill });
-    ctx.fillStyle = P.muted; ctx.font = `15px ${FONT_BOLD}`;
-    ctx.fillText(p.l, px + 22, py + 30);
-    drawRich(ctx, p.v, px + 22, py + 62, FONT_BOLD, 28, { color: P.text });
+    const px = tx + i * (pw + 16); const py = L.pillY - (footer && H === 440 ? 8 : 0);
+    glass.glassPanel(ctx, back, blur, px, py, pw, 80, pillR, { tint: pillTint });
+    if (p.l) {
+      let ls = 15; ctx.font = `${ls}px ${FONT_BOLD}`;
+      while (ls > 10 && ctx.measureText(p.l).width > pw - 44) { ls -= 1; ctx.font = `${ls}px ${FONT_BOLD}`; }
+      ctx.fillStyle = P.muted; ctx.fillText(p.l, px + 22, py + 30);
+    }
+    let vs = 28;
+    while (vs > 14 && measureRich(ctx, p.v, FONT_BOLD, vs) > pw - 44) vs -= 1;
+    drawRich(ctx, p.v, px + 22, py + (p.l ? 62 : 52), FONT_BOLD, vs, { color: P.text });
   });
+
+  // pied de carte (texte libre)
+  if (footer) {
+    let fs = 14;
+    while (fs > 10 && measureRich(ctx, footer, FONT, fs) > tw) fs -= 1;
+    drawRich(ctx, footer, tx, L.footerY, FONT, fs, { color: P.muted });
+  }
 
   return canvas.toBuffer('image/png');
 }

@@ -5,7 +5,9 @@
 // Ouvert depuis le bouton « 🎨 Carte » du panneau /settings → Premium.
 //
 // Tout est modifiable : titre, sous-titre, étiquettes des pastilles (ou masquées avec « - »),
-// style clair / sombre, couleurs (accent, fond, texte), image de fond, avatar affiché ou non.
+// style clair / sombre, couleurs (accent, fond, texte, pseudo, titre, sous-titre, pastilles, contour d'avatar),
+// avatar (forme, taille, côté, contour), mise en page (hauteur, coins, taille du pseudo, format des dates),
+// pastille libre, pied de carte, image de fond (assombrissement, flou, opacité du verre).
 // Les réglages sont stockés dans cfg.welcome_card / cfg.goodbye_card.
 // Rendu : renderWelcomeCard() dans core/glassEmbed.js.
 // ─────────────────────────────────────────────────────────────────────────
@@ -63,13 +65,19 @@ function summary(guildId, kind) {
   const c = getCard(guildId, kind);
   const bg = findCardBackground(guildId, kind);
   const val = (v, d = 'défaut') => (v === undefined || v === '' ? d : (v === '-' ? 'masqué' : `\`${v}\``));
+  const pick = (v, map, d) => (v === undefined ? d : (map[v] || d));
+  const pct = (v, suf = '%') => (v === undefined ? 'défaut' : `\`${v}${suf}\``);
   return [
     `🎨 **Carte de ${kind === 'goodbye' ? 'au revoir' : 'bienvenue'}** (image par défaut)`,
     '',
     `**Textes** — titre : ${val(c.title)} · sous-titre : ${val(c.subtitle)}`,
     `Pastilles — n° de membre : ${val(c.pillMember)} · compte créé : ${val(c.pillCreated)}${kind === 'goodbye' ? ` · arrivé le : ${val(c.pillJoined)}` : ''}`,
-    `**Style** — ${c.style === 'sombre' ? 'sombre (verre fumé)' : 'clair'} · accent : ${val(c.accent)} · fond : ${val(c.bg)} · texte : ${val(c.textColor)} · avatar : ${c.hideAvatar ? 'masqué' : 'affiché'}`,
-    `**Image de fond** — ${bg ? `✅ définie (${bg.ext})` : 'aucune'}`,
+    `**Pastille libre** — ${c.customPillValue ? `${val(c.customPillLabel, 'sans titre')} → ${val(c.customPillValue)}` : 'aucune'} · **Pied de carte** — ${val(c.footer, 'aucun')}`,
+    `**Style** — ${c.style === 'sombre' ? 'sombre (verre fumé)' : 'clair'} · accent : ${val(c.accent)} · fond : ${val(c.bg)} · texte : ${val(c.textColor)}`,
+    `**Couleurs détaillées** — pseudo : ${val(c.nameColor)} · titre : ${val(c.titleColor)} · sous-titre : ${val(c.subColor)} · pastilles : ${val(c.pillBg)} · contour avatar : ${val(c.ringColor)}`,
+    `**Avatar** — ${c.hideAvatar ? 'masqué' : `${pick(c.avatarShape, { arrondi: 'carré arrondi', carre: 'carré' }, 'rond')} · ${pick(c.avatarSize, { petit: 'petit', grand: 'grand' }, 'taille normale')} · à ${c.avatarPos === 'droite' ? 'droite' : 'gauche'} · contour ${c.avatarRing === false ? 'masqué' : 'affiché'}`}`,
+    `**Mise en page** — hauteur : ${pick(c.height, { compacte: 'compacte', haute: 'haute' }, 'normale')} · coins : ${pick(c.radius, { carre: 'carrés', leger: 'légers', rond: 'très arrondis' }, 'normaux')} · pseudo : ${pick(c.nameSize, { petit: 'petit', moyen: 'moyen', enorme: 'énorme' }, 'grand')} · dates : ${c.dateFormat === 'texte' ? '12 janv. 2026' : '12/01/2026'}`,
+    `**Fond** — image : ${bg ? `✅ (${bg.ext})` : 'aucune'} · assombrissement : ${pct(c.bgDim)} · flou : ${pct(c.bgBlur, '')} · opacité du verre : ${pct(c.glassOpacity)}`,
     '👁️ L\'aperçu ci-dessous se met à jour automatiquement après chaque modification.',
     '',
     'Variables dans les textes : `{user.name}` `{server.name}` `{server.member_count}`',
@@ -84,9 +92,14 @@ function panelRows(kind) {
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`${p}text`).setLabel('✏️ Textes').setStyle(ButtonStyle.Primary),
       new ButtonBuilder().setCustomId(`${p}style`).setLabel('🎨 Style & couleurs').setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId(`${p}bg`).setLabel('🖼️ Image de fond').setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId(`${p}colors`).setLabel('🌈 Couleurs détaillées').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(`${p}avatar`).setLabel('🧑 Avatar').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(`${p}layout`).setLabel('📐 Mise en page').setStyle(ButtonStyle.Primary)
     ),
     new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`${p}extra`).setLabel('➕ Pastille & pied').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`${p}bg`).setLabel('🖼️ Image de fond').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(`${p}bgset`).setLabel('🌫️ Réglages du fond').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`${p}bgdel`).setLabel('Retirer le fond').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId(`${p}reset`).setLabel('♻️ Tout réinitialiser').setStyle(ButtonStyle.Danger)
     )
@@ -121,6 +134,21 @@ function readHex(fields, id) {
   if (raw === '-' || /^(auto|défaut|defaut|reset)$/i.test(raw)) return null;
   const m = raw.match(HEX_RE);
   return m ? `#${m[1].toLowerCase()}` : false;
+}
+
+// Nombre : '' → undefined (inchangé) · '-' / 'auto' → null (défaut) · invalide → false · sinon borné à [min, max]
+function readNum(fields, id, min, max) {
+  const raw = readText(fields, id).replace(',', '.').replace('%', '').trim();
+  if (!raw) return undefined;
+  if (raw === '-' || /^(auto|défaut|defaut|reset)$/i.test(raw)) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return false;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+// Select : renvoie la valeur choisie, ou undefined si rien n'a été touché
+function readSelect(fields, id) {
+  try { return fields.getStringSelectValues(id)[0]; } catch { return undefined; }
 }
 
 async function renderPreview(interaction, kind) {
@@ -229,6 +257,128 @@ async function openCardEditor(i, kind) {
           hideAvatar: avatar === 'hide' ? true : avatar === 'show' ? null : undefined
         });
         await sub.reply({ content: '✅ Style enregistré.', flags: MessageFlags.Ephemeral });
+        return refresh();
+      }
+
+      // Ouvre un modal, attend sa soumission et renvoie l'interaction du modal (ou null)
+      const askModal = async (suffix, title, comps) => {
+        const modalId = `${p}${suffix}`;
+        const modal = new ModalBuilder().setCustomId(modalId).setTitle(title);
+        modal.addLabelComponents(...comps);
+        await bi.showModal(modal);
+        return bi.awaitModalSubmit({ time: 180000, filter: mi => mi.customId === modalId && mi.user.id === i.user.id }).catch(() => null);
+      };
+      const SEL_DEFAULT = 'defaut';
+
+      if (action === 'colors') {
+        const sub = await askModal('colorsmodal', 'Couleurs détaillées', [
+          textInput('nameColor', 'Couleur du pseudo (hex)', card.nameColor, { max: 7, placeholder: 'Ex : FFFFFF', desc: 'Vide = inchangé · auto = défaut' }),
+          textInput('titleColor', 'Couleur du titre (hex)', card.titleColor, { max: 7, placeholder: 'Ex : AAAAAA', desc: 'Le petit texte du haut · vide = inchangé · auto = défaut' }),
+          textInput('subColor', 'Couleur du sous-titre (hex)', card.subColor, { max: 7, placeholder: 'Ex : CCCCCC', desc: 'Vide = inchangé · auto = défaut' }),
+          textInput('pillBg', 'Fond des pastilles (hex)', card.pillBg, { max: 7, placeholder: 'Ex : 5865F2', desc: 'Pastilles de stats et cadre de l\'avatar · auto = défaut' }),
+          textInput('ringColor', 'Contour de l\'avatar (hex)', card.ringColor, { max: 7, placeholder: 'Ex : FFD700', desc: 'Vide = inchangé · auto = défaut' })
+        ]);
+        if (!sub) return;
+        const vals = {};
+        for (const k of ['nameColor', 'titleColor', 'subColor', 'pillBg', 'ringColor']) vals[k] = readHex(sub.fields, k);
+        if (Object.values(vals).some(v => v === false)) {
+          return sub.reply({ content: '❌ Couleur invalide. Utilise un code hexadécimal à 6 caractères, ex. : `5865F2`.', flags: MessageFlags.Ephemeral });
+        }
+        patchCard(guildId, kind, vals);
+        await sub.reply({ content: '✅ Couleurs enregistrées.', flags: MessageFlags.Ephemeral });
+        return refresh();
+      }
+
+      if (action === 'avatar') {
+        const sub = await askModal('avatarmodal', 'Avatar', [
+          selectLabel('shape', 'Forme', [
+            { label: 'Rond', value: SEL_DEFAULT }, { label: 'Carré arrondi', value: 'arrondi' }, { label: 'Carré', value: 'carre' }
+          ], card.avatarShape || SEL_DEFAULT),
+          selectLabel('size', 'Taille', [
+            { label: 'Petit', value: 'petit' }, { label: 'Normal', value: SEL_DEFAULT }, { label: 'Grand', value: 'grand' }
+          ], card.avatarSize || SEL_DEFAULT),
+          selectLabel('pos', 'Position', [
+            { label: 'À gauche', value: SEL_DEFAULT }, { label: 'À droite', value: 'droite' }
+          ], card.avatarPos || SEL_DEFAULT),
+          selectLabel('ring', 'Contour de l\'avatar', [
+            { label: 'Affiché', value: SEL_DEFAULT }, { label: 'Masqué', value: 'hide' }
+          ], card.avatarRing === false ? 'hide' : SEL_DEFAULT, 'La couleur se règle dans « Couleurs détaillées »')
+        ]);
+        if (!sub) return;
+        const shape = readSelect(sub.fields, 'shape');
+        const size = readSelect(sub.fields, 'size');
+        const pos = readSelect(sub.fields, 'pos');
+        const ring = readSelect(sub.fields, 'ring');
+        const norm = v => (v === undefined ? undefined : v === SEL_DEFAULT ? null : v);
+        patchCard(guildId, kind, {
+          avatarShape: norm(shape), avatarSize: norm(size), avatarPos: norm(pos),
+          avatarRing: ring === undefined ? undefined : ring === 'hide' ? false : null
+        });
+        await sub.reply({ content: '✅ Avatar enregistré.', flags: MessageFlags.Ephemeral });
+        return refresh();
+      }
+
+      if (action === 'layout') {
+        const sub = await askModal('layoutmodal', 'Mise en page', [
+          selectLabel('height', 'Hauteur de la carte', [
+            { label: 'Compacte', value: 'compacte' }, { label: 'Normale', value: SEL_DEFAULT }, { label: 'Haute', value: 'haute' }
+          ], card.height || SEL_DEFAULT),
+          selectLabel('radius', 'Arrondi des coins', [
+            { label: 'Carrés', value: 'carre' }, { label: 'Légèrement arrondis', value: 'leger' },
+            { label: 'Normaux', value: SEL_DEFAULT }, { label: 'Très arrondis', value: 'rond' }
+          ], card.radius || SEL_DEFAULT),
+          selectLabel('nameSize', 'Taille du pseudo', [
+            { label: 'Petit', value: 'petit' }, { label: 'Moyen', value: 'moyen' },
+            { label: 'Grand', value: SEL_DEFAULT }, { label: 'Énorme', value: 'enorme' }
+          ], card.nameSize || SEL_DEFAULT),
+          selectLabel('dateFormat', 'Format des dates', [
+            { label: '12/01/2026', value: SEL_DEFAULT }, { label: '12 janv. 2026', value: 'texte' }
+          ], card.dateFormat || SEL_DEFAULT)
+        ]);
+        if (!sub) return;
+        const norm = v => (v === undefined ? undefined : v === SEL_DEFAULT ? null : v);
+        patchCard(guildId, kind, {
+          height: norm(readSelect(sub.fields, 'height')),
+          radius: norm(readSelect(sub.fields, 'radius')),
+          nameSize: norm(readSelect(sub.fields, 'nameSize')),
+          dateFormat: norm(readSelect(sub.fields, 'dateFormat'))
+        });
+        await sub.reply({ content: '✅ Mise en page enregistrée.', flags: MessageFlags.Ephemeral });
+        return refresh();
+      }
+
+      if (action === 'extra') {
+        const sub = await askModal('extramodal', 'Pastille libre & pied de carte', [
+          textInput('customPillLabel', 'Pastille libre — titre', card.customPillLabel, { max: 24, placeholder: 'Ex : RÔLE', desc: 'Vide = sans titre · - = masquer le titre' }),
+          textInput('customPillValue', 'Pastille libre — texte', card.customPillValue, { max: 40, placeholder: 'Ex : Nouveau membre', desc: 'Vide = pas de pastille · variables autorisées' }),
+          textInput('footer', 'Pied de carte (petit texte en bas)', card.footer, { max: 100, placeholder: 'Ex : Bienvenue sur {server.name} !', desc: 'Vide = aucun · variables autorisées' })
+        ]);
+        if (!sub) return;
+        patchCard(guildId, kind, {
+          customPillLabel: readText(sub.fields, 'customPillLabel') || null,
+          customPillValue: readText(sub.fields, 'customPillValue') || null,
+          footer: readText(sub.fields, 'footer') || null
+        });
+        await sub.reply({ content: '✅ Pastille et pied de carte enregistrés.', flags: MessageFlags.Ephemeral });
+        return refresh();
+      }
+
+      if (action === 'bgset') {
+        const sub = await askModal('bgsetmodal', 'Réglages du fond', [
+          textInput('bgDim', 'Assombrissement de l\'image (0-90)', card.bgDim, { max: 3, placeholder: 'Ex : 40', desc: 'Pour que le texte reste lisible · vide = inchangé · auto = défaut' }),
+          textInput('bgBlur', 'Flou de l\'image (0-30)', card.bgBlur, { max: 3, placeholder: 'Ex : 8', desc: '0 = net · vide = inchangé · auto = défaut' }),
+          textInput('glassOpacity', 'Opacité du verre (0-100)', card.glassOpacity, { max: 3, placeholder: 'Ex : 55', desc: '0 = transparent, 100 = opaque · vide = inchangé · auto = défaut' })
+        ]);
+        if (!sub) return;
+        const dim = readNum(sub.fields, 'bgDim', 0, 90);
+        const blur = readNum(sub.fields, 'bgBlur', 0, 30);
+        const op = readNum(sub.fields, 'glassOpacity', 0, 100);
+        if (dim === false || blur === false || op === false) {
+          return sub.reply({ content: '❌ Valeur invalide. Utilise des nombres, ex. : `40`.', flags: MessageFlags.Ephemeral });
+        }
+        // 0 ne doit pas être traité comme « vide » par patchCard : on garde le nombre tel quel
+        patchCard(guildId, kind, { bgDim: dim, bgBlur: blur, glassOpacity: op });
+        await sub.reply({ content: '✅ Réglages du fond enregistrés.', flags: MessageFlags.Ephemeral });
         return refresh();
       }
 
