@@ -28,6 +28,18 @@ function truncate(text, maxLength = 1000) {
     return text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
 }
 
+// Retire les emojis (unicode, custom <:nom:id> et :nom:) d'un texte — utilisé pour les notifications vocales
+function stripEmoji(text) {
+    if (text == null) return '';
+    return String(text)
+        .replace(/<a?:\w+:\d+>/g, '')
+        .replace(/:[A-Za-z0-9_]+:/g, '')
+        .replace(/[\p{Extended_Pictographic}\p{Regional_Indicator}\u200d\ufe0f\u20e3]/gu, '')
+        .replace(/[『「【\[(]\s*[』」】\])]/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+}
+
 function heureFR() {
     return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
 }
@@ -62,9 +74,9 @@ const THEME_COLORS = {
     violet: 0xa78bfa, cyan: 0x22d3ee, danger: 0xff2e4d,
 };
 const VOICE_STYLE = {
-    join: { color: 0x2ecc71, title: '🟢 Connecté en vocal' },
-    leave: { color: 0xff4d5e, title: '🔴 Déconnecté du vocal' },
-    move: { color: 0xffb020, title: '🔀 Changement de salon' },
+    join: { color: 0x2ecc71, title: 'Connecté en vocal' },
+    leave: { color: 0xff4d5e, title: 'Déconnecté du vocal' },
+    move: { color: 0xffb020, title: 'Changement de salon' },
 };
 
 function formatDuration(ms) {
@@ -96,7 +108,7 @@ function buildEmbed(guild, spec, opts = {}) {
     if (opts.voice && VOICE_STYLE[spec.type]) {
         const st = VOICE_STYLE[spec.type];
         // Le nom du membre dans le titre : visible aussi dans la notification Discord
-        embed.setColor(st.color).setTitle(truncate(`${st.title} — ${spec.username ?? 'Inconnu'}`, 250));
+        embed.setColor(st.color).setTitle(truncate(`${st.title} — ${stripEmoji(spec.username) || 'Inconnu'}`, 250));
         add('👤 Membre', `${spec.username ?? 'Inconnu'}${spec.tag ? `\n\`${spec.tag}\`` : ''}`);
         if (spec.type === 'move') {
             add('📤 Salon quitté', spec.fromChannel);
@@ -640,19 +652,19 @@ function registerLogHandlers(client) {
                 await sendCard(guild, 'log_voice', {
                     ...who, type: 'join', channelName: after.channel.name,
                     members: after.channel.members.size, micMuted: after.selfMute, deafened: after.selfDeaf,
-                }, { voice: true, fallback: `🟢 **${member.displayName}** a rejoint le vocal **${after.channel.name}**` });
+                }, { voice: true, fallback: `${stripEmoji(member.displayName)} a rejoint le vocal ${stripEmoji(after.channel.name)}` });
             } else if (before.channel && !after.channel) {
                 const startedAt = voiceJoinTimes.get(joinKey);
                 voiceJoinTimes.delete(joinKey);
                 await sendCard(guild, 'log_voice', {
                     ...who, type: 'leave', channelName: before.channel.name,
                     members: before.channel.members.size, durationMs: startedAt ? Date.now() - startedAt : null,
-                }, { voice: true, fallback: `🔴 **${member.displayName}** a quitté le vocal **${before.channel.name}**` });
+                }, { voice: true, fallback: `${stripEmoji(member.displayName)} a quitté le vocal ${stripEmoji(before.channel.name)}` });
             } else if (before.channel?.id !== after.channel?.id) {
                 await sendCard(guild, 'log_voice', {
                     ...who, type: 'move', fromChannel: before.channel.name, toChannel: after.channel.name,
                     members: after.channel.members.size,
-                }, { voice: true, fallback: `🔀 **${member.displayName}** : **${before.channel.name}** → **${after.channel.name}**` });
+                }, { voice: true, fallback: `${stripEmoji(member.displayName)} : ${stripEmoji(before.channel.name)} → ${stripEmoji(after.channel.name)}` });
             } else if (before.serverMute !== after.serverMute) {
                 const actor = await getAuditActor(guild, AuditLogEvent.MemberUpdate, member.id);
                 await sendCard(guild, 'log_voice', {
