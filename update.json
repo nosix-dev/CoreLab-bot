@@ -1,0 +1,28 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.5",
+  "date": "2026-11-01",
+  "titre": "📌 CoreLab — Notes privées (5.5.5)",
+  "intro": "Les modérateurs peuvent désormais garder des **notes privées sur chaque membre**, et les notifications vocales sont plus propres.",
+  "modifications": {
+    "📝 Notes privées": [
+      "[+] **/note ajouter** : ajoute une note privée sur un membre (visible uniquement par les modérateurs).",
+      "[+] **/note liste** : affiche toutes les notes d'un membre avec leur numéro, leur auteur et leur date.",
+      "[+] **/note supprimer** : supprime une note grâce à son numéro.",
+      "[+] Les réponses sont toujours **éphémères** et la commande est réservée à la permission **Exclure des membres**."
+    ],
+    "🔊 Logs vocaux": [
+      "[~] Les notifications de connexion et de déconnexion vocale n'affichent plus d'**emojis** ni de code brut (`:circle:`, `**`).",
+      "[~] Le titre des logs en mode embed est maintenant lisible directement dans l'aperçu de la notification."
+    ],
+    "🔧 Autres changements": [
+      "[+] **!update** : le statut du bot affiche « Mise à jour en cours » pendant une mise à jour, puis revient à la normale."
+    ]
+  },
+  "pied": "Ajoute CoreLab sur tes autres serveurs.",
+  "support": {
+    "label": "Inviter le bot",
+    "emoji": "🚀",
+    "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+  }
+}
