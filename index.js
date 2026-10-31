@@ -1344,4 +1344,26 @@ async function connectWithRetry(client, token, maxRetries = 10) {
     }
   }
 }
+// Diagnostic : si le bot n'est pas connecté après 60 s, on interroge l'API Discord pour savoir pourquoi
+// (discord.js attend en silence quand Discord limite l'IP de l'hébergeur : on ne voyait alors aucune erreur).
+async function diagnosticConnexion(tok) {
+  try {
+    const res = await fetch('https://discord.com/api/v10/users/@me', {
+      headers: { Authorization: `Bot ${tok}` },
+      signal: AbortSignal.timeout(15000)
+    });
+    const retry = res.headers.get('retry-after');
+    const body = (await res.text()).slice(0, 200).replace(/\s+/g, ' ');
+    console.warn(`[DIAG] API Discord → HTTP ${res.status}${retry ? ` | retry-after ${retry} s` : ''}`);
+    if (res.status === 200) console.warn('[DIAG] Token valide et API joignable : le blocage vient de la connexion temps réel (gateway) ou du réseau de l\'hébergeur.');
+    else if (res.status === 401) console.error('[DIAG] ❌ TOKEN invalide : régénère-le sur le portail développeur Discord et mets-le dans Render → Environment (variable TOKEN).');
+    else if (res.status === 429 || /1015|cloudflare|banned/i.test(body)) console.error('[DIAG] ⛔ Discord limite/bannit l\'IP de ton hébergeur (429/Cloudflare). Attends 1 à 2 h sans redéployer, puis change la région Render si ça persiste.');
+    else console.warn('[DIAG] Réponse :', body);
+  } catch (e) {
+    console.error('[DIAG] ❌ Impossible de joindre discord.com depuis l\'hébergeur :', e.message);
+  }
+}
+let _clientPret = false;
+client.once('clientReady', () => { _clientPret = true; });
+setTimeout(() => { if (!_clientPret) diagnosticConnexion(token); }, 60000).unref();
 connectWithRetry(client, token);
