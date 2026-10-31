@@ -471,6 +471,7 @@ client.TRANSLATIONS = TRANSLATIONS;
 client.RAPIDAPI_KEY = RAPIDAPI_KEY;
 const maintenance = require('./src/core/maintenance');
 maintenance.installer(client);
+const updateStatus = require('./src/core/updateStatus');
 client.BOT_OWNER_ID = BOT_OWNER_ID;
 client.STAR_THRESHOLD = STAR_THRESHOLD;
 client.load_data = load_data;
@@ -481,6 +482,7 @@ client.prefixCommands = {
   dm,
   pub,
   maintenance: maintenance.commande,
+  update: updateStatus.commande,
   ...automodPrefixCommands,
   ...extendedPrefixCommands
 };
@@ -499,6 +501,7 @@ function startStatusRotation(client) {
   setInterval(() => {
     if (!client.isReady()) return;
     if (maintenance.actif()) { maintenance.appliquerPresence(client); return; }
+    if (updateStatus.actif()) { updateStatus.appliquerPresence(client); return; }
     try {
       const statuses = getStatuses(client);
       const current = statuses[statusIndex];
@@ -532,6 +535,7 @@ client.once('clientReady', async () => {
   startMarche(client);
   startStatusRotation(client);
   maintenance.restaurer(client);
+  updateStatus.restaurer(client);
   try { require('./src/core/discordBackup').demarrer(client); } catch (e) { console.error('❌ Backup Discord:', e.message); }
   try { require('./src/core/topggVotes').demarrer(client); } catch (e) { console.error('❌ Votes top.gg:', e.message); }
   synchroniserPseudosAuDemarrage(client);

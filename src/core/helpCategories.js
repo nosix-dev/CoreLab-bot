@@ -44,6 +44,7 @@ const HELP_CATEGORIES = [
       'bannissement-temporaire', 'muet-temporaire', 'muet-retirer', 'timeout', 'untimeout', 'jarvis',
       'role-ajouter', 'role-retirer', 'avertissement-reinitialiser',
       'infractions', 'infraction-ajouter', 'infractions-reinitialiser',
+      'note',
       'verrouiller', 'deverrouiller', 'verrouillage-total', 'deverrouillage-total',
     ],
   },
