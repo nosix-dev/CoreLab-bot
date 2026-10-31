@@ -564,6 +564,7 @@ client.on('interactionCreate', async interaction => {
       // Filet de sécurité : si la commande n'a rien répondu au bout de 2s
       // (réseau lent, DNS, API externe qui traîne...), on defer automatiquement
       // pour éviter le "Unknown interaction" (10062) causé par un token expiré.
+      const startedAt = Date.now();
       const autoDeferTimer = setTimeout(() => {
         if (!interaction.deferred && !interaction.replied) {
           interaction.deferReply({
@@ -571,10 +572,24 @@ client.on('interactionCreate', async interaction => {
           }).catch(() => { });
         }
       }, 2000);
+      // Si le filet ci-dessus a déjà fait le defer, un interaction.reply() de la commande planterait
+      // (« already replied ») et l'utilisateur verrait « L'application ne répond plus » : on le convertit en editReply().
+      const origReply = interaction.reply.bind(interaction);
+      interaction.reply = options => {
+        if (interaction.deferred && !interaction.replied) {
+          const o = typeof options === 'string' ? { content: options } : { ...options };
+          if (typeof o.flags === 'number') o.flags &= ~MessageFlags.Ephemeral; // visibilité déjà fixée par le defer
+          delete o.ephemeral;
+          return interaction.editReply(o);
+        }
+        return origReply(options);
+      };
       try {
         await withChangeLog(interaction, () => cmd.execute(interaction, client));
       } finally {
         clearTimeout(autoDeferTimer);
+        const ms = Date.now() - startedAt;
+        if (ms > 2000) console.warn(`[lent] /${interaction.commandName} a mis ${ms} ms à répondre (bot ou hébergeur surchargé ?)`);
       }
     } catch (e) {
       if (e?.code === 10062) {
@@ -1295,6 +1310,17 @@ registerCommunityHandlers(client);
 client.on('shardError', err => console.error('[SHARD ERROR]', err));
 client.on('shardDisconnect', (event, id) => console.error(`[SHARD ${id}] Déconnecté :`, event));
 client.on('shardReconnecting', id => console.log(`[SHARD ${id}] Reconnexion...`));
+client.on('shardResume', (id, replayed) => console.log(`[SHARD ${id}] Reprise de la connexion (${replayed} évènements rejoués)`));
+client.on('shardReady', id => console.log(`[SHARD ${id}] Connecté`));
+// Détecteur de blocage : si la boucle d'événements reste figée > 1 s, les battements (heartbeat) vers Discord
+// sont retardés, ce qui provoque des déconnexions/reconnexions et des commandes qui « ne répondent plus ».
+let _lastTick = Date.now();
+setInterval(() => {
+  const now = Date.now();
+  const lag = now - _lastTick - 1000;
+  _lastTick = now;
+  if (lag > 1000) console.warn(`[LAG] boucle d'événements bloquée ~${lag} ms | RAM ${(process.memoryUsage().rss / 1048576).toFixed(0)} Mo | ping Discord ${client.ws?.ping ?? '?'} ms`);
+}, 1000).unref();
 
 // ────────────────────────────────────────────────
 // Connexion avec retry automatique en cas d'échec réseau/DNS
