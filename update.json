@@ -14,9 +14,6 @@
     "🔊 Logs vocaux": [
       "[~] Les notifications de connexion et de déconnexion vocale n'affichent plus d'**emojis** ni de code brut (`:circle:`, `**`).",
       "[~] Le titre des logs en mode embed est maintenant lisible directement dans l'aperçu de la notification."
-    ],
-    "🔧 Autres changements": [
-      "[+] **!update** : le statut du bot affiche « Mise à jour en cours » pendant une mise à jour, puis revient à la normale."
     ]
   },
   "pied": "Ajoute CoreLab sur tes autres serveurs.",
