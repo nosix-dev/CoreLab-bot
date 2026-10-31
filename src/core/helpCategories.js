@@ -45,6 +45,7 @@ const HELP_CATEGORIES = [
       'role-ajouter', 'role-retirer', 'avertissement-reinitialiser',
       'infractions', 'infraction-ajouter', 'infractions-reinitialiser',
       'note',
+      'audit',
       'verrouiller', 'deverrouiller', 'verrouillage-total', 'deverrouillage-total',
     ],
   },

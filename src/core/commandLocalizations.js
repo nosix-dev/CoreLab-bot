@@ -68,6 +68,7 @@ const NAME_LOCALIZATIONS = {
   warn: ['warn', 'warn'],
   warninfos: ['warninfos', 'warning-info'],
   note: ['note', 'note'],
+  audit: ['audit', 'audit'],
   purge: ['purge', 'purge'],
   purgeuser: ['purgeuser', 'purge-user'],
   mute: ['mute', 'mute'],

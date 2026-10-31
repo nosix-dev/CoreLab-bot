@@ -329,20 +329,6 @@ async function sendTicketClosedLog({ channel, closer, cfg }) {
   const raison = meta.reason || channel.topic?.split('|')[1]?.trim() || '—';
   const ouvertLe = Math.floor((meta.openedAt || channel.createdTimestamp) / 1000);
 
-  const embed = new EmbedBuilder()
-    .setAuthor({ name: guild.name, iconURL: guild.iconURL() ?? undefined })
-    .setTitle('🔒 Ticket Fermé')
-    .setColor(0x2ECC71)
-    .addFields(
-      { name: '🆔 Identifiant', value: String(identifiant), inline: true },
-      { name: '✅ Ouvert par', value: openerId ? `<@${openerId}>` : (meta.openerTag || '—'), inline: true },
-      { name: '❌ Fermé par', value: `<@${closer.id}>`, inline: true },
-      { name: '🕐 Date d\'ouverture', value: `<t:${ouvertLe}:f>`, inline: true },
-      { name: '🎫 Panneau', value: String(raison).slice(0, 1024), inline: true },
-      { name: '#️⃣ Nom du ticket', value: channel.name, inline: true },
-    )
-    .setTimestamp();
-
   const fichier = () => new AttachmentBuilder(Buffer.from(html, 'utf-8'), { name: nomFichier });
   let envoye = false;
 
@@ -350,9 +336,8 @@ async function sendTicketClosedLog({ channel, closer, cfg }) {
   if (openerId) {
     try {
       const opener = await channel.client.users.fetch(openerId);
-      // 1) résumé du ticket en carte « verre fumé » ; 2) fichier de transcription (HTML) juste après
-      await opener.send(await require('./glassEmbed').glassPayload({ embeds: [embed], allowedMentions: { parse: [] } },
-        { guild, client: channel.client, badge: 'TICKET', avatar: guild.iconURL({ extension: 'png', size: 256 }) || undefined }));
+      // 1) message « Ton ticket est fermé » avec les boutons de note 1★ → 5★ ; 2) fichier de transcription juste après
+      await opener.send(require('./ticketRating').buildClosedTicketMessage({ guild, closer, numero: identifiant, raison, ouvertLe, openerId }));
       await opener.send({
         content: `📄 Voici la transcription de ton ticket **${channel.name}** sur **${guild.name}**.\nTélécharge le fichier puis ouvre-le dans ton navigateur.`,
         files: [fichier()],

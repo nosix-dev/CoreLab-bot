@@ -472,6 +472,8 @@ client.RAPIDAPI_KEY = RAPIDAPI_KEY;
 const maintenance = require('./src/core/maintenance');
 maintenance.installer(client);
 const updateStatus = require('./src/core/updateStatus');
+const auditJournal = require('./src/core/auditJournal');
+auditJournal.installer(client);
 client.BOT_OWNER_ID = BOT_OWNER_ID;
 client.STAR_THRESHOLD = STAR_THRESHOLD;
 client.load_data = load_data;
@@ -493,7 +495,7 @@ function getStatuses(client) {
     name: '!help pour voir les commande !',
     type: 0
   }, {
-    name: 'Version 5.5.5 ⚙️',
+    name: 'Version 5.5.3 ⚙️',
     type: 0
   }];
 }
@@ -598,6 +600,7 @@ client.on('interactionCreate', async interaction => {
         await withChangeLog(interaction, () => cmd.execute(interaction, client));
       } finally {
         clearTimeout(autoDeferTimer);
+        auditJournal.enregistrerCommande(interaction, cmd);
         const ms = Date.now() - startedAt;
         if (ms > 2000) console.warn(`[lent] /${interaction.commandName} a mis ${ms} ms à répondre (bot ou hébergeur surchargé ?)`);
       }
@@ -626,6 +629,12 @@ client.on('interactionCreate', async interaction => {
     }
     if (id.startsWith('modmail_')) {
       return routeModmailInteraction(interaction).catch(e => console.error('[Modmail] interaction :', e));
+    }
+    if (id.startsWith('auditp:')) {
+      return auditJournal.handleAuditButton(interaction).catch(e => console.error('[Audit] bouton :', e.message));
+    }
+    if (id.startsWith('ticketrate:')) {
+      return require('./src/core/ticketRating').handleRatingButton(interaction).catch(e => console.error('[Ticket] note :', e.message));
     }
     if (id.startsWith('ticket_')) {
       return routeTicketInteraction(interaction);
