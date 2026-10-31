@@ -2,6 +2,7 @@
   "channelId": "1513697900050387045",
   "version": "5.5.5",
   "date": "2026-11-01",
+  "mention": false,
   "titre": "📌 CoreLab — Notes privées (5.5.5)",
   "intro": "Les modérateurs peuvent désormais garder des **notes privées sur chaque membre**, et les notifications vocales sont plus propres.",
   "modifications": {
