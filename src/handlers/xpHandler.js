@@ -166,5 +166,6 @@ function registerXpHandler(client) {
   console.log('✅ Système XP initialisé (messages + vocal).');
 }
 module.exports = {
-  registerXpHandler
+  registerXpHandler,
+  grantXp
 };

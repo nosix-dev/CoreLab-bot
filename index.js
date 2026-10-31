@@ -64,6 +64,11 @@ try {
   };
 
   http.createServer((req, res) => {
+    // Webhook de votes top.gg (POST /topgg, en-tête Authorization = TOPGG_WEBHOOK_AUTH)
+    if (req.method === 'POST' && req.url.split('?')[0] === '/topgg') {
+      try { return require('./src/core/topggVotes').handleWebhook(req, res); }
+      catch (e) { console.error('[TopGG] webhook :', e.message); res.writeHead(500); return res.end(); }
+    }
     if (req.url.split('?')[0] === '/status') {
       res.writeHead(200, {
         'Content-Type': 'application/json',
@@ -528,6 +533,7 @@ client.once('clientReady', async () => {
   startStatusRotation(client);
   maintenance.restaurer(client);
   try { require('./src/core/discordBackup').demarrer(client); } catch (e) { console.error('❌ Backup Discord:', e.message); }
+  try { require('./src/core/topggVotes').demarrer(client); } catch (e) { console.error('❌ Votes top.gg:', e.message); }
   synchroniserPseudosAuDemarrage(client);
   synchroniserRoleAuDemarrage(client);
   rehydrateIaSessions(client);
@@ -602,6 +608,9 @@ client.on('interactionCreate', async interaction => {
   }
   if (interaction.isButton() || interaction.isChannelSelectMenu() || interaction.isModalSubmit() || interaction.isRoleSelectMenu() || interaction.isStringSelectMenu() || interaction.isMentionableSelectMenu()) {
     const id = interaction.customId || '';
+    if (id.startsWith('topgg_')) {
+      return require('./src/commands/topgg').routeTopggInteraction(interaction).catch(e => console.error('[TopGG] interaction :', e.message));
+    }
     if (id.startsWith('mkt_')) {
       return routeMarcheInteraction(interaction);
     }
