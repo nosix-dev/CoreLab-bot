@@ -615,6 +615,9 @@ client.on('interactionCreate', async interaction => {
   }
   if (interaction.isButton() || interaction.isChannelSelectMenu() || interaction.isModalSubmit() || interaction.isRoleSelectMenu() || interaction.isStringSelectMenu() || interaction.isMentionableSelectMenu()) {
     const id = interaction.customId || '';
+    if (id.startsWith('prem_')) {
+      return require('./src/commands/premiumPanel').routePremiumInteraction(interaction).catch(e => console.error('[Premium] interaction :', e.message));
+    }
     if (id.startsWith('topgg_')) {
       return require('./src/commands/topgg').routeTopggInteraction(interaction).catch(e => console.error('[TopGG] interaction :', e.message));
     }
