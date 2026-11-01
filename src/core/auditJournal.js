@@ -136,9 +136,53 @@ function fmtDate(ts) {
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
+// ── Cache des entrées récentes (reçues par la passerelle, donc sans aucune requête REST) ──
+// Sert à savoir « qui a fait ça ? » pour les logs et l'anti-nuke sans appeler GET /audit-logs à chaque événement.
+const TTL_CACHE_MS = 60 * 1000;
+const cacheRecent = new Map(); // guildId -> [{ action, targetId, executor, executorId, ts }]
+
+function memoriser(guildId, entry) {
+  const liste = cacheRecent.get(guildId) || [];
+  const limite = Date.now() - TTL_CACHE_MS;
+  const frais = liste.filter(e => e.ts >= limite);
+  frais.push({
+    action: entry.action,
+    targetId: entry.targetId ? String(entry.targetId) : null,
+    executor: entry.executor || null,
+    executorId: entry.executorId || null,
+    ts: Date.now(),
+  });
+  cacheRecent.set(guildId, frais.slice(-200));
+}
+
+function chercherDansCache(guild, actionType, targetId) {
+  const limite = Date.now() - TTL_CACHE_MS;
+  const liste = cacheRecent.get(guild.id) || [];
+  for (let i = liste.length - 1; i >= 0; i--) {
+    const e = liste[i];
+    if (e.ts < limite || e.action !== actionType) continue;
+    if (targetId !== null && targetId !== undefined && e.targetId !== String(targetId)) continue;
+    return e.executor || (e.executorId ? guild.client.users.cache.get(e.executorId) : null) || null;
+  }
+  return undefined; // rien trouvé
+}
+
+// Renvoie l'auteur d'une action. Attend un court instant que l'entrée arrive par la passerelle, puis abandonne (null).
+async function acteurRecent(guild, actionType, targetId = null, attenteMax = 900) {
+  if (!guild?.id) return null;
+  let trouve = chercherDansCache(guild, actionType, targetId);
+  const debut = Date.now();
+  while (trouve === undefined && Date.now() - debut < attenteMax) {
+    await new Promise(r => setTimeout(r, 150));
+    trouve = chercherDansCache(guild, actionType, targetId);
+  }
+  return trouve || null;
+}
+
 // ── Enregistrement ─────────────────────────────────────────────────────────
 function enregistrerEntreeDiscord(entry, guild) {
   if (!guild?.id) return;
+  memoriser(guild.id, entry);
   const nomAction = AuditLogEvent[entry.action] || String(entry.action);
   const cible = entry.target;
   ajouter(guild.id, {
@@ -312,5 +356,5 @@ function exporter(guildId, filtres, format) {
 
 module.exports = {
   TYPES, PREFIX_PAGE, installer, enregistrerCommande, enregistrerEntreeDiscord,
-  lister, construirePage, handleAuditButton, estAutorise, statistiques, exporter, fmtDate,
+  acteurRecent, lister, construirePage, handleAuditButton, estAutorise, statistiques, exporter, fmtDate,
 };

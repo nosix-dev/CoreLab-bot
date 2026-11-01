@@ -222,18 +222,13 @@ async function sendLog(guild, embed, categorie = null, files = []) {
 // ────────────────────────────────────────────────
 // AIDE : récupère l'auteur depuis le journal d'audit
 // ────────────────────────────────────────────────
-async function getAuditActor(guild, actionType, targetId = null, limit = 5) {
+async function getAuditActor(guild, actionType, targetId = null) {
+    // Utilise le cache alimenté par l'événement guildAuditLogEntryCreate : aucune requête REST par événement
     try {
-        const logs = await guild.fetchAuditLogs({ type: actionType, limit });
-        for (const entry of logs.entries.values()) {
-            if (targetId === null || String(entry.target?.id) === String(targetId)) {
-                return entry.executor;
-            }
-        }
+        return await require('../core/auditJournal').acteurRecent(guild, actionType, targetId);
     } catch {
-        // permissions manquantes ou autre — ignoré
+        return null;
     }
-    return null;
 }
 
 // ════════════════════════════════════════════════

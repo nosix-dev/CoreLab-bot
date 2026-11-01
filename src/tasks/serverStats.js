@@ -11,6 +11,8 @@ const {
 // On met donc à jour toutes les 10 minutes pour rester large.
 const SERVERSTATS_UPDATE_INTERVAL_MS = 10 * 60 * 1000;
 
+const categoriesPlacees = new Set(); // la catégorie n'est remontée qu'une fois par démarrage (chaque setPosition = une requête qui touche tous les salons)
+
 async function updateServerStatsChannels(client) {
   for (const guild of client.guilds.cache.values()) {
     let cfg;
@@ -23,12 +25,14 @@ async function updateServerStatsChannels(client) {
 
     const types = cfg.serverstats_counters.map(c => c.type);
     if (necessiteFetchMembres(types)) {
-      await guild.members.fetch().catch(() => {});
+      // le cache est déjà rempli grâce à l'intent GuildMembers : on ne re-télécharge la liste que s'il manque du monde
+      if (guild.members.cache.size < (guild.memberCount || 0) * 0.95) await guild.members.fetch().catch(() => {});
     }
 
     if (cfg.serverstats_category_id) {
       const categorie = guild.channels.cache.get(cfg.serverstats_category_id);
-      if (categorie && categorie.rawPosition !== 0) {
+      if (categorie && categorie.rawPosition !== 0 && !categoriesPlacees.has(guild.id)) {
+        categoriesPlacees.add(guild.id);
         await categorie.setPosition(0).catch(() => {});
       }
     }

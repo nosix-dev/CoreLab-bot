@@ -6,17 +6,19 @@ const { construire } = require('./backupBundle');
 const { stockage, persister } = require('./data');
 
 const CHANNEL_ID = process.env.BACKUP_CHANNEL_ID;
-const INTERVALLE_MIN = Math.max(1, parseInt(process.env.BACKUP_INTERVAL_MIN, 10) || 3);
+const INTERVALLE_MIN = Math.max(1, parseInt(process.env.BACKUP_INTERVAL_MIN, 10) || 10);
 const GARDER = 5; // nombre de sauvegardes conservées par type
 const NOM_RE = /^corelab-backup-(data|images)-(\d+)-(\d+)of(\d+)\.json\.gz$/;
 
 const dernierHash = { data: null, images: null };
+const PURGE_MIN_INTERVALLE_MS = 60 * 60 * 1000; // le nettoyage (lecture de 100 messages + suppressions) au plus 1 fois par heure
+let dernierePurge = 0;
 let enCours = null;
 
 async function envoyer(client, kind, force = false) {
     const { hash, parties } = construire(kind);
     if (!force && hash === dernierHash[kind]) return false;
-    const channel = await client.channels.fetch(CHANNEL_ID);
+    const channel = client.channels.cache.get(CHANNEL_ID) || await client.channels.fetch(CHANNEL_ID);
     const ts = Date.now();
     for (let i = 0; i < parties.length; i++) {
         const buffer = zlib.gzipSync(Buffer.from(JSON.stringify({ v: 1, kind, at: new Date(ts).toISOString(), files: parties[i].files })));
@@ -24,7 +26,10 @@ async function envoyer(client, kind, force = false) {
         await channel.send({ content: `💾 Sauvegarde **${kind}** — ${Object.keys(parties[i].files).length} fichier(s) — ${(buffer.length / 1024).toFixed(0)} Ko`, files: [{ attachment: buffer, name }] });
     }
     dernierHash[kind] = hash;
-    await purger(client, channel).catch(e => console.warn('[Backup] nettoyage ignoré :', e.message));
+    if (Date.now() - dernierePurge > PURGE_MIN_INTERVALLE_MS) {
+        dernierePurge = Date.now();
+        await purger(client, channel).catch(e => console.warn('[Backup] nettoyage ignoré :', e.message));
+    }
     return true;
 }
 

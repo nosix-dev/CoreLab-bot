@@ -174,6 +174,8 @@ async function checkAntiLink(message) {
 // ────────────────────────────────────────────────
 async function findAuditExecutor(guild, auditType, targetId) {
   try {
+    const enCache = await require('../core/auditJournal').acteurRecent(guild, auditType, targetId || null, 700);
+    if (enCache) return enCache; // pas de requête REST si la passerelle nous l'a déjà dit
     const logs = await guild.fetchAuditLogs({
       type: auditType,
       limit: 5
