@@ -353,7 +353,7 @@ function buildSettingsPayload({ guild, embed, rows = [], file = 'settings.png', 
       : [renderSettingsCard({ ...data, pill, ...opts })];
     const names = pngs.map((_, i) => (i === 0 ? file : file.replace(/(\.[^.]+)?$/, `-${i + 1}$1`)));
 
-    const container = new ContainerBuilder().setAccentColor(containerAccent(guild?.id, 0xFFFFFF));
+    const container = new ContainerBuilder().setAccentColor(containerAccent(guild?.id, 0x1C1F26));
     // Discord limite un Container à 10 enfants : on retire le titre natif si la liste de rangées est trop longue
     const small = [hint, data.footer].filter(Boolean).join(' • ');
     const childCount = (notice ? 1 : 0) + (data.description ? 1 : 0) + names.length + (small ? 1 : 0) + (rows.length ? 1 + rows.length : 0);

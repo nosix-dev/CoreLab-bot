@@ -23,7 +23,7 @@ const { buildRankingPayload, resolveNames } = require('../core/rankingCard');
 // alimentent /game leaderboard.
 // ─────────────────────────────────────────────────────────────────────────
 
-const COULEUR = 0xFFFFFF;
+const COULEUR = 0x1C1F26;
 const MEDAILLES = ['🥇', '🥈', '🥉'];
 const ROUND_MS = 20000;
 const PENDU_MAX_ERREURS = 7;

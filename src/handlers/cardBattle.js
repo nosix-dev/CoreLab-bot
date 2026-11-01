@@ -30,7 +30,7 @@ const { getCardImage } = require('../core/pokemonCards');
 const { toCV2Payload, containerFromEmbed } = require('../core/componentsV2');
 const { glassPayload } = require('../core/glassEmbed');
 
-const COULEUR = 0xFFFFFF;
+const COULEUR = 0x1C1F26;
 const PAS_DE_PING = { parse: [] };
 const EPH = MessageFlags.Ephemeral;
 

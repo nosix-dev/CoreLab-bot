@@ -16,7 +16,7 @@ function buildOverviewEmbed(client, categories, totalCommands, totalCategories, 
     .map(c => `${c.emoji} **${c.label}**\n${c.resolvedCommands.length + c.resolvedPrefixCommands.length} commande(s)`)
     .join('\n\n');
   return new EmbedBuilder()
-    .setColor(0xFFFFFF)
+    .setColor(0x1C1F26)
     .setAuthor({ name: 'CoreLab • Menu d\'aide', iconURL: client.user.displayAvatarURL() })
     .setThumbnail(client.user.displayAvatarURL())
     .setDescription('👋 **Bienvenue dans le menu d\'aide !**\nSélectionnez une catégorie dans le menu ci-dessous pour explorer les commandes.')
@@ -39,7 +39,7 @@ function buildCategoryEmbed(client, cat, requestedBy) {
   const entete = `### ${cat.emoji} ${cat.label}\n\n`;
   const description = (entete + corps).slice(0, 4096);
   return new EmbedBuilder()
-    .setColor(0xFFFFFF)
+    .setColor(0x1C1F26)
     .setAuthor({ name: 'CoreLab • Menu d\'aide', iconURL: client.user.displayAvatarURL() })
     .setDescription(description)
     .setFooter({ text: `Demandé par ${requestedBy.tag}`, iconURL: requestedBy.displayAvatarURL() })

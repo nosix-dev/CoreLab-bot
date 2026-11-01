@@ -662,7 +662,8 @@ async function renderWelcomeCard(o) {
   // (couleur, style, fond…) garde son rendu sur mesure (option payante « Personnalisation »).
   const ccw = require('./compactCard');
   const PLAIN_KEYS = new Set(['title', 'subtitle', 'pillMember', 'pillCreated', 'pillJoined', 'hideAvatar']);
-  const customized = !!(Object.keys(card).some(k => !PLAIN_KEYS.has(k)) || findCardBackground(o.guildId, kind));
+  // Anthracite partout : seule une image de fond choisie par le serveur garde le rendu sur mesure
+  const customized = !!findCardBackground(o.guildId, kind);
   if (ccw.isCompact(o.guildId) && !customized) {
     const txt = t => (typeof t === 'string' && t.trim() && t.trim() !== '-' ? applyCardPlaceholders(t.trim(), o) : null);
     const day = ts => new Date(ts).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
@@ -852,7 +853,7 @@ async function glassUpdate(interaction, payload, o = {}) {
 /** Payload CV2 contenant uniquement une image générée (bienvenue / au revoir…). */
 function imagePayload(buffer, name = 'card.png') {
   const file = uniq(name.replace(/\.png$/, ''));
-  const container = new ContainerBuilder().setAccentColor(0xFFFFFF);
+  const container = new ContainerBuilder().setAccentColor(0x1C1F26);
   container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(`attachment://${file}`)));
   return { file: new AttachmentBuilder(buffer, { name: file }), fileName: file, container };
 }

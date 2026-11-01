@@ -38,7 +38,7 @@ function refuser(interaction, texte) {
 
 function container(guildId, titre, corps) {
   return new ContainerBuilder()
-    .setAccentColor(containerAccent(guildId, 0xFFFFFF))
+    .setAccentColor(containerAccent(guildId, 0x1C1F26))
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(titre))
     .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(corps));

@@ -41,7 +41,7 @@ async function sendInfraction(guild, type, member, moderator, reason) {
   const embed = new EmbedBuilder().setAuthor({
     name: `${icons[type] || '📋'} ${labels[type] || type}`,
     iconURL: guild.iconURL()
-  }).setColor(0xFFFFFF).setThumbnail(member.user.displayAvatarURL({
+  }).setColor(0x1C1F26).setThumbnail(member.user.displayAvatarURL({
     size: 256
   })).addFields({
     name: '👤 Membre',

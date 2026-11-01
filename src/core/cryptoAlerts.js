@@ -125,7 +125,7 @@ function buildAlertEmbed(alerts, prices) {
   return new EmbedBuilder()
     .setTitle('📈 Cours crypto')
     .setDescription(lines.join('\n\n') || '*Aucune crypto suivie.*')
-    .setColor(0xFFFFFF)
+    .setColor(0x1C1F26)
     .setFooter({ text: `Mise à jour toutes les ${label} • Source : CoinGecko` })
     .setTimestamp();
 }

@@ -313,8 +313,13 @@ const PAL = {
   sobre: { bg: '#1a1b1e', border: '#2e3035', text: '#f2f3f5', muted: '#8b8d93', dim: '#6d6f76', box: '#232428', line: '#2e3035', ring: '#5a5c63', dark: true },
   clair: { bg: '#eef1f4', border: '#d5dbe2', text: '#1b2430', muted: '#76808c', dim: '#8a94a0', box: '#ffffff', line: '#d5dbe2', ring: '#b8c1cc', dark: false },
   fume: { bg: 'transparent', border: 'rgba(255,255,255,0.3)', text: '#ffffff', muted: 'rgba(255,255,255,0.65)', dim: 'rgba(255,255,255,0.5)', box: 'rgba(0,0,0,0.28)', line: 'rgba(255,255,255,0.16)', ring: 'rgba(255,255,255,0.45)', dark: true },
-  compact: { bg: '#111214', border: '#26282c', text: '#f2f3f5', muted: '#8b8d93', dim: '#6d6f76', box: '#1a1b1e', line: '#26282c', ring: '#5a5c63', dark: true }
+  compact: { bg: '#111214', border: '#26282c', text: '#f2f3f5', muted: '#8b8d93', dim: '#6d6f76', box: '#1a1b1e', line: '#26282c', ring: '#5a5c63', dark: true },
+  // Anthracite : palette unique de TOUTES les cartes du bot (style « tuile + bandeau »)
+  anthracite: { bg: '#1c1f26', border: '#2a2e37', text: '#f3f4f6', muted: '#9ca3af', dim: '#6b7280', box: '#252932', line: '#2a2e37', ring: '#4b5563', dark: true }
 };
+
+// Accent par défaut des cartes anthracite (les types « rouge / orange… » gardent leur couleur)
+const ANTHRACITE_ACCENT = { accent: '#3b82f6', light: '#93c5fd' };
 
 function drawBlockStyled(ctx, pal, b, x, y, maxW) {
   drawRich(ctx, clean(b.label), x, y + 18, FONT, S.label, { color: pal.muted });
@@ -733,16 +738,17 @@ function generateGlassCard(spec) {
 }
 
 // ───────────────────────────────────────────────────────────
-// Style « tuile + bandeau » (défaut) : fond sombre, bandeau en-tête teinté de la couleur du log
-// (vert = connexion, rouge = déconnexion…) avec tuile d'icône à gauche, titre, sous-titre et heure ;
+// Style « tuile + bandeau » (défaut) : fond anthracite, bandeau en-tête avec tuile d'icône teintée
+// de la couleur du log (bleu par défaut, rouge = déconnexion…) avec tuile d'icône à gauche, titre, sous-titre et heure ;
 // puis infos en pile à gauche + gros nombre à droite, citations, pastilles et pied de carte.
 // ───────────────────────────────────────────────────────────
 const BAND_H = 112;
 const TILE_S = 72;
 
 function generateTileBandCard(spec) {
-  const th = THEMES[spec.theme] || THEMES.green;
-  const pal = PAL.sobre;
+  const baseTh = THEMES[spec.theme] || THEMES.green;
+  const th = (!spec.theme || spec.theme === 'green') ? { ...baseTh, ...ANTHRACITE_ACCENT } : baseTh;
+  const pal = PAL.anthracite;
   const ink = th.accent;
   const px = 48;
   // spec.photo (image déjà chargée) : carré à droite ; le contenu se resserre à gauche
@@ -762,19 +768,19 @@ function generateTileBandCard(spec) {
   const run = ctx => {
     ctx.textBaseline = 'alphabetic';
 
-    // Bandeau teinté
-    ctx.fillStyle = mixHex(pal.bg, th.accent, 0.14);
+    // Bandeau anthracite (légèrement plus clair que le fond) + fine ligne de séparation
+    ctx.fillStyle = mixHex(pal.bg, '#ffffff', 0.035);
     ctx.fillRect(0, 0, W, BAND_H);
-    ctx.fillStyle = rgba(th.accent, 0.35);
+    ctx.fillStyle = pal.line;
     ctx.fillRect(0, BAND_H - 2, W, 2);
 
     // Tuile d'icône
     const ty = (BAND_H - TILE_S) / 2;
     roundRect(ctx, px, ty, TILE_S, TILE_S, 18);
-    ctx.fillStyle = rgba(th.accent, 0.25);
+    ctx.fillStyle = rgba(th.accent, 0.16);
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = rgba(th.accent, 0.55);
+    ctx.strokeStyle = rgba(th.accent, 0.45);
     ctx.stroke();
     if (icon) drawRich(ctx, icon, px + TILE_S / 2, ty + TILE_S / 2 + 13, FONT_BOLD, 38, { align: 'center' });
 

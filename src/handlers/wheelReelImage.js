@@ -43,7 +43,7 @@ const TW = 130;        // largeur d'une carte
 const GAP = 10;
 const TOP = 112;
 const TH = 150;
-const BG = '#07060d';
+const BG = '#1c1f26';
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
@@ -67,7 +67,7 @@ function drawTile(ctx, t, cx, opts = {}) {
     ctx.shadowBlur = 38;
   }
   roundRect(ctx, x, y, w, h, 12);
-  ctx.fillStyle = '#10131f';
+  ctx.fillStyle = '#252932';
   ctx.fill();
   ctx.shadowBlur = 0;
   // dégradé de rareté
@@ -98,30 +98,23 @@ async function generateReelFrame({ strip, center, title, user, final = false, gu
   try { await preloadEmojis([title, ...strip.map(t => t.emoji), '🃏']); } catch { /* sans emojis manquants */ }
 
   const canvas = createCanvas(W, H);
-  const ctx = lookCtx(canvas.getContext('2d'), guildId);
+  const ctx = canvas.getContext('2d'); // anthracite : pas de recoloration par le style du serveur
   const mid = strip[center];
   const accent = mid?.color || '#4285f4';
 
-  // Fond + halo + cadre néon (couleur = rareté de la carte au centre)
+  // Fond anthracite + cadre fin (la couleur de rareté ne reste que sur les cartes)
+  void accent;
   ctx.fillStyle = BG;
   ctx.fillRect(0, 0, W, H);
-  const bg = ctx.createRadialGradient(W / 2, H / 2, 40, W / 2, H / 2, 650);
-  bg.addColorStop(0, `${accent}33`);
-  bg.addColorStop(1, BG);
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-  ctx.shadowColor = accent;
-  ctx.shadowBlur = 24;
-  ctx.strokeStyle = accent;
-  ctx.lineWidth = 4;
-  roundRect(ctx, 20, 20, W - 40, H - 40, 28);
+  ctx.strokeStyle = '#2a2e37';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 1, 1, W - 2, H - 2, 22);
   ctx.stroke();
-  ctx.shadowBlur = 0;
 
   ctx.textBaseline = 'alphabetic';
-  drawRich(ctx, title, 60, 80, FONT_BOLD, 26, { color: '#f2f4ff' });
+  drawRich(ctx, title, 60, 80, FONT_BOLD, 26, { color: '#f3f4f6' });
   if (user) {
-    drawRich(ctx, truncateRich(user, 22), W - 60, 80, FONT, 19, { color: '#8d93ad', align: 'right' });
+    drawRich(ctx, truncateRich(user, 22), W - 60, 80, FONT, 19, { color: '#9ca3af', align: 'right' });
   }
 
   // Bande de cartes (dessinée sur un calque à part, puis estompée sur les bords)
@@ -153,9 +146,7 @@ async function generateReelFrame({ strip, center, title, user, final = false, gu
   if (mid) drawTile(ctx, mid, cx, { scale: final ? 1.18 : 1, glow: final });
 
   // Ligne dorée
-  ctx.shadowColor = '#ffd700';
-  ctx.shadowBlur = 18;
-  ctx.fillStyle = '#ffd700';
+  ctx.fillStyle = '#f3f4f6';
   ctx.fillRect(cx - 2, TOP - 20, 4, TH + 40);
   ctx.beginPath();
   ctx.moveTo(cx - 12, TOP - 22);
@@ -167,7 +158,6 @@ async function generateReelFrame({ strip, center, title, user, final = false, gu
   ctx.lineTo(cx + 12, TOP + TH + 22);
   ctx.lineTo(cx, TOP + TH + 6);
   ctx.fill();
-  ctx.shadowBlur = 0;
 
   return canvas.toBuffer('image/png');
 }

@@ -162,7 +162,7 @@ function hexToColorInt(hex) {
   return parseInt(clean, 16);
 }
 const allDefinedCommands = [makeCommand('premium', 'Découvrez les avantages de CoreLab Premium 💎', null, async interaction => {
-  const embed = new EmbedBuilder().setTitle('⭐ CoreLab Premium').setDescription('Débloquez des fonctionnalités avancées et des limites étendues :').setColor(0xFFFFFF).addFields({
+  const embed = new EmbedBuilder().setTitle('⭐ CoreLab Premium').setDescription('Débloquez des fonctionnalités avancées et des limites étendues :').setColor(0x1C1F26).addFields({
     name: '🤖 Assistant IA',
     value: `Messages illimités par jour (au lieu de ${MAX_MESSAGES_IA_GRATUIT_PAR_JOUR}/jour)`,
     inline: false
@@ -199,7 +199,7 @@ const allDefinedCommands = [makeCommand('premium', 'Découvrez les avantages de 
     name: '🌐 Serveurs actifs',
     value: String(interaction.client.guilds.cache.size),
     inline: true
-  }).setColor(0xFFFFFF).setFooter({
+  }).setColor(0x1C1F26).setFooter({
     text: 'CoreLab • Merci de nous faire confiance !',
     iconURL: interaction.client.user.displayAvatarURL()
   });
@@ -245,7 +245,7 @@ const allDefinedCommands = [makeCommand('premium', 'Découvrez les avantages de 
     persist('formulaires');
 
     // Panneau de gestion — questions + image + publication (comme le système de tickets)
-    const embed = new EmbedBuilder().setTitle('📋 Gestion du formulaire').setDescription(`Formulaire **${nom}**\n\n**Questions actuelles :** 0/50\n\n` + 'Ajoute des questions, puis publie le formulaire pour laisser les membres le remplir en cliquant sur un bouton (comme pour les tickets).').setColor(0xFFFFFF);
+    const embed = new EmbedBuilder().setTitle('📋 Gestion du formulaire').setDescription(`Formulaire **${nom}**\n\n**Questions actuelles :** 0/50\n\n` + 'Ajoute des questions, puis publie le formulaire pour laisser les membres le remplir en cliquant sur un bouton (comme pour les tickets).').setColor(0x1C1F26);
     return interaction.reply(toCV2Payload({
       embeds: [embed],
       components: buildFormManagerRows(formKey),
@@ -341,14 +341,14 @@ const allDefinedCommands = [makeCommand('premium', 'Découvrez les avantages de 
   }
   const meta = normFormMeta(store.formulaires[gid][slug]);
   const fields = store.ticketForms?.[gid]?.[formKey] || [];
-  const embed = new EmbedBuilder().setTitle('📋 Gestion du formulaire').setDescription(`Formulaire **${meta.nom}**\n\n**Questions actuelles :** ${fields.length}/50\n` + `**Image :** ${meta.image ? '✅ Définie' : '❌ Aucune'}\n` + `**Apparence personnalisée :** ${meta.title || meta.description || meta.color !== undefined ? '✅ Configurée' : '❌ Par défaut'}\n\n` + 'Utilise les boutons pour gérer les questions, l\'image et la publication.').setColor(meta.color ?? 0xFFFFFF);
+  const embed = new EmbedBuilder().setTitle('📋 Gestion du formulaire').setDescription(`Formulaire **${meta.nom}**\n\n**Questions actuelles :** ${fields.length}/50\n` + `**Image :** ${meta.image ? '✅ Définie' : '❌ Aucune'}\n` + `**Apparence personnalisée :** ${meta.title || meta.description || meta.color !== undefined ? '✅ Configurée' : '❌ Par défaut'}\n\n` + 'Utilise les boutons pour gérer les questions, l\'image et la publication.').setColor(meta.color ?? 0x1C1F26);
   return interaction.reply(toCV2Payload({
     embeds: [embed],
     components: buildFormManagerRows(formKey),
     flags: MessageFlags.Ephemeral
   }));
 }, PermissionFlagsBits.ManageGuild), makeCommand('niveau', 'Voir votre niveau et votre XP', null, async interaction => {
-  const embed = new EmbedBuilder().setTitle('📊 Niveau').setDescription('Système d\'XP prêt à l\'emploi.').setColor(0xFFFFFF);
+  const embed = new EmbedBuilder().setTitle('📊 Niveau').setDescription('Système d\'XP prêt à l\'emploi.').setColor(0x1C1F26);
   await interaction.reply(toCV2Payload({
     embeds: [embed],
     flags: MessageFlags.Ephemeral
@@ -357,7 +357,7 @@ const allDefinedCommands = [makeCommand('premium', 'Découvrez les avantages de 
   await interaction.deferReply();
   const xpData = store.xpData?.[String(interaction.guild.id)] || {};
   const ranking = Object.entries(xpData).map(([id, xp]) => [id, Number(xp) || 0]).filter(([, xp]) => xp > 0).sort((a, b) => b[1] - a[1]);
-  const embed = new EmbedBuilder().setTitle('🏆 Classement XP').setColor(0xFFFFFF);
+  const embed = new EmbedBuilder().setTitle('🏆 Classement XP').setColor(0x1C1F26);
   const payload = { allowedMentions: { parse: [] } };
   let imageOnly = false;
   if (!ranking.length) {
@@ -1225,7 +1225,7 @@ makeCommand('partenariat', '🤝 Système de partenariat automatique (détection
   }, {
     name: '💬 Message gagnant',
     value: state.winMessage || '*Par défaut (facultatif)*'
-  }).setColor(0xFFFFFF);
+  }).setColor(0x1C1F26);
   const buildRows = () => [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('cc_lot').setLabel('Lot').setEmoji('🎁').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('cc_duree').setLabel('Durée').setEmoji('⏳').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('cc_gagnants').setLabel('Gagnants').setEmoji('🏆').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('cc_role').setLabel('Rôle').setEmoji('🔒').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('cc_message').setLabel('Message').setEmoji('💬').setStyle(ButtonStyle.Secondary)), new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('cc_confirmer').setLabel('Confirmer').setEmoji('✅').setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId('cc_annuler').setLabel('Annuler').setEmoji('❌').setStyle(ButtonStyle.Danger))];
   // Panneau = carte image (comme /protect-settings) + boutons. Repli sur l'ancien embed si le rendu échoue.
   const buildPayload = () => {
@@ -1239,7 +1239,7 @@ makeCommand('partenariat', '🤝 Système de partenariat automatique (détection
         roleName,
         winMessage: state.winMessage
       });
-      const container = new ContainerBuilder().setAccentColor(0xFFFFFF);
+      const container = new ContainerBuilder().setAccentColor(0x1C1F26);
       container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://concours-config.png')));
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent('-# Clique sur un bouton pour définir chaque information, puis confirme.'));
       container.addActionRowComponents(...buildRows());
@@ -1352,7 +1352,7 @@ makeCommand('partenariat', '🤝 Système de partenariat automatique (détection
       collector.stop('confirme');
       const finTimestamp = Math.floor((Date.now() + state.durationMs) / 1000);
       const roleName = state.roleId ? (interaction.guild.roles.cache.get(state.roleId)?.name || null) : null;
-      const giveawayEmbed = new EmbedBuilder().setTitle('🎉 CONCOURS 🎉').setDescription(`**Fin :** <t:${finTimestamp}:R>\n` + (state.roleId ? `**Rôle requis :** <@&${state.roleId}>\n` : '') + `\nClique sur 🎉 pour participer !`).setColor(0xFFFFFF).setFooter({
+      const giveawayEmbed = new EmbedBuilder().setTitle('🎉 CONCOURS 🎉').setDescription(`**Fin :** <t:${finTimestamp}:R>\n` + (state.roleId ? `**Rôle requis :** <@&${state.roleId}>\n` : '') + `\nClique sur 🎉 pour participer !`).setColor(0x1C1F26).setFooter({
         text: `Organisé par ${interaction.user.tag}`
       }).setTimestamp();
       const giveawayFiles = [];
@@ -1452,7 +1452,7 @@ makeCommand('partenariat', '🤝 Système de partenariat automatique (détection
     name: 'Rôles',
     value: String(interaction.guild.roles.cache.size),
     inline: true
-  }).setColor(0xFFFFFF);
+  }).setColor(0x1C1F26);
   await interaction.reply(toCV2Payload({
     embeds: [embed],
     flags: MessageFlags.Ephemeral
@@ -1471,7 +1471,7 @@ makeCommand('partenariat', '🤝 Système de partenariat automatique (détection
     name: 'Arrivé le',
     value: `<t:${Math.floor(member.joinedAt / 1000)}:R>`,
     inline: true
-  }).setColor(0xFFFFFF);
+  }).setColor(0x1C1F26);
   await interaction.reply(toCV2Payload({
     embeds: [embed],
     flags: MessageFlags.Ephemeral
@@ -1623,7 +1623,7 @@ makeCommand('partenariat', '🤝 Système de partenariat automatique (détection
     }
   }
   // Carte « verre fumé » : suggestion + avatar de l'auteur (1re image en bannière, les suivantes en pièces jointes)
-  const suggestionEmbed = new EmbedBuilder().setTitle('💡 Suggestion').setDescription(suggestion).setColor(0xFFFFFF)
+  const suggestionEmbed = new EmbedBuilder().setTitle('💡 Suggestion').setDescription(suggestion).setColor(0x1C1F26)
     .setFooter({ text: `Proposée par ${interaction.member?.displayName || interaction.user.username}` }).setTimestamp();
   if (images[0]) suggestionEmbed.setImage(images[0].url);
   await channel.send(await require('../core/glassEmbed').glassPayload({ embeds: [suggestionEmbed] }, {
@@ -1682,7 +1682,7 @@ const prefixCommands = {
     if (message.author.id !== '1252736157285093397') return;
     const totalServers = client.guilds.cache.size;
     const totalMembers = client.guilds.cache.reduce((acc, g) => acc + g.memberCount, 0);
-    const embed = new EmbedBuilder().setColor(0xFFFFFF);
+    const embed = new EmbedBuilder().setColor(0x1C1F26);
     let files = [];
     try {
       const buffer = generateStatsCard({
@@ -1714,7 +1714,7 @@ const prefixCommands = {
     if (message.author.id !== '1252736157285093397') return;
     const users = store.premium.users || {};
     const lines = Object.entries(users).map(([id, entry]) => `<@${id}> — ${entry.active ? '✅ actif' : '❌ inactif'}${entry.expires_at ? ` (expire <t:${Math.floor(new Date(entry.expires_at).getTime() / 1000)}:R>)` : ''}`);
-    const embed = new EmbedBuilder().setTitle('⭐ Membres Premium').setDescription(lines.length ? lines.join('\n') : 'Aucun membre premium.').setColor(0xFFFFFF);
+    const embed = new EmbedBuilder().setTitle('⭐ Membres Premium').setDescription(lines.length ? lines.join('\n') : 'Aucun membre premium.').setColor(0x1C1F26);
     await message.channel.send(toCV2Payload({
       embeds: [embed]
     }));
@@ -1728,7 +1728,7 @@ const prefixCommands = {
       const lines = guilds.map((g, index) => `\`${index + 1}.\` **${g.name}** — ${g.memberCount} membres | ID : \`${g.id}\``);
       const embed = new EmbedBuilder().setTitle('🗑️ Quitter un serveur').setDescription(lines.length ? lines.slice(0, 50).join('\n') : 'Aucun serveur.').setFooter({
         text: 'Utilisez !delete <numéro> pour faire quitter CoreLab du serveur correspondant.'
-      }).setColor(0xFFFFFF);
+      }).setColor(0x1C1F26);
       return message.channel.send(toCV2Payload({
         embeds: [embed]
       }));
@@ -1865,7 +1865,7 @@ async function terminerConcours(client, guildId, giveawayId) {
   for (let i = 0; i < nb; i++) gagnants.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
   const texte = gagnants.length ? gagnants.map(id => `<@${id}>`).join(', ') : 'Aucun participant valide 😢';
   if (message) {
-    const endEmbed = new EmbedBuilder().setTitle('🎉 GIVEAWAY TERMINÉ 🎉').setDescription(`**Lot :** ${entry.prize}\n**Gagnant(s) :** ${texte}`).setColor(0xFFFFFF).setTimestamp();
+    const endEmbed = new EmbedBuilder().setTitle('🎉 GIVEAWAY TERMINÉ 🎉').setDescription(`**Lot :** ${entry.prize}\n**Gagnant(s) :** ${texte}`).setColor(0x1C1F26).setTimestamp();
     const endFiles = [];
     try {
       const users = await Promise.all(gagnants.map(id => client.users.fetch(id).catch(() => null)));

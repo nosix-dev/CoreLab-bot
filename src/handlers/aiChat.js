@@ -27,7 +27,7 @@ const {
 const IA_CATEGORY_NAME = '🤖〢CoreLab Intélligence';
 const ANCIEN_IA_CATEGORY_NAME = '🤖〢ScaraBot Intélligence';
 const IA_CHANNEL_NAME = '🌐〢corelab-ia';
-const IA_BRAND_COLOR = 0xFFFFFF;
+const IA_BRAND_COLOR = 0x1C1F26;
 // Google Gemini (gratuit, sans carte bancaire) via son endpoint compatible OpenAI
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';

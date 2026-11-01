@@ -69,7 +69,7 @@ function buildGoodbyeContainer(member, { includeImage = true, glassBuffer = null
         `Nous sommes maintenant **${member.guild.memberCount}** membre(s).\n\n` +
         `Merci d'être passé, à bientôt peut-être ! 👋`;
 
-    const container = new ContainerBuilder().setAccentColor(appearance.color ?? 0xFFFFFF);
+    const container = new ContainerBuilder().setAccentColor(appearance.color ?? 0x1C1F26);
     const separator = () => new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
     // Titre

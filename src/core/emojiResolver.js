@@ -19,6 +19,15 @@
 // Les emojis Unicode (📢 👋 ✅…) sont aussi remplacés par l'icône personnalisée
 // équivalente (table dans unicodeIcons.js). Un emoji sans équivalent reste
 // tel quel. Désactivable avec EMOJI_UNICODE_TO_CUSTOM=0 dans le .env.
+//
+// MENUS DÉROULANTS (select menus) : chaque option reçoit son emoji personnalisé,
+// quel que soit le menu du bot :
+//   - emoji posé avec setEmoji('📜')          -> remplacé par l'icône personnalisée équivalente
+//   - emoji au début du label ('📜 Règlement') -> déplacé dans le champ emoji (Discord ne
+//     dessine pas les emojis personnalisés dans un label), en version personnalisée si elle existe
+//   - ':nom:' ou '<:nom:id>' au début du label -> idem
+// Un emoji personnalisé inconnu (supprimé / pas dans le cache) est ignoré pour éviter
+// l'erreur COMPONENT_INVALID_EMOJI : l'emoji d'origine reste affiché.
 // ────────────────────────────────────────────────
 
 const { MessagePayload } = require('discord.js');
@@ -93,12 +102,73 @@ function convertText(text, guild, client) {
   return out + convertPart(text.slice(last));
 }
 
+
+// ── Menus déroulants : emoji personnalisé sur chaque option ──
+const STRING_SELECT = 3;
+const LEAD_CUSTOM = /^\s*<(a?):(\w+):(\d+)>\s*/;
+const LEAD_SHORT = /^\s*:([A-Za-z0-9_-]{2,32}):\s*/;
+const LEAD_UNICODE = new RegExp('^\\s*' + UNICODE_RE.source, 'u');
+
+function parseCustom(str) {
+  const m = /^<(a?):(\w+):(\d+)>$/.exec(String(str || ''));
+  return m ? { id: m[3], name: m[2], animated: m[1] === 'a' } : null;
+}
+
+// L'emoji personnalisé existe-t-il vraiment (cache serveur / application / bot) ?
+function isKnownEmoji(id, guild, client) {
+  return !!(guild?.emojis?.cache?.has(id) || client?.application?.emojis?.cache?.has(id) || client?.emojis?.cache?.has(id));
+}
+
+function customForUnicode(raw) {
+  const icon = findUnicodeIcon(String(raw).split(VS16).join(''));
+  return icon ? parseCustom(icon) : null;
+}
+
+function processOption(opt, ctx) {
+  if (!opt || typeof opt !== 'object') return;
+  const { guild, client } = ctx;
+
+  // 1) emoji déjà posé en Unicode (setEmoji('📜')) -> version personnalisée
+  if (opt.emoji && !opt.emoji.id && opt.emoji.name) {
+    if (UNICODE_ON) {
+      const c = customForUnicode(opt.emoji.name);
+      if (c && isKnownEmoji(c.id, guild, client)) opt.emoji = c;
+    }
+    return;
+  }
+  if (opt.emoji || typeof opt.label !== 'string') return;
+
+  // 2) emoji au début du label -> champ emoji de l'option
+  const label = opt.label;
+  let emoji = null;
+  let rest = label;
+  let m;
+  if ((m = LEAD_CUSTOM.exec(label))) {
+    emoji = { id: m[3], name: m[2], animated: m[1] === 'a' };
+    rest = label.slice(m[0].length);
+  } else if ((m = LEAD_SHORT.exec(label))) {
+    emoji = parseCustom(findEmoji(m[1], guild, client));
+    if (emoji) rest = label.slice(m[0].length);
+  } else if (UNICODE_ON && (m = LEAD_UNICODE.exec(label))) {
+    emoji = customForUnicode(m[1]);
+    if (emoji) rest = label.slice(m[0].length);
+  }
+  if (!emoji || !rest.trim() || !isKnownEmoji(emoji.id, guild, client)) return;
+  opt.emoji = emoji;
+  opt.label = rest.trim().slice(0, 100);
+}
+
 function walkComponents(list, ctx) {
   if (!Array.isArray(list)) return;
   for (const c of list) {
     if (!c || typeof c !== 'object') continue;
     if (c.type === TEXT_DISPLAY && typeof c.content === 'string') {
       c.content = convertText(c.content, ctx.guild, ctx.client);
+    }
+    if (c.type === STRING_SELECT && Array.isArray(c.options)) {
+      for (const o of c.options) {
+        try { processOption(o, ctx); } catch (e) { console.error('emojiResolver (menu) :', e.message); }
+      }
     }
     if (Array.isArray(c.components)) walkComponents(c.components, ctx);
     if (c.accessory && typeof c.accessory === 'object') walkComponents([c.accessory], ctx);
@@ -162,4 +232,4 @@ async function loadApplicationEmojis(client) {
 
 install();
 
-module.exports = { install, convertText, loadApplicationEmojis };
+module.exports = { install, convertText, loadApplicationEmojis, processOption };

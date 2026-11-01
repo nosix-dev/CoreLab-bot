@@ -51,7 +51,7 @@ function buildPromptRow(guildId, disabled = false) {
 
 function buildPromptEmbed(guild, client, botPeutAgir) {
   const embed = new EmbedBuilder()
-    .setColor(0xFFFFFF)
+    .setColor(0x1C1F26)
     .setTitle("🛡️ Activer l'AutoMod sur votre serveur ?")
     .setDescription(
       `Merci d'avoir ajouté **CoreLab** sur **${guild.name}** !\n\n` +

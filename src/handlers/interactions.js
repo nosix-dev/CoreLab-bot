@@ -198,7 +198,7 @@ async function handleTicketComponent(interaction) {
       inline: false
     }).setFooter({
       text: `${reasons.length} raison(s) dans ce salon`
-    }).setColor(0xFFFFFF);
+    }).setColor(0x1C1F26);
     return interaction.reply(toCV2Payload({
       embeds: [embed],
       flags: MessageFlags.Ephemeral
@@ -656,7 +656,7 @@ async function handleTicketModal(interaction) {
     cfg.ticket_counts[`${chKey}_${value}`] = cfg.ticket_counts[`${chKey}_${value}`] || 0;
     if (cfg.ticket_open_count === undefined) cfg.ticket_open_count = 0;
     persist('config');
-    const embed = new EmbedBuilder().setTitle('📋 Formulaire de ticket').setDescription(`Raison **${label}** créée dans ce salon !\n\nSouhaites-tu ajouter un formulaire (questions) à cette raison ?`).setColor(0xFFFFFF);
+    const embed = new EmbedBuilder().setTitle('📋 Formulaire de ticket').setDescription(`Raison **${label}** créée dans ce salon !\n\nSouhaites-tu ajouter un formulaire (questions) à cette raison ?`).setColor(0x1C1F26);
     const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`ticket_ask_form_yes_${interaction.channel.id}_${value}`).setLabel('✅ Oui, ajouter un formulaire').setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId('ticket_ask_form_no').setLabel('❌ Non, passer').setStyle(ButtonStyle.Secondary));
     return interaction.reply(toCV2Payload({
       embeds: [embed],
@@ -753,7 +753,7 @@ async function handleTicketModal(interaction) {
     if (remaining.length) {
       state.page += 1;
       pendingForms.set(foundKey, state);
-      const embed = new EmbedBuilder().setTitle(`🎫 ${state.reasonLabel} — Suite`).setDescription('Encore quelques questions :').setColor(0xFFFFFF);
+      const embed = new EmbedBuilder().setTitle(`🎫 ${state.reasonLabel} — Suite`).setDescription('Encore quelques questions :').setColor(0x1C1F26);
       const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`ticket_form_continue_${foundKey}`).setLabel('➡️ Continuer le formulaire').setStyle(ButtonStyle.Primary));
       return interaction.followUp(toCV2Payload({
         embeds: [embed],
@@ -766,7 +766,7 @@ async function handleTicketModal(interaction) {
 
       // ── Formulaire standalone (/form) : pas de ticket, on poste juste le récap ──
       if (state.standalone) {
-        const recap = new EmbedBuilder().setTitle(`📋 Réponses — ${state.reasonLabel}`).setColor(0xFFFFFF).setFooter({
+        const recap = new EmbedBuilder().setTitle(`📋 Réponses — ${state.reasonLabel}`).setColor(0x1C1F26).setFooter({
           text: `Envoyé par ${interaction.user.tag}`,
           iconURL: interaction.user.displayAvatarURL()
         }).setTimestamp();
@@ -812,7 +812,7 @@ async function handleTicketAskForm(interaction) {
   if (id === 'ticket_ask_form_no') {
     // Le message d'origine est en Components V2 (toCV2Payload) : `content` et
     // `embeds` y sont interdits, on repasse donc par toCV2Payload.
-    const doneEmbed = new EmbedBuilder().setTitle('📋 Formulaire de ticket').setDescription('✅ Raison créée sans formulaire.').setColor(0xFFFFFF);
+    const doneEmbed = new EmbedBuilder().setTitle('📋 Formulaire de ticket').setDescription('✅ Raison créée sans formulaire.').setColor(0x1C1F26);
     return interaction.update(toCV2Payload({
       embeds: [doneEmbed],
       components: []
@@ -827,7 +827,7 @@ async function handleTicketAskForm(interaction) {
     const formKey = `${channelId}_${value}`;
     if (!store.ticketForms[gid][formKey]) store.ticketForms[gid][formKey] = [];
     persist('ticketForms');
-    const embed = new EmbedBuilder().setTitle('📋 Gestion du formulaire').setDescription(`Formulaire pour cette raison\n\n**Questions actuelles :** ${store.ticketForms[gid][formKey].length}/50\n\nUtilise les boutons pour gérer les questions.`).setColor(0xFFFFFF);
+    const embed = new EmbedBuilder().setTitle('📋 Gestion du formulaire').setDescription(`Formulaire pour cette raison\n\n**Questions actuelles :** ${store.ticketForms[gid][formKey].length}/50\n\nUtilise les boutons pour gérer les questions.`).setColor(0x1C1F26);
     return interaction.update(toCV2Payload({
       embeds: [embed],
       components: buildFormManagerRows(formKey)
@@ -890,7 +890,7 @@ async function handleFormManagerButtons(interaction) {
     const lines = fields.map((f, i) => `\`${i + 1}.\` **${f.label}** — ${f.required ? 'Obligatoire' : 'Optionnelle'} • ${f.style === 'paragraph' ? 'Long' : 'Court'}`);
     const embed = new EmbedBuilder().setTitle('📋 Questions du formulaire').setDescription(lines.join('\n')).setFooter({
       text: `${fields.length}/50 questions`
-    }).setColor(0xFFFFFF);
+    }).setColor(0x1C1F26);
     return interaction.reply(toCV2Payload({
       embeds: [embed],
       flags: MessageFlags.Ephemeral
@@ -906,7 +906,7 @@ async function handleFormManagerButtons(interaction) {
         flags: MessageFlags.Ephemeral
       });
     }
-    const embed = new EmbedBuilder().setTitle('✅ Formulaire enregistré !').setDescription(`Le formulaire est prêt avec **${fields.length} question(s)**.\n\nLes utilisateurs verront ce formulaire lorsqu'ils ouvriront un ticket avec cette raison.`).setColor(0xFFFFFF);
+    const embed = new EmbedBuilder().setTitle('✅ Formulaire enregistré !').setDescription(`Le formulaire est prêt avec **${fields.length} question(s)**.\n\nLes utilisateurs verront ce formulaire lorsqu'ils ouvriront un ticket avec cette raison.`).setColor(0x1C1F26);
     return interaction.update(toCV2Payload({
       embeds: [embed],
       components: []
@@ -940,7 +940,7 @@ async function handleFormFieldModals(interaction) {
       style
     });
     persist('ticketForms');
-    const embed = new EmbedBuilder().setTitle('📋 Gestion du formulaire').setDescription(`✅ Question **"${label}"** ajoutée !\n**Questions actuelles :** ${fields.length}/50`).setColor(0xFFFFFF);
+    const embed = new EmbedBuilder().setTitle('📋 Gestion du formulaire').setDescription(`✅ Question **"${label}"** ajoutée !\n**Questions actuelles :** ${fields.length}/50`).setColor(0x1C1F26);
     return interaction.update(toCV2Payload({
       embeds: [embed],
       components: buildFormManagerRows(formKey)
@@ -960,7 +960,7 @@ async function handleFormFieldModals(interaction) {
     }
     const removed = fields.splice(idx, 1)[0];
     persist('ticketForms');
-    const embed = new EmbedBuilder().setTitle('📋 Gestion du formulaire').setDescription(`🗑️ Question **"${removed.label}"** retirée !\n**Questions restantes :** ${fields.length}/50`).setColor(0xFFFFFF);
+    const embed = new EmbedBuilder().setTitle('📋 Gestion du formulaire').setDescription(`🗑️ Question **"${removed.label}"** retirée !\n**Questions restantes :** ${fields.length}/50`).setColor(0x1C1F26);
     return interaction.update(toCV2Payload({
       embeds: [embed],
       components: buildFormManagerRows(formKey)
@@ -1156,7 +1156,7 @@ async function handleFormPublishButton(interaction) {
     content: '❌ Ajoute au moins une question avant de publier.',
     flags: MessageFlags.Ephemeral
   });
-  const embed = new EmbedBuilder().setTitle(meta.title || `📋 ${meta.nom}`).setDescription(`${meta.description || 'Clique sur le bouton ci-dessous pour remplir ce formulaire.'}\n\n` + `**Questions :** ${fields.length}`).setColor(meta.color ?? 0xFFFFFF);
+  const embed = new EmbedBuilder().setTitle(meta.title || `📋 ${meta.nom}`).setDescription(`${meta.description || 'Clique sur le bouton ci-dessous pour remplir ce formulaire.'}\n\n` + `**Questions :** ${fields.length}`).setColor(meta.color ?? 0x1C1F26);
   const files = [];
   if (meta.image) {
     const cheminImage = path.join(DOSSIER_IMAGES_FORMULAIRE, meta.image);

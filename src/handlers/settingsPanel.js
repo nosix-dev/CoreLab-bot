@@ -127,7 +127,7 @@ function buildTranslationDashboard(guild) {
   const scope = cfg.translation_scope === 'server' ? '🌍 Serveur entier' : cfg.translation_scope === 'channel' ? '📌 Salon précis' : '❌ Non défini';
   const omni = cfg.translation_omnidirectional === true;
   const langFieldName = omni ? '🔤 Langue des non-francophones' : '🔤 Langue cible';
-  const embed = new EmbedBuilder().setTitle('🌐 Panneau de traduction automatique').setDescription('Configure ici le système de traduction automatique admin.\nClique sur un bouton pour modifier un paramètre.' + (omni ? '\n\n🔁 **Mode omnidirectionnel activé** : tout message qui n\'est pas en français est traduit en français, et tout message en français est traduit dans la langue ci-dessous.' : '')).setColor(0xFFFFFF).addFields({
+  const embed = new EmbedBuilder().setTitle('🌐 Panneau de traduction automatique').setDescription('Configure ici le système de traduction automatique admin.\nClique sur un bouton pour modifier un paramètre.' + (omni ? '\n\n🔁 **Mode omnidirectionnel activé** : tout message qui n\'est pas en français est traduit en français, et tout message en français est traduit dans la langue ci-dessous.' : '')).setColor(0x1C1F26).addFields({
     name: '🌐 Traduction automatique',
     value: on(cfg.translation_enabled),
     inline: true
@@ -258,7 +258,7 @@ function buildAutoresponseDashboard(guild) {
   const on = v => v !== false ? '🟢 Activé' : '🔴 Désactivé';
   const bucket = getAutoresponses(guild.id);
   const listValue = bucket.length ? bucket.slice(0, 10).map((a, i) => `\`${i + 1}\` **${a.keyword}** → ${String(a.response).slice(0, 60)}${a.response.length > 60 ? '…' : ''}`).join('\n') + (bucket.length > 10 ? `\n*... et ${bucket.length - 10} de plus*` : '') : '*(aucune réponse configurée)*';
-  return new EmbedBuilder().setTitle('🤖 Panneau des réponses automatiques').setDescription('Configure ici les réponses automatiques du serveur.\nClique sur un bouton pour gérer la liste.').setColor(0xFFFFFF).addFields({
+  return new EmbedBuilder().setTitle('🤖 Panneau des réponses automatiques').setDescription('Configure ici les réponses automatiques du serveur.\nClique sur un bouton pour gérer la liste.').setColor(0x1C1F26).addFields({
     name: '💬 Système',
     value: on(cfg.autoresponse_enabled),
     inline: true

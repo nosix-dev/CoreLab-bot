@@ -150,7 +150,7 @@ function renderRankingCard({ title, subtitle, badge = 'CLASSEMENT', rows, guildI
  */
 function buildRankingPayload({ heading, note, ...card }) {
   const file = new AttachmentBuilder(renderRankingCard(card), { name: 'classement.png' });
-  const container = new ContainerBuilder().setAccentColor(containerAccent(card.guildId, 0xFFFFFF));
+  const container = new ContainerBuilder().setAccentColor(containerAccent(card.guildId, 0x1C1F26));
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(heading));
   container.addMediaGalleryComponents(
     new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://classement.png'))

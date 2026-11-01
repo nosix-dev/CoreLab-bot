@@ -485,7 +485,7 @@ function formatConfigValue(guildId, cfg, setting) {
 function buildConfigHomeEmbed(guild) {
   const gid = guild.id;
   const totalSettings = Object.values(CONFIG_CATEGORIES).reduce((sum, c) => sum + c.settings.length, 0);
-  return new EmbedBuilder().setTitle(t(gid, 'config_home_title')).setColor(0xFFFFFF).setThumbnail(guild.members.me.displayAvatarURL()).addFields({
+  return new EmbedBuilder().setTitle(t(gid, 'config_home_title')).setColor(0x1C1F26).setThumbnail(guild.members.me.displayAvatarURL()).addFields({
     name: t(gid, 'config_home_welcome_field'),
     value: t(gid, 'config_home_welcome_value'),
     inline: false
@@ -501,7 +501,7 @@ function buildConfigHomeEmbed(guild) {
 }
 function buildCategoryEmbed(catKey, cfg, guildId) {
   const cat = CONFIG_CATEGORIES[catKey];
-  const embed = new EmbedBuilder().setTitle(`${t(guildId, cat.titleKey)} — ${t(guildId, 'config_title_suffix')}`).setDescription(t(guildId, cat.descKey)).setColor(0xFFFFFF);
+  const embed = new EmbedBuilder().setTitle(`${t(guildId, cat.titleKey)} — ${t(guildId, 'config_title_suffix')}`).setDescription(t(guildId, cat.descKey)).setColor(0x1C1F26);
   cat.settings.forEach(s => {
     embed.addFields({
       name: `${s.emoji} ${t(guildId, s.labelKey)}`,
@@ -587,7 +587,7 @@ function buildXpRolesEmbed(guildId, cfg) {
   const replace = cfg.xp_roles_mode === 'replace';
   const modeText = replace ? '🔁 **Remplacement** : le membre ne garde que le rôle du palier le plus haut atteint.' : '📚 **Cumulatif** : le membre garde tous les rôles des paliers atteints.';
   const description = `${modeText}\n\nTu peux ajouter plusieurs rôles (même sur un même niveau).\n\n${list}`.slice(0, 4000);
-  return new EmbedBuilder().setTitle('🏆 Rôles de récompense XP').setDescription(description).setColor(0xFFFFFF);
+  return new EmbedBuilder().setTitle('🏆 Rôles de récompense XP').setDescription(description).setColor(0x1C1F26);
 }
 function buildXpRolesRows(guildId, cfg, guild) {
   const rows = [];
@@ -656,7 +656,7 @@ async function executePanneau(interaction) {
         const catKey = i.values[0];
         const targetCat = CONFIG_CATEGORIES[catKey];
         if (targetCat?.premium && !isPremium(i.user.id)) {
-          const premiumEmbed = new EmbedBuilder().setTitle(t(gid, 'config_premium_category_title')).setDescription(t(gid, 'config_premium_category_desc')).setColor(0xFFFFFF);
+          const premiumEmbed = new EmbedBuilder().setTitle(t(gid, 'config_premium_category_title')).setDescription(t(gid, 'config_premium_category_desc')).setColor(0x1C1F26);
           return await i.reply(configPayload(premiumEmbed, [buildSubscriptionRow()], {
             ephemeral: true
           }));
@@ -691,7 +691,7 @@ async function executePanneau(interaction) {
         if (setting.premium && !isPremium(i.user.id)) {
           const premiumEmbed = new EmbedBuilder().setTitle(t(gid, 'config_premium_setting_title')).setDescription(t(gid, 'config_premium_setting_desc', {
             setting: settingLabel
-          })).setColor(0xFFFFFF);
+          })).setColor(0x1C1F26);
           return await i.reply(configPayload(premiumEmbed, [buildSubscriptionRow()], {
             ephemeral: true
           }));
@@ -1329,7 +1329,7 @@ async function executeComptageSalon(interaction) {
     embeds: [new EmbedBuilder()
       .setTitle('🔢 Jeu de Comptage activé !')
       .setDescription('La communauté compte à la suite dans ce salon.\nÀ vous de jouer : commencez par **1** !')
-      .setColor(0xFFFFFF)]
+      .setColor(0x1C1F26)]
   }).catch(() => { });
 
   return interaction.reply({
@@ -1790,7 +1790,7 @@ const infractions = {
       name: t(gid, 'infractions_next'),
       value: sanctions[count] || t(gid, 'infractions_ban_label'),
       inline: true
-    }).setColor(0xFFFFFF);
+    }).setColor(0x1C1F26);
     if (count > 0) {
       const recent = history.slice(-5).reverse().map((inf, i) => {
         const n = count - i;
@@ -1830,7 +1830,7 @@ const infraction_add = {
     const logEmbed = new EmbedBuilder().setAuthor({
       name: '📋 Infraction',
       iconURL: interaction.guild.iconURL()
-    }).setColor(0xFFFFFF).setThumbnail(member.user.displayAvatarURL({
+    }).setColor(0x1C1F26).setThumbnail(member.user.displayAvatarURL({
       size: 256
     })).addFields({
       name: '👤 Membre',
@@ -1914,7 +1914,7 @@ const stats = {
       name: '👥 Total des membres',
       value: String(totalMembers),
       inline: true
-    }).setColor(0xFFFFFF);
+    }).setColor(0x1C1F26);
     await interaction.reply(toCV2Payload({
       embeds: [embed]
     }));
@@ -2017,7 +2017,7 @@ const premium = {
       const expires = entry.expires_at ? formatDate(entry.expires_at) : 'Aucune date';
       return `• <@${id}> — ${active ? '✅ actif' : '❌ inactif'} — ${expires}`;
     });
-    const embed = new EmbedBuilder().setTitle('⭐ Liste des membres Premium').setDescription(lines.length ? lines.join('\n') : 'Aucun membre premium enregistré.').setColor(0xFFFFFF);
+    const embed = new EmbedBuilder().setTitle('⭐ Liste des membres Premium').setDescription(lines.length ? lines.join('\n') : 'Aucun membre premium enregistré.').setColor(0x1C1F26);
     await interaction.reply(toCV2Payload({
       embeds: [embed]
     }));
@@ -2028,7 +2028,7 @@ const langue = {
   async execute(interaction) {
     const cfg = getGuildConfig(interaction.guild.id);
     const currentInfo = LANGUAGES[cfg.language] || LANGUAGES.fr;
-    const embed = new EmbedBuilder().setTitle(`🌐 ${t(interaction.guild.id, 'lang_select_placeholder')}`).setDescription(`**${t(interaction.guild.id, 'current_language')}**: ${currentInfo.flag} ${currentInfo.name}`).setColor(0xFFFFFF);
+    const embed = new EmbedBuilder().setTitle(`🌐 ${t(interaction.guild.id, 'lang_select_placeholder')}`).setDescription(`**${t(interaction.guild.id, 'current_language')}**: ${currentInfo.flag} ${currentInfo.name}`).setColor(0x1C1F26);
     const row = buildLanguageRow(interaction.guild.id);
     await interaction.reply(toCV2Payload({
       embeds: [embed],
@@ -2046,7 +2046,7 @@ const langue = {
       gcfg.language = newLang;
       persist('config');
       const info = LANGUAGES[newLang];
-      const confirmEmbed = new EmbedBuilder().setTitle(`✅ ${t(interaction.guild.id, 'lang_changed')}`).setDescription(`${info.flag} ${info.name}`).setColor(0xFFFFFF);
+      const confirmEmbed = new EmbedBuilder().setTitle(`✅ ${t(interaction.guild.id, 'lang_changed')}`).setDescription(`${info.flag} ${info.name}`).setColor(0x1C1F26);
       await safeComponentUpdate(i, toCV2Payload({
         embeds: [confirmEmbed],
         components: []

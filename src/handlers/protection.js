@@ -305,7 +305,7 @@ async function checkRaidMode(member) {
     } catch (e) {
       console.error('Erreur fin de lockdown :', e.message);
     }
-    const embed = new EmbedBuilder().setTitle('🛡️ Auto RaidMode — fin du lockdown').setDescription('Le lockdown automatique a été levé.').setColor(0xFFFFFF).setTimestamp();
+    const embed = new EmbedBuilder().setTitle('🛡️ Auto RaidMode — fin du lockdown').setDescription('Le lockdown automatique a été levé.').setColor(0x1C1F26).setTimestamp();
     sendProtectionLog(member.guild, embed).catch(() => { });
   }, durationMs);
   let embed = new EmbedBuilder().setTitle('🚨 Auto RaidMode déclenché').setDescription(`**${list.length}** arrivées détectées en moins de **${cfg.raidmode_window_seconds}s**.\n` + `Action : **${cfg.raidmode_action}** • Durée du lockdown : **${cfg.raidmode_duration_minutes} min**`).setColor(0xff0000).setTimestamp();
@@ -590,7 +590,7 @@ async function endDdos(guild, how = 'auto') {
     }
   }
   const origin = how === 'manual' ? 'levée manuellement' : (how === 'restart' ? 'terminée (redémarrage du bot)' : 'terminée');
-  const embed = new EmbedBuilder().setTitle('🌊 Anti-DDoS — fin de l\'alerte').setDescription(`L'alerte a été **${origin}**.\nSalons remis à la normale : **${restored}**${unlocked ? ' • Verrouillage levé' : ''}`).setColor(0xFFFFFF).setTimestamp();
+  const embed = new EmbedBuilder().setTitle('🌊 Anti-DDoS — fin de l\'alerte').setDescription(`L'alerte a été **${origin}**.\nSalons remis à la normale : **${restored}**${unlocked ? ' • Verrouillage levé' : ''}`).setColor(0x1C1F26).setTimestamp();
   await sendProtectionLog(guild, embed);
   return true;
 }
@@ -812,7 +812,7 @@ async function endDdosVoice(guild, how = 'auto') {
     }
   }
   const origin = how === 'manual' ? 'levée manuellement' : (how === 'restart' ? 'terminée (redémarrage du bot)' : 'terminée');
-  const embed = new EmbedBuilder().setTitle('🔊 Anti-DDoS vocal — fin de l\'alerte').setDescription(`L'alerte a été **${origin}**.\nSalons vocaux déverrouillés : **${restored}**`).setColor(0xFFFFFF).setTimestamp();
+  const embed = new EmbedBuilder().setTitle('🔊 Anti-DDoS vocal — fin de l\'alerte').setDescription(`L'alerte a été **${origin}**.\nSalons vocaux déverrouillés : **${restored}**`).setColor(0x1C1F26).setTimestamp();
   await sendProtectionLog(guild, embed);
   return true;
 }
@@ -866,7 +866,7 @@ function buildCaptchaEmbed(code, attemptsLeft, timeoutMinutes) {
     name: 'ℹ️ Instructions :',
     value: 'Tapez exactement le code affiché ci-dessus (sensible à la casse).',
     inline: false
-  }).setColor(0xFFFFFF).setFooter({
+  }).setColor(0x1C1F26).setFooter({
     text: '⚠️ Attention : vous serez expulsé si vous échouez ou si le temps expire.'
   });
 }
@@ -1578,7 +1578,7 @@ async function assignAuthReview(member) {
     return;
   }
   const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`protect_auth_accept_${member.guild.id}_${member.id}`).setLabel('✅ Accepter').setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId(`protect_auth_refuse_${member.guild.id}_${member.id}`).setLabel('❌ Refuser').setStyle(ButtonStyle.Danger), new ButtonBuilder().setCustomId(`protect_auth_double_${member.guild.id}_${member.id}`).setLabel('⚠️ Compte double').setStyle(ButtonStyle.Danger));
-  const embed = new EmbedBuilder().setTitle('🪪 Nouveau membre en attente de validation').setDescription(`${member} (\`${member.id}\`) a rejoint le serveur et attend une validation manuelle.`).setThumbnail(member.user.displayAvatarURL()).setColor(0xFFFFFF).setTimestamp();
+  const embed = new EmbedBuilder().setTitle('🪪 Nouveau membre en attente de validation').setDescription(`${member} (\`${member.id}\`) a rejoint le serveur et attend une validation manuelle.`).setThumbnail(member.user.displayAvatarURL()).setColor(0x1C1F26).setTimestamp();
   await channel.send(toCV2Payload({
     embeds: [embed],
     components: [row]
@@ -1785,7 +1785,7 @@ function buildProtectDashboard(guild) {
   const dot = v => v ? '🟢' : '🔴';
   const line = (...items) => items.map(([label, active]) => `${dot(active)} ${label}`).join('\n');
   const embed = new EmbedBuilder()
-    .setColor(0xFFFFFF)
+    .setColor(0x1C1F26)
     .setAuthor({ name: guild.name, iconURL: guild.iconURL({ size: 128 }) || undefined })
     .setTitle('🛡️ Panneau de protection')
     .setDescription('Clique sur un bouton ci-dessous pour ouvrir sa configuration.')
@@ -2002,7 +2002,7 @@ function withBackRow(rows) {
 }
 // card = AttachmentBuilder (config.png), rows = ActionRowBuilder[]
 function cfgPanel({ title, intro, notice, card, rows }) {
-  const container = new ContainerBuilder().setAccentColor(0xFFFFFF);
+  const container = new ContainerBuilder().setAccentColor(0x1C1F26);
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ${title}`));
   if (notice) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(String(notice).slice(0, 500)));
   container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://config.png')));
@@ -2342,7 +2342,7 @@ function buildCaptchaConfigView(cfg, guild, notice = null) {
   const verifiedRoleSelect = new RoleSelectMenuBuilder().setCustomId('protect_captcha_verified_role_select').setPlaceholder('Rôle "vérifié" à donner (optionnel)').setMinValues(1).setMaxValues(1);
   const actionRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('protect_captcha_create_channel').setLabel('➕ Créer le salon').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('protect_captcha_disable').setLabel('🔴 Désactiver le captcha').setStyle(ButtonStyle.Danger), backButton());
 
-  const container = new ContainerBuilder().setAccentColor(0xFFFFFF);
+  const container = new ContainerBuilder().setAccentColor(0x1C1F26);
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('## 🔒 Configuration du Captcha'));
   if (notice) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(String(notice).slice(0, 500)));
   container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://captcha.png')));
@@ -2823,7 +2823,7 @@ function buildHoneypotWarningPayload(cfg, description = buildHoneypotText(cfg), 
   const banner = findHoneypotMedia('banner');
   const thumb = findHoneypotMedia('thumbnail');
   const files = [];
-  const container = new ContainerBuilder().setAccentColor(0xFFFFFF);
+  const container = new ContainerBuilder().setAccentColor(0x1C1F26);
 
   // Miniature vidéo (mp4) : lecteur en haut du message
   if (thumb && thumb.isVideo) {

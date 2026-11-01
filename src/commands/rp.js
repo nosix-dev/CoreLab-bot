@@ -240,7 +240,7 @@ async function execute(interaction) {
 
     const embed = new EmbedBuilder()
       .setTitle(`📋 Profil RP de ${target.username}`)
-      .setColor(0xFFFFFF)
+      .setColor(0x1C1F26)
       .setThumbnail(target.displayAvatarURL({ extension: 'png', size: 256 }))
       .addFields(
         { name: '👤 Nom complet', value: `${profile.prenom} ${profile.nom.toUpperCase()}`, inline: true },

@@ -122,7 +122,7 @@ function buildPanel(guild, cfg, selected, confirmReset) {
       `Des salons vocaux verrouillés affichent une statistique, mise à jour toutes les 10 minutes.\n\n${lines.join('\n')}\n\n` +
       '-# ✅ actif • 🆕 sera créé • 🗑️ sera supprimé • Choisis les compteurs puis clique sur **Appliquer**.'
     )
-    .setColor(0xFFFFFF);
+    .setColor(0x1C1F26);
 
   const menu = new StringSelectMenuBuilder()
     .setCustomId('ss_types')

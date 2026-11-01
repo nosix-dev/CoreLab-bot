@@ -26,7 +26,7 @@ const { stockage, chargerDonnees, sauvegarderDonnees } = require('../core/data')
 const premium = require('../core/premium');
 const { MAX_SAUVEGARDES_PREMIUM } = require('../core/constants');
 
-const COULEUR = 0xFFFFFF;                 // barre blanche
+const COULEUR = 0x1C1F26;                 // barre blanche
 const ESSAI_JOURS = 7;                    // durée de l'essai gratuit (Premium)
 const LIEN_BOUTIQUE = process.env.PREMIUM_SHOP_URL || process.env.SITE_URL || 'https://discord.gg/WecpyxrSBT';
 const MUR_MAX = 25;

@@ -126,7 +126,7 @@ function buildEmbed(guild, spec, opts = {}) {
         if (avatar) embed.setThumbnail(avatar);
         embed.setFooter({ text: `ID du membre : ${spec.memberId ?? '?'} • Serveur : ${guild.name}` });
     } else {
-        embed.setColor(THEME_COLORS[spec.theme] ?? 0xffffff).setTitle(truncate(spec.title ?? 'Log', 250));
+        embed.setColor(THEME_COLORS[spec.theme] ?? 0x1C1F26).setTitle(truncate(spec.title ?? 'Log', 250));
         if (spec.sub) embed.setDescription(truncate(spec.sub, 500));
         for (const b of spec.blocks ?? []) add(b.label, b.value);
         if (spec.bigLabel && spec.bigValue != null) add(spec.bigLabel, String(spec.bigValue));
@@ -143,7 +143,12 @@ function buildEmbed(guild, spec, opts = {}) {
     return embed;
 }
 
-// Construit le message à envoyer : image seule (+ bouton éventuel), jamais d'embed
+// Ligne de texte au-dessus de l'image (ex. « Message supprimé », « Message modifié »), sans emoji ni mise en forme
+function logHeading(spec) {
+    return stripEmoji(spec?.title) || '';
+}
+
+// Construit le message à envoyer : texte court + image (+ bouton éventuel), jamais d'embed
 async function buildPayload(guild, spec, opts = {}) {
     const components = opts.components ?? (opts.link ? [linkRow(opts.link)] : []);
 
@@ -165,8 +170,11 @@ async function buildPayload(guild, spec, opts = {}) {
             ? await compactCard.renderCompact(compactCard.voiceSpec({ guildId: guild.id, guildName: guild.name, time: heureFR(), ...spec }))
             : await generateLogCardAsync({ guildId: guild.id, time: heureFR(), ...spec });
         return {
-            // Pour les logs vocaux, une ligne de texte avec le nom (visible dans la notification)
-            ...(opts.voice && opts.fallback ? { content: truncate(opts.fallback, 1900) } : {}),
+            // Ligne de texte au-dessus de l'image : nom du log (visible aussi dans la notification).
+            // Logs vocaux : « Pseudo a rejoint le vocal … » ; autres logs : « Message supprimé », « Message modifié »…
+            ...((opts.voice ? opts.fallback : logHeading(spec))
+                ? { content: truncate(opts.voice ? opts.fallback : logHeading(spec), 1900) }
+                : {}),
             files: [new AttachmentBuilder(buf, { name: opts.voice ? 'voice.png' : 'log.png' })],
             components,
             allowedMentions: { parse: [] },

@@ -55,7 +55,7 @@ async function findInviter(guild, client) {
 // Construction de l'embed / des composants
 // ────────────────────────────────────────────────
 function buildWelcomeEmbed(guild, client, inviter, { dm = false, destinataire = null } = {}) {
-  const embed = new EmbedBuilder().setColor(0xFFFFFF).setAuthor({
+  const embed = new EmbedBuilder().setColor(0x1C1F26).setAuthor({
     name: client.user.username,
     iconURL: client.user.displayAvatarURL()
   }).setTitle(t(guild.id, 'welcome_title')).setDescription(`${t(guild.id, 'welcome_greeting', {
@@ -107,7 +107,7 @@ function buildWelcomeDmEmbed(guild, client, inviter, destinataire) {
     ? `${t(guild.id, 'added_by')} ${inviter.username} • ${guild.name}`
     : guild.name;
   return new EmbedBuilder()
-    .setColor(0xFFFFFF)
+    .setColor(0x1C1F26)
     .setTitle(t(guild.id, 'welcome_title'))
     .setDescription(`${t(guild.id, 'welcome_greeting', { guild: nom })}\n\n${t(guild.id, 'welcome_help_info')}`)
     .setFooter({ text: footerText, iconURL: client.user.displayAvatarURL() })

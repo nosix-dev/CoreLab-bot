@@ -44,7 +44,7 @@ function buildPanel(client, userId, notice = null) {
   ];
   if (votes.estWeekend(now)) lignes.push('🎉 Bonus weekend : les votes comptent **2×** en ce moment !');
 
-  const container = new ContainerBuilder().setAccentColor(0xFFFFFF);
+  const container = new ContainerBuilder().setAccentColor(0x1C1F26);
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## 🗳️ Vote pour ${nom}`));
   if (notice) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(String(notice).slice(0, 500)));
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(statut + (u.pending > 0 ? `\n🎁 **${u.pending}** récompense(s) à récupérer : **+${xpAttente} XP**` : '')));

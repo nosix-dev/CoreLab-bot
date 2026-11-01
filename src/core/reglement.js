@@ -195,7 +195,7 @@ async function gererSoumissionModalReglement(interaction) {
     );
 
     const container = new ContainerBuilder()
-        .setAccentColor(config.rules_color ?? 0xFFFFFF)
+        .setAccentColor(config.rules_color ?? 0x1C1F26)
         .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(`# ${config.rules_title || '📜 Règlement du serveur'}`)
         )
