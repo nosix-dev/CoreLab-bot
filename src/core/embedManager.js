@@ -39,6 +39,7 @@ const COMPARTIMENT = 'embedsPersonnalises';
 const EMBED_NAME_REGEX = /^[a-z0-9_-]{1,32}$/;
 const MAX_BOUTONS_LIENS = 5;
 const MAX_MENTIONS = 10;
+const MAX_MESSAGE_AU_DESSUS = 2000;
 
 // ── Mentions (membres/rôles/@everyone/@here à ping quand l'embed est envoyé) ──
 // Stockées comme data.mentions = [{ id, type: 'user'|'role'|'everyone'|'here' }, ...]
@@ -65,9 +66,16 @@ function buildMentionsAllowed(data) {
 
 // Composant à placer au-dessus du Container au moment de l'envoi réel (pas dans
 // l'aperçu du panneau, pour ne pas re-notifier les gens à chaque Actualiser).
+// Texte placé au-dessus de l'embed : la ligne de mentions (@everyone, rôles...) puis, en dessous,
+// le message libre écrit via le bouton "Message" (data.messageTexte).
+function buildMessageAuDessus(data) {
+    const message = typeof data.messageTexte === 'string' ? data.messageTexte.trim().slice(0, MAX_MESSAGE_AU_DESSUS) : '';
+    return message || null;
+}
+
 function buildMentionsTextDisplay(data) {
-    const ligne = buildMentionsLigne(data);
-    return ligne ? new TextDisplayBuilder().setContent(ligne) : null;
+    const contenu = [buildMentionsLigne(data), buildMessageAuDessus(data)].filter(Boolean).join('\n');
+    return contenu ? new TextDisplayBuilder().setContent(contenu) : null;
 }
 
 function hasSpecialMention(data, type) {
@@ -269,6 +277,7 @@ function buildPanelRows(nom) {
         new ButtonBuilder().setCustomId(`embedm::color::${nom}`).setLabel('Couleur').setEmoji('🎨').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId(`embedm::buttons::${nom}`).setLabel('Boutons').setEmoji('🔘').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId(`embedm::mention::${nom}`).setLabel('Mentions').setEmoji('📣').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`embedm::message::${nom}`).setLabel('Message').setEmoji('💬').setStyle(ButtonStyle.Secondary),
     );
     const row3 = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`embedm::refresh::${nom}`).setLabel('Actualiser').setEmoji('🔄').setStyle(ButtonStyle.Secondary),
@@ -298,11 +307,14 @@ function buildPanelPayload(guildId, nom) {
     const ligneSalon = data.channelId ? `\n-# Salon de destination actuel : <#${data.channelId}>` : '\n-# Aucun salon choisi (bouton Envoyer → salon actuel par défaut)';
     const nbMentions = Array.isArray(data.mentions) ? data.mentions.length : 0;
     const ligneMentions = nbMentions ? `\n-# 🔔 ${nbMentions} mention(s) configurée(s) (ping envoyé avec l'embed)` : '';
+    const messageAuDessus = buildMessageAuDessus(data);
+    const apercuMessage = messageAuDessus ? messageAuDessus.replace(/\s+/g, ' ').replace(/@/g, '@\u200b').slice(0, 80) : '';
+    const ligneMessageTexte = messageAuDessus ? `\n-# 💬 Message au-dessus de l'embed : ${apercuMessage}${messageAuDessus.length > 80 ? '…' : ''}` : '';
     const ligneMessageEnvoye = data.sentMessageId
         ? `\n-# 💾 Message envoyé lié dans <#${data.sentChannelId}> — le bouton **Sauvegarder** le met à jour en direct`
         : '';
     const topText = new TextDisplayBuilder().setContent(
-        `**Embed personnalisé : \`${nom}\`**\n-# Référence à utiliser ailleurs : \`{embed:${nom}}\` (message de bienvenue, au revoir, réponse automatique...)${ligneSalon}${ligneMentions}${ligneMessageEnvoye}`
+        `**Embed personnalisé : \`${nom}\`**\n-# Référence à utiliser ailleurs : \`{embed:${nom}}\` (message de bienvenue, au revoir, réponse automatique...)${ligneSalon}${ligneMentions}${ligneMessageTexte}${ligneMessageEnvoye}`
     );
     return {
         flags: MessageFlags.IsComponentsV2,
@@ -330,6 +342,19 @@ function buildBasicModal(nom, data) {
     const { couleurLabel, couleurHexLabel } = buildCouleurLabelComponents(data.color);
 
     modal.addLabelComponents(titreLabel, descLabel, urlLabel, couleurLabel, couleurHexLabel);
+    return modal;
+}
+
+function buildMessageModal(nom, data) {
+    const modal = new ModalBuilder().setCustomId(`embedm::modalmessage::${nom}`).setTitle('Message au-dessus de l\'embed');
+    const messageInput = new TextInputBuilder()
+        .setCustomId('message')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false)
+        .setMaxLength(MAX_MESSAGE_AU_DESSUS)
+        .setPlaceholder('Texte envoyé juste après les mentions, au-dessus de l\'embed. Laisse vide pour le retirer.');
+    if (data.messageTexte) messageInput.setValue(String(data.messageTexte).slice(0, MAX_MESSAGE_AU_DESSUS));
+    modal.addLabelComponents(new LabelBuilder().setLabel('Message').setTextInputComponent(messageInput));
     return modal;
 }
 
@@ -463,6 +488,7 @@ async function routeEmbedInteraction(interaction) {
             if (action === 'categoryedit') {
                 return interaction.reply({ ...buildCategoryEditPayload(nom, data), flags: MessageFlags.Ephemeral });
             }
+            if (action === 'message') return interaction.showModal(buildMessageModal(nom, data));
             if (action === 'mention') {
                 return interaction.reply({
                     content: `📣 Sélectionne les membres et/ou rôles à mentionner quand cet embed sera envoyé (max ${MAX_MENTIONS}), et/ou active **@everyone** ou **@here** ci-dessous. Laisse la sélection vide pour ne mentionner personne.`,
@@ -668,6 +694,8 @@ async function routeEmbedInteraction(interaction) {
                 data.url = val('url') || null;
                 const couleur = resoudreCouleurDepuisModal(interaction);
                 if (couleur !== undefined && couleur !== null) data.color = couleur;
+            } else if (action === 'modalmessage') {
+                data.messageTexte = val('message').slice(0, MAX_MESSAGE_AU_DESSUS) || null;
             } else if (action === 'modalcolor') {
                 const couleur = resoudreCouleurDepuisModal(interaction);
                 if (couleur === null) {
@@ -745,6 +773,7 @@ module.exports = {
     buildEmbedContainer,
     buildPanelPayload,
     buildBasicModal,
+    buildMessageModal,
     buildColorModal,
     buildAuthorModal,
     buildFooterModal,
