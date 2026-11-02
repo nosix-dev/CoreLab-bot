@@ -69,6 +69,9 @@ try {
       try { return require('./src/core/topggVotes').handleWebhook(req, res); }
       catch (e) { console.error('[TopGG] webhook :', e.message); res.writeHead(500); return res.end(); }
     }
+    // Dashboard : GET /dashboard (public) et /dashboard/private (token)
+    try { if (require('./src/core/dashboardApi').handle(req, res, { client, buildStatus })) return; }
+    catch (e) { console.error('[Dashboard] :', e.message); }
     if (req.url.split('?')[0] === '/status') {
       res.writeHead(200, {
         'Content-Type': 'application/json',
