@@ -151,6 +151,7 @@ const NAME_LOCALIZATIONS = {
   permis: ['permis', 'license'],
   passeport: ['passeport', 'passport'],
   voir: ['voir', 'view'],
+  'permissions-ia': ['permissions-ia', 'ai-permissions'],
   top: ['top', 'top']
 };
 

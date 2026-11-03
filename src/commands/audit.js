@@ -2,6 +2,7 @@
 //   /audit voir     [acteur] [cible] [type] [jours]   → consulter (pages avec ◀ ▶)
 //   /audit stats    [jours]                           → qui fait quoi, répartition par type
 //   /audit export   [format] [acteur] [cible] [type] [jours] → fichier CSV (Excel) ou JSON
+//   /audit permissions-ia                             → audit des permissions de l'assistant IA (lecture seule)
 // Réponses éphémères, réservées à la permission « Voir les logs du serveur ».
 const {
   SlashCommandBuilder,
@@ -11,6 +12,7 @@ const {
   MessageFlags,
 } = require('discord.js');
 const journal = require('../core/auditJournal');
+const { construireRapport: rapportPermissionsIa } = require('../core/auditPermissionsIa');
 
 const choixTypes = Object.entries(journal.TYPES).map(([value, name]) => ({ name, value }));
 
@@ -41,7 +43,8 @@ const audit = {
       .addIntegerOption(o => o.setName('jours').setDescription('Période en jours (défaut : 7)').setMinValue(1).setMaxValue(90)))
     .addSubcommand(s => ajouterFiltres(s.setName('export').setDescription('Exporter le journal en fichier'))
       .addStringOption(o => o.setName('format').setDescription('Format du fichier (défaut : CSV pour Excel)')
-        .addChoices({ name: 'CSV (Excel)', value: 'csv' }, { name: 'JSON', value: 'json' }))),
+        .addChoices({ name: 'CSV (Excel)', value: 'csv' }, { name: 'JSON', value: 'json' })))
+    .addSubcommand(s => s.setName('permissions-ia').setDescription('Auditer les permissions de l\'assistant IA (salons, bot, accès)')),
 
   async execute(interaction) {
     const ephemere = { flags: MessageFlags.Ephemeral };
@@ -69,6 +72,10 @@ const audit = {
           { name: '🔥 Actions fréquentes', value: liste(s.actions, k => k) },
         );
       return interaction.reply({ embeds: [embed], allowedMentions: { parse: [] }, ...ephemere });
+    }
+
+    if (sub === 'permissions-ia') {
+      return interaction.reply({ embeds: [rapportPermissionsIa(interaction.guild)], allowedMentions: { parse: [] }, ...ephemere });
     }
 
     if (sub === 'export') {
