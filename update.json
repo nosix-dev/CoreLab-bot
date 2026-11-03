@@ -1,0 +1,32 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.6",
+  "date": "2026-11-04",
+  "mention": false,
+  "titre": "📊 CoreLab — Statistiques d'activité (5.5.6)",
+  "intro": "Deux nouvelles commandes pour suivre l'**activité de ton serveur et de tes membres**, avec des graphiques et des boutons de navigation.",
+  "modifications": {
+    "📊 Statistiques du serveur": [
+      "[+] **/server-stats** : affiche les messages du serveur sur 7, 14 ou 30 jours, avec le total, la moyenne par jour et le nombre d'utilisateurs actifs.",
+      "[+] **Vue d'ensemble** : courbe des messages, arrivées, départs et temps passé en vocal.",
+      "[+] **Top Users** : classement des membres les plus actifs.",
+      "[+] **Canaux** : classement des salons les plus actifs.",
+      "[+] **Activité Horaire** : heure de pointe et répartition matin, après-midi, soirée et nuit."
+    ],
+    "👤 Statistiques d'un membre": [
+      "[+] **/user-stats** : affiche l'activité d'un membre (messages, rang sur le serveur, jours actifs, temps en vocal, salon favori).",
+      "[+] Les mêmes vues que le serveur : messages par jour, salons et activité par heure."
+    ],
+    "🎨 Affichage": [
+      "[+] Graphiques sombres, dans le même style que les logs.",
+      "[+] Boutons de navigation et menu pour changer la période, réservés à la personne qui a lancé la commande."
+    ]
+  },
+  "image": "assets/update_banner.png",
+  "pied": "Ajoute CoreLab sur tes autres serveurs.",
+  "support": {
+    "label": "Inviter le bot",
+    "emoji": "🚀",
+    "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+  }
+}

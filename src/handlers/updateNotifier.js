@@ -26,6 +26,9 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  AttachmentBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
   MessageFlags
 } = require('discord.js');
 
@@ -91,12 +94,15 @@ const PUCE_DEFAUT = '🔴';
  * Le tag [+] [~] [!] [i] est remplacé par une puce ; sans tag => 🔴.
  * Retourne une liste de sections { titre, lignes[] }.
  */
-function buildSections(modifs) {
+function buildSections(modifs, vert = false) {
   const clean = items => (Array.isArray(items) ? items : [items])
     .map(x => String(x ?? '').trim()).filter(Boolean)
     .map(x => {
       const t = tagOf(x);
-      return `${(t && PUCES[t]) || PUCE_DEFAUT} ${t ? x.replace(/^\[.\]\s*/, '') : x}`;
+      const corps = t ? x.replace(/^\[.\]\s*/, '') : x;
+      // Option "vert": true dans update.json : [+] → ligne « + texte » affichée en VERT dans un bloc ```diff (le gras et les `code` n'existent pas dans un bloc)
+      if (vert && t === '+') return `+ ${corps.replace(/\*\*|`/g, '')}`;
+      return `${(t && PUCES[t]) || PUCE_DEFAUT} ${corps}`;
     });
   if (Array.isArray(modifs)) return [{ titre: null, lignes: clean(modifs) }];
   if (modifs && typeof modifs === 'object') {
@@ -105,7 +111,18 @@ function buildSections(modifs) {
   return [];
 }
 
-const joinLines = lignes => lignes.join('\n');
+// Les lignes « + … » consécutives sont regroupées dans un bloc ```diff (texte vert sur Discord).
+const joinLines = lignes => {
+  const out = [];
+  let diff = [];
+  const flushDiff = () => { if (diff.length) { out.push('```diff\n' + diff.join('\n') + '\n```'); diff = []; } };
+  for (const l of lignes) {
+    if (l.startsWith('+ ')) diff.push(l);
+    else { flushDiff(); out.push(l); }
+  }
+  flushDiff();
+  return out.join('\n');
+};
 
 /** Découpe en blocs de texte ≤ MAX_CHARS : un bloc par section (coupé aux sauts de ligne si trop long). */
 function buildBlocks(sections) {
@@ -185,7 +202,7 @@ function buildMessages(data, client, hash) {
   const color = parseColor(data.couleur, 0xED4245);
   const noteColor = parseColor(data.couleurNote, 0xFEE75C);
 
-  let blocks = buildBlocks(buildSections(data.modifications ?? data.changes));
+  let blocks = buildBlocks(buildSections(data.modifications ?? data.changes, data.vert === true));
   if (!blocks.length) blocks = ['*Aucun détail fourni.*'];
 
   const intro = data.intro ? String(data.intro).slice(0, MAX_CHARS) : '';
@@ -203,6 +220,21 @@ function buildMessages(data, client, hash) {
   const articleBtn = linkButton(data.article, 'Lire l\'article');
   const supportBtn = linkButton(data.support, 'Support');
   const row = supportBtn ? null : buildButtonRow(data.boutons ?? data.bouton);
+  // `image` : URL https ou chemin relatif au projet (ex. "assets/update_banner.png") → grande bannière en bas
+  let bannerUrl = null;
+  let bannerFile = null;
+  if (data.image) {
+    const img = String(data.image);
+    if (/^https?:\/\//i.test(img)) bannerUrl = img;
+    else {
+      const abs = path.resolve(REPO_ROOT, img);
+      if (abs.startsWith(REPO_ROOT) && fs.existsSync(abs)) {
+        const name = `update-banner${path.extname(abs) || '.png'}`;
+        bannerFile = new AttachmentBuilder(abs, { name });
+        bannerUrl = `attachment://${name}`;
+      } else console.warn(`[Update] image introuvable : ${img}`);
+    }
+  }
   const pied = data.pied ? `-# ${String(data.pied).replace(/\n+/g, ' ')}` : '';
 
   return groups.map((blks, i) => {
@@ -221,6 +253,10 @@ function buildMessages(data, client, hash) {
       if (intro) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(intro));
     }
     blks.forEach(b => container.addTextDisplayComponents(new TextDisplayBuilder().setContent(b)));
+
+    if (last && bannerUrl) {
+      container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(bannerUrl)));
+    }
 
     if (last) {
       // Le marqueur invisible (anti-doublon) est dans le dernier message : annonce complète = marqueur présent.
@@ -245,6 +281,7 @@ function buildMessages(data, client, hash) {
     }
     return {
       components,
+      ...(last && bannerFile ? { files: [bannerFile] } : {}),
       flags: MessageFlags.IsComponentsV2,
       allowedMentions: withPing ? { parse: ['everyone'] } : { parse: [] }
     };
