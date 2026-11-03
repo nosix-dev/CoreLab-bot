@@ -620,6 +620,9 @@ client.on('interactionCreate', async interaction => {
   }
   if (interaction.isButton() || interaction.isChannelSelectMenu() || interaction.isModalSubmit() || interaction.isRoleSelectMenu() || interaction.isStringSelectMenu() || interaction.isMentionableSelectMenu()) {
     const id = interaction.customId || '';
+    if (id.startsWith('astats')) {
+      return require('./src/commands/activityStats').routeActivityInteraction(interaction).catch(e => console.error('[ActivityStats] interaction :', e.message));
+    }
     if (id.startsWith('prem_')) {
       return require('./src/commands/premiumPanel').routePremiumInteraction(interaction).catch(e => console.error('[Premium] interaction :', e.message));
     }
@@ -1333,6 +1336,7 @@ registerIaMessageHandler(client);
 registerHelpHandler(client);
 registerCountingHandler(client);
 registerCommunityHandlers(client);
+require('./src/core/activityStats').registerActivityStatsHandler(client);
 
 // ────────────────────────────────────────────────
 // DIAGNOSTIC TEMPORAIRE : à retirer une fois le souci résolu

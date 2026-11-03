@@ -85,7 +85,7 @@ const HELP_CATEGORIES = [
     commands: [
       'niveau', 'classement', 'sondage', 'sondage-fermer', 'sondage-liste',
       'concours', 'concours-liste', 'concours-retirage', 'suggestion', 'texte-vocal',
-      'serveur-statistiques', 'membre-statistiques', 'avatar', 'banniere',
+      'serveur-statistiques', 'membre-statistiques', 'server-stats', 'user-stats', 'avatar', 'banniere',
     ],
   },
 ];

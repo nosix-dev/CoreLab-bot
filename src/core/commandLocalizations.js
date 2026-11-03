@@ -266,6 +266,8 @@ const ENGLISH_DESCRIPTIONS = {
   'Convertir du texte en message vocal': 'Convert text to speech',
   '🎮 Mini-jeux : quiz, pendu, devine le nombre, 8balls, mots enchaînés': '🎮 Mini-games: quiz, hangman, guess the number, 8balls, and word chain',
   '🎱 Pose une question à la boule magique': '🎱 Ask the magic 8-ball a question',
+  '📊 Statistiques d\'activité du serveur (messages, top membres, salons, heures)': '📊 Server activity stats (messages, top members, channels, hours)',
+  '📈 Statistiques d\'activité d\'un membre (messages, rang, salons, heures, vocal)': '📈 A member\'s activity stats (messages, rank, channels, hours, voice)',
   '🖼️ Afficher l\'avatar d\'un membre en grand': '🖼️ Show a member\'s avatar in full size',
   '🎨 Afficher la bannière d\'un membre en grand': '🎨 Show a member\'s banner in full size',
   '🌟 Réputation : remercie un membre (+1 rep) et consulte le classement': '🌟 Reputation: thank a member (+1 rep) and view the leaderboard',
