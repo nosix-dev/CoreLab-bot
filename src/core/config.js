@@ -28,6 +28,7 @@ function obtenirConfigGuilde(idGuilde) {
             antieveryone: false,
             anti_phishing: false,
             anti_scam_image: false,
+            anti_scam_ai: false,
             anti_bot_enabled: false,
             anti_alt_enabled: false,
             anti_alt_min_days: 7,

@@ -57,6 +57,7 @@ const MODULES = [
   { key: 'anti_ghostping_enabled', kind: 'toggle', label: 'Anti-Ghostping', on: c => c.anti_ghostping_enabled, sub: () => 'mentions supprimées' },
   { key: 'anti_phishing', kind: 'toggle', label: 'Anti-phishing', on: c => c.anti_phishing,         sub: () => 'liens frauduleux' },
   { key: 'anti_scam_image', kind: 'toggle', label: 'Anti-arnaque (OCR)', on: c => c.anti_scam_image, sub: () => 'images suspectes' },
+  { key: 'anti_scam_ai', kind: 'toggle', label: 'Anti-arnaque IA', on: c => c.anti_scam_ai, sub: () => 'analyse intelligente' },
   { key: 'dm_lock_enabled', kind: 'toggle', label: 'Fermeture des MP', on: c => c.dm_lock_enabled,   sub: () => 'MP des membres fermés' },
   { key: 'auth_double_detection_enabled', kind: 'toggle', label: 'Compte double', on: c => c.auth_double_detection_enabled, sub: () => 'détection des doublons' },
   { key: 'logs',       kind: 'config', label: 'Logs',            on: c => !!(c.protection_log_channel_id || c.protection_setup_channel_id || c.log_channel_id), sub: () => 'salon de journal' },

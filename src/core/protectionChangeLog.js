@@ -35,6 +35,7 @@ const TRACKED = {
   anti_ghostping_enabled: { kind: 'bool', p: 'la protection **Anti-Ghostping**' },
   anti_phishing: { kind: 'bool', p: 'la protection **Anti-phishing**' },
   anti_scam_image: { kind: 'bool', p: 'la protection **Anti-arnaque (OCR)**' },
+  anti_scam_ai: { kind: 'bool', p: 'la protection **Anti-arnaque IA**' },
   dm_lock_enabled: { kind: 'bool', p: 'la **Fermeture des MP**' },
   auth_double_detection_enabled: { kind: 'bool', p: 'la détection de **Compte double**' },
   auth_enabled: { kind: 'bool', p: 'l\'**Authentification**' },

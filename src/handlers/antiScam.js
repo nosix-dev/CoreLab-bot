@@ -7,6 +7,7 @@ const { sendLog } = require('../core/utils');
 const { sendProtectionEmbed } = require('../core/protectionLog');
 const { scanContentForPhishing } = require('../core/phishing');
 const { glassPayload } = require('../core/glassEmbed');
+const { scanMessageWithAi } = require('../core/aiScam');
 
 // Alerte « verre fumé » postée dans le salon (supprimée au bout de 8 s)
 async function alerteScam(message, texte) {
@@ -24,6 +25,10 @@ const SCAM_KEYWORDS = [
     'verify your account', 'verify your account', 'limited offer',
 ];
 const SCAM_THRESHOLD = 2; // nombre minimum de mots-clés trouvés pour agir
+
+// Seuils du filtre IA (score 0-100)
+const AI_DELETE_THRESHOLD = 85; // supprime + sanction
+const AI_REVIEW_THRESHOLD = 60; // alerte le staff sans supprimer
 
 let worker = null;
 let workerReady = null;
@@ -152,6 +157,46 @@ async function handleScamImageCheck(message) {
     return false;
 }
 
+// ── Filtre anti-arnaque IA (Gemini) ─────────────────────────────
+async function handleAiScamCheck(message) {
+    if (message.author.bot || !message.guild) return false;
+
+    const cfg = getGuildConfig(message.guild.id);
+    if (!cfg.anti_scam_ai) return false;
+
+    const res = await scanMessageWithAi(message);
+    if (!res || res.score < AI_REVIEW_THRESHOLD) return false;
+
+    const extrait = (message.content || '(image)').slice(0, 300);
+    const detail = `Score IA : ${res.score}/100 | Type : ${res.categorie}` +
+        `${res.crossPosts >= 2 ? ` | Posté dans ${res.crossPosts} salons` : ''}\n` +
+        `Raison : ${res.raison || 'n/a'}\nMessage : ${extrait}`;
+
+    if (res.score >= AI_DELETE_THRESHOLD) {
+        const me = message.guild.members.me;
+        if (message.deletable && me?.permissions.has(PermissionFlagsBits.ManageMessages)) {
+            await message.delete().catch(() => {});
+        }
+        await alerteScam(message, 'Ton message ressemble à une arnaque (détection IA) et a été supprimé.');
+        await logAndStrike(message, 'Arnaque détectée (IA)', detail);
+        return true;
+    }
+
+    // Zone de doute : on ne supprime pas, on prévient le staff
+    const embed = new EmbedBuilder()
+        .setTitle('🤔 Message suspect (IA)')
+        .setColor(0xffa500)
+        .addFields(
+            { name: 'Membre', value: `${message.author} (${message.author.id})`, inline: true },
+            { name: 'Salon', value: `${message.channel}`, inline: true },
+            { name: 'Lien', value: message.url, inline: false },
+            { name: 'Analyse', value: detail.slice(0, 1000), inline: false },
+        )
+        .setTimestamp();
+    if (!(await sendProtectionEmbed(message.guild, embed))) await sendLog(message.guild, embed);
+    return false;
+}
+
 // ────────────────────────────────────────────────
 // ENREGISTREMENT — même schéma que registerLogHandlers / registerWelcomeHandler
 // IMPORTANT : ce listener doit être attaché AVANT celui de logs.js si tu veux
@@ -161,16 +206,18 @@ function registerAntiScamHandler(client) {
     client.on('messageCreate', async message => {
         try {
             if (await handlePhishingCheck(message)) return;
-            await handleScamImageCheck(message);
+            if (await handleScamImageCheck(message)) return;
+            await handleAiScamCheck(message);
         } catch (e) {
             console.error('Erreur handler AntiScam :', e);
         }
     });
-    console.log('✅ Anti-phishing / Anti-arnaque image (OCR) initialisé.');
+    console.log('✅ Anti-phishing / Anti-arnaque image (OCR) / Anti-arnaque IA initialisé.');
 }
 
 module.exports = {
     handlePhishingCheck,
     handleScamImageCheck,
+    handleAiScamCheck,
     registerAntiScamHandler,
 };

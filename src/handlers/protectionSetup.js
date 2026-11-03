@@ -157,7 +157,8 @@ const TOGGLES = {
     { key: 'anti_nuke', label: 'Anti-Nuke', desc: 'Actions destructrices', get: c => c.anti_nuke_enabled, set: (c, v) => { c.anti_nuke_enabled = v; } },
     { key: 'anti_ghost', label: 'Anti-Ghostping', desc: 'Mentions supprimées', get: c => c.anti_ghostping_enabled, set: (c, v) => { c.anti_ghostping_enabled = v; } },
     { key: 'anti_phishing', label: 'Anti-phishing', desc: 'Liens frauduleux', get: c => c.anti_phishing, set: (c, v) => { c.anti_phishing = v; } },
-    { key: 'anti_scam', label: 'Anti-arnaque (OCR)', desc: 'Images d\'arnaque (crypto…)', get: c => c.anti_scam_image, set: (c, v) => { c.anti_scam_image = v; } }
+    { key: 'anti_scam', label: 'Anti-arnaque (OCR)', desc: 'Images d\'arnaque (crypto…)', get: c => c.anti_scam_image, set: (c, v) => { c.anti_scam_image = v; } },
+    { key: 'anti_scam_ai', label: 'Anti-arnaque IA', desc: 'Analyse intelligente (Gemini)', get: c => c.anti_scam_ai, set: (c, v) => { c.anti_scam_ai = v; } }
   ],
   4: [
     { key: 'double', label: 'Compte double', desc: 'Détection des doublons', get: c => c.auth_double_detection_enabled, set: (c, v) => { c.auth_double_detection_enabled = v; } }
@@ -304,7 +305,7 @@ function buildPage(guild, page) {
 // Récapitulatif : état de tous les modules + actions finales
 const RECAP_GROUPS = [
   { title: '🚨 Anti-raid & accès', keys: ['raidmode', 'antiddos', 'antiddosvoice', 'captcha', 'minage', 'anti_bot_enabled', 'anti_alt_enabled', 'dm_lock_enabled', 'auth', 'auth_double_detection_enabled'] },
-  { title: '🧹 Anti-abus', keys: ['antispam', 'antieveryone', 'anti_link_enabled', 'anti_nuke_enabled', 'anti_ghostping_enabled', 'anti_phishing', 'anti_scam_image'] },
+  { title: '🧹 Anti-abus', keys: ['antispam', 'antieveryone', 'anti_link_enabled', 'anti_nuke_enabled', 'anti_ghostping_enabled', 'anti_phishing', 'anti_scam_image', 'anti_scam_ai'] },
   { title: '🗂️ Modération & suivi', keys: ['logs', 'signalement', 'sanctions', 'transparence', 'tagrole', 'honeypot'] }
 ];
 
