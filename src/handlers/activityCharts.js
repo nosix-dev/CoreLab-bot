@@ -2,14 +2,12 @@
 
 // ─────────────────────────────────────────────────────────────────────────
 // Graphiques (PNG) pour /server-stats et /user-stats.
-// Même palette et même `themedCtx` que les autres cartes du bot : les graphiques
-// suivent automatiquement le thème choisi avec /card-style.
+// Toujours en sombre (anthracite), comme les cartes de logs.
 // ─────────────────────────────────────────────────────────────────────────
 
 const path = require('path');
 const fs = require('fs');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
-const { themedCtx } = require('../core/cardTheme');
 
 const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
 let FONT = 'sans-serif';
@@ -29,18 +27,19 @@ const W = 1000;
 const H = 440;
 const PLOT = { l: 84, r: W - 44, t: 100, b: H - 72 };
 
+// Palette « anthracite » : exactement celle des cartes de logs (toujours sombre, quel que soit /card-style)
 const C = {
-  bg: '#0a1a12',
-  card: '#0e2218',
-  border: '#1e4630',
-  grid: '#1a3a28',
-  area: '#14462a',
-  green: '#2ecc71',
-  greenLight: '#78eba0',
+  bg: '#1c1f26',
+  card: '#1c1f26',
+  border: '#2a2e37',
+  grid: '#2a2e37',
+  area: '#1d2f4f',
+  green: '#3b82f6',      // barres / courbe (accent bleu des logs)
+  greenLight: '#93c5fd',
   gold: '#f5c542',
-  text: '#ebf5ee',
-  muted: '#82aa91',
-  dim: '#648c73'
+  text: '#f3f4f6',
+  muted: '#9ca3af',
+  dim: '#6b7280'
 };
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -83,7 +82,7 @@ const fmtN = n => Math.round(n).toLocaleString('fr-FR');
 
 function frame(guildId, caption, sub) {
   const canvas = createCanvas(W, H);
-  const ctx = themedCtx(canvas.getContext('2d'), guildId);
+  const ctx = canvas.getContext('2d');
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, H);
   roundRect(ctx, 12, 12, W - 24, H - 24, 24);
