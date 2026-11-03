@@ -60,6 +60,7 @@ try {
       cpu: { percent: Math.min(100, +cpuPct.toFixed(1)), cores: os.cpus().length, model: os.cpus()[0]?.model || '' },
       memory: { used: process.memoryUsage().rss, total: memTotal },
       storage,
+      history: require('./src/core/uptimeHistory').getHistory(),
     };
   };
 
@@ -72,7 +73,7 @@ try {
     // Dashboard : GET /dashboard (public) et /dashboard/private (token)
     try { if (require('./src/core/dashboardApi').handle(req, res, { client, buildStatus })) return; }
     catch (e) { console.error('[Dashboard] :', e.message); }
-    if (req.url.split('?')[0] === '/status') {
+    if (['/status', '/statut'].includes(req.url.split('?')[0])) {
       res.writeHead(200, {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
@@ -539,6 +540,7 @@ client.once('clientReady', async () => {
   startCombat();
   startMarche(client);
   startStatusRotation(client);
+  try { require('./src/core/uptimeHistory').start(client); } catch (e) { console.error('❌ Uptime:', e.message); }
   maintenance.restaurer(client);
   updateStatus.restaurer(client);
   try { require('./src/core/discordBackup').demarrer(client); } catch (e) { console.error('❌ Backup Discord:', e.message); }

@@ -7,9 +7,10 @@ const path = require('path');
 const HIST_DAYS = 90;
 const TICK = 60 * 1000;
 
+// Dossier data/ : persistant (DATA_DIR) et inclus dans la sauvegarde / restauration Discord.
 let FILE;
-try { FILE = path.join(require('./persistentPath').dossierPersistant('uptime'), 'history.json'); }
-catch { FILE = path.join(__dirname, '..', '..', 'uptime-history.json'); }
+try { FILE = path.join(require('./persistentPath').dossierPersistant('data'), 'uptime_history.json'); }
+catch { FILE = path.join(__dirname, '..', '..', 'data', 'uptime_history.json'); }
 try { fs.mkdirSync(path.dirname(FILE), { recursive: true }); } catch {}
 
 let hist = { last: 0, days: {} };
