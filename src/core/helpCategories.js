@@ -11,7 +11,7 @@ const HELP_CATEGORIES = [
     key: 'administration',
     label: 'Administration',
     emoji: '🛡️',
-    commands: ['config', 'parametres', 'config-ia', 'backup', 'serverstats-setup', 'langue-bot', 'tickets', 'annonces', 'tableau-etoiles', 'vocaux-temp', 'premium', 'statistiques'],
+    commands: ['config', 'parametres', 'config-ia', 'backup', 'serverstats-setup', 'langue-bot', 'tickets', 'annonces', 'tableau-etoiles', 'vocaux-temp', 'premium', 'statistiques', 'role-menu', 'quests-config'],
   },
   {
     key: 'automod',
@@ -83,7 +83,7 @@ const HELP_CATEGORIES = [
     label: 'Public',
     emoji: '☀️',
     commands: [
-      'niveau', 'classement', 'sondage', 'sondage-fermer', 'sondage-liste',
+      'niveau', 'classement', 'quests', 'sondage', 'sondage-fermer', 'sondage-liste',
       'concours', 'concours-liste', 'concours-retirage', 'suggestion', 'texte-vocal',
       'serveur-statistiques', 'membre-statistiques', 'server-stats', 'user-stats', 'avatar', 'banniere',
     ],

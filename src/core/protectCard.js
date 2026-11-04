@@ -54,6 +54,7 @@ const MODULES = [
   { key: 'antieveryone', kind: 'toggle', label: 'Anti-@everyone', on: c => c.antieveryone,          sub: () => 'mentions de masse' },
   { key: 'anti_link_enabled',  kind: 'toggle', label: 'Anti-lien',  on: c => c.anti_link_enabled,  sub: () => 'liens non autorisés' },
   { key: 'anti_nuke_enabled',  kind: 'toggle', label: 'Anti-Nuke',  on: c => c.anti_nuke_enabled,  sub: () => 'actions destructrices' },
+  { key: 'anti_perm_escalation_enabled', kind: 'toggle', label: 'Anti-escalade', on: c => c.anti_perm_escalation_enabled, sub: () => 'permissions dangereuses' },
   { key: 'anti_ghostping_enabled', kind: 'toggle', label: 'Anti-Ghostping', on: c => c.anti_ghostping_enabled, sub: () => 'mentions supprimées' },
   { key: 'anti_phishing', kind: 'toggle', label: 'Anti-phishing', on: c => c.anti_phishing,         sub: () => 'liens frauduleux' },
   { key: 'anti_scam_image', kind: 'toggle', label: 'Anti-arnaque (OCR)', on: c => c.anti_scam_image, sub: () => 'images suspectes' },
