@@ -514,21 +514,39 @@ function sepLine() {
 function v2Payload(container) {
   return { components: [container], flags: MessageFlags.IsComponentsV2 };
 }
-function buildTabRows(guildId, activeKey) {
-  const buttons = Object.entries(CONFIG_CATEGORIES).map(([key, cat]) => {
-    const { emoji, label } = splitTitle(guildId, cat);
-    const b = new ButtonBuilder()
-      .setCustomId(`config_tab_${key}`)
-      .setLabel(label.slice(0, 80))
-      .setStyle(key === activeKey ? ButtonStyle.Primary : ButtonStyle.Secondary);
-    if (emoji) b.setEmoji(emoji);
-    return b;
-  });
-  const rows = [];
-  for (let i = 0; i < buttons.length; i += 5) {
-    rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
+// ── Onglets : 5 onglets sur UNE seule ligne (comme la capture) ──
+// Chaque onglet regroupe une ou plusieurs catégories de CONFIG_CATEGORIES.
+const TAB_GROUPS = {
+  general:  { label: 'Général',        cats: ['channels', 'roles'] },
+  logs:     { label: 'Logs',           cats: ['logs'] },
+  accueil:  { label: 'Accueil',        cats: ['bienvenue', 'reglement'] },
+  niveaux:  { label: 'Niveaux',        cats: ['niveaux'] },
+  auto:     { label: 'Automatisation', cats: ['reponses_auto', 'traduction'] }
+};
+const PREMIUM_TAB = 'premium'; // ouvert par le bouton « Personnaliser », pas dans la rangée d'onglets
+const SUPPORT_URL = 'https://discord.gg/WecpyxrSBT';
+let BOT_VERSION = '';
+try { BOT_VERSION = require('../../package.json').version || ''; } catch (_) { /* version non affichée */ }
+
+// Accepte une clé d'onglet OU une clé de catégorie et renvoie la clé d'onglet.
+function tabKeyOf(key) {
+  if (key === PREMIUM_TAB) return PREMIUM_TAB;
+  if (TAB_GROUPS[key]) return key;
+  for (const [tk, g] of Object.entries(TAB_GROUPS)) {
+    if (g.cats.includes(key)) return tk;
   }
-  return rows;
+  return 'general';
+}
+function buildTabRows(guildId, activeKey) {
+  const buttons = Object.entries(TAB_GROUPS).map(([key, g]) => {
+    const active = key === activeKey;
+    return new ButtonBuilder()
+      .setCustomId(`config_tab_${key}`)
+      .setLabel(g.label)
+      .setEmoji(active ? '📂' : '📁')
+      .setStyle(active ? ButtonStyle.Primary : ButtonStyle.Secondary);
+  });
+  return [new ActionRowBuilder().addComponents(buttons)];
 }
 function buildSettingSection(guildId, cfg, catKey, s) {
   const isBool = s.type === 'boolean';
@@ -537,7 +555,7 @@ function buildSettingSection(guildId, cfg, catKey, s) {
     .setCustomId(`config_setting_btn_${catKey}:${s.value}`)
     .setLabel(isBool ? (on ? 'Désactiver' : 'Activer') : 'Modifier')
     .setStyle(isBool ? (on ? ButtonStyle.Danger : ButtonStyle.Success) : ButtonStyle.Primary);
-  if (!isBool) btn.setEmoji('✏️');
+  if (s.emoji) btn.setEmoji(s.emoji); // icône du paramètre sur le bouton, comme la capture
   return new SectionBuilder()
     .addTextDisplayComponents(txt(`**${s.emoji} ${t(guildId, s.labelKey)}**\n> ${formatConfigValue(guildId, cfg, s)}`))
     .setButtonAccessory(btn);
@@ -555,44 +573,39 @@ function buildPremiumInfoText() {
     '• 🔔 Notifications suivies illimitées → `/notification`';
 }
 
-// ── Accueil ──
+// ── Accueil du panneau = premier onglet (Général), comme la capture ──
 function buildConfigHomePayload(guild) {
-  const gid = guild.id;
-  const totalSettings = Object.values(CONFIG_CATEGORIES).reduce((sum, c) => sum + c.settings.length, 0);
-  const categories = Object.values(CONFIG_CATEGORIES)
-    .map(c => `${t(gid, c.titleKey)} — ${c.settings.length} paramètre(s)`).join('\n');
-  const container = new ContainerBuilder().setAccentColor(PANEL_ACCENT)
-    .addTextDisplayComponents(txt(`## ⚙️ ${t(gid, 'config_home_title')}\n-# CoreLab • ${guild.name}\n\n${t(gid, 'config_home_welcome_value')}`))
-    .addActionRowComponents(...buildTabRows(gid, null))
-    .addSeparatorComponents(sepLine())
-    .addTextDisplayComponents(txt(`**${t(gid, 'config_home_stats_field')}**\n> ${t(gid, 'config_settings_count')} : \`${totalSettings}\` • ${t(gid, 'config_categories_count')} : \`${Object.keys(CONFIG_CATEGORIES).length}\`\n\n${categories}`));
-  return v2Payload(container);
+  return buildCategoryPayload('general', guild, 0);
 }
 
-// ── Catégorie (paginée) ──
-function buildCategoryPayload(catKey, guild, page = 0) {
+// ── Onglet (paginé) ──
+function buildCategoryPayload(key, guild, page = 0) {
   const gid = guild.id;
   const cfg = getGuildConfig(gid);
-  const cat = CONFIG_CATEGORIES[catKey];
-  const totalPages = Math.max(1, Math.ceil(cat.settings.length / PAGE_SIZE));
+  const tabKey = tabKeyOf(key);
+  const isPremiumTab = tabKey === PREMIUM_TAB;
+  const catKeys = isPremiumTab ? ['premium'] : TAB_GROUPS[tabKey].cats;
+  const entries = catKeys.flatMap(ck => CONFIG_CATEGORIES[ck].settings.map(s => ({ ck, s })));
+  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
   const p = Math.min(Math.max(page, 0), totalPages - 1);
   const isLastPage = p === totalPages - 1;
+  const desc = catKeys.map(ck => t(gid, CONFIG_CATEGORIES[ck].descKey)).join(' ');
 
   const homeBtn = new ButtonBuilder().setCustomId('config_back_home').setLabel('Accueil').setEmoji('🏠').setStyle(ButtonStyle.Secondary);
   const container = new ContainerBuilder().setAccentColor(PANEL_ACCENT)
     .addSectionComponents(
       new SectionBuilder()
-        .addTextDisplayComponents(txt(`## ${t(gid, cat.titleKey)}\n-# ${t(gid, 'config_title_suffix')} • CoreLab\n\n${t(gid, cat.descKey)}`))
+        .addTextDisplayComponents(txt(`## ⚙️ Configuration\n-# CoreLab${BOT_VERSION ? ` v${BOT_VERSION}` : ''}\n\n${desc}`))
         .setButtonAccessory(homeBtn)
     )
-    .addActionRowComponents(...buildTabRows(gid, catKey))
+    .addActionRowComponents(...buildTabRows(gid, isPremiumTab ? null : tabKey))
     .addSeparatorComponents(sepLine());
 
-  for (const s of cat.settings.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE)) {
-    container.addSectionComponents(buildSettingSection(gid, cfg, catKey, s));
+  for (const { ck, s } of entries.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE)) {
+    container.addSectionComponents(buildSettingSection(gid, cfg, ck, s));
   }
 
-  if (catKey === 'logs' && isLastPage) {
+  if (catKeys.includes('logs') && isLastPage) {
     const isEmbed = cfg.log_style === 'embed';
     container.addSectionComponents(
       new SectionBuilder()
@@ -605,23 +618,39 @@ function buildCategoryPayload(catKey, guild, page = 0) {
         )
     );
   }
-  if (catKey === 'premium') {
+  if (isPremiumTab) {
     container.addTextDisplayComponents(txt(buildPremiumInfoText()));
     container.addActionRowComponents(...buildWelcomeGoodbyeButtonRows(gid), buildPremiumButtonsRow());
   }
-  if (catKey === 'niveaux' && isLastPage) {
+  if (catKeys.includes('niveaux') && isLastPage) {
     container.addActionRowComponents(buildXpButtonsRow());
+  }
+  if (catKeys.includes('reponses_auto') && isLastPage) {
+    container.addActionRowComponents(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('config_tab_reponses_auto').setLabel('Gérer les réponses auto').setEmoji('💬').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('config_tab_traduction').setLabel('Panneau traduction').setEmoji('🌐').setStyle(ButtonStyle.Secondary)
+      )
+    );
   }
   if (totalPages > 1) {
     container.addSeparatorComponents(sepLine());
     container.addActionRowComponents(
       new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`config_page_${catKey}:${p - 1}`).setLabel('◀').setStyle(ButtonStyle.Secondary).setDisabled(p === 0),
+        new ButtonBuilder().setCustomId(`config_page_${tabKey}:${p - 1}`).setLabel('◀').setStyle(ButtonStyle.Secondary).setDisabled(p === 0),
         new ButtonBuilder().setCustomId('config_page_indicator').setLabel(`${p + 1}/${totalPages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
-        new ButtonBuilder().setCustomId(`config_page_${catKey}:${p + 1}`).setLabel('▶').setStyle(ButtonStyle.Secondary).setDisabled(isLastPage)
+        new ButtonBuilder().setCustomId(`config_page_${tabKey}:${p + 1}`).setLabel('▶').setStyle(ButtonStyle.Secondary).setDisabled(isLastPage)
       )
     );
   }
+  // Pied de page : liens + « Personnaliser » (ouvre l'onglet Premium)
+  container.addSeparatorComponents(sepLine());
+  container.addActionRowComponents(
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setLabel('Serveur Support').setEmoji('💬').setStyle(ButtonStyle.Link).setURL(SUPPORT_URL),
+      new ButtonBuilder().setCustomId('config_tab_premium').setLabel('Personnaliser').setEmoji('✨').setStyle(ButtonStyle.Primary)
+    )
+  );
   return v2Payload(container);
 }
 
@@ -663,7 +692,7 @@ async function executePanneau(interaction) {
   const gid = interaction.guild.id;
   // Page courante par catégorie (pour rester sur la bonne page après une modification)
   const pageByCat = {};
-  const pageOf = k => pageByCat[k] || 0;
+  const pageOf = k => pageByCat[tabKeyOf(k)] || 0;
   await interaction.deferReply({
     flags: MessageFlags.Ephemeral
   });
@@ -703,7 +732,7 @@ async function executePanneau(interaction) {
       if (i.customId.startsWith('config_page_')) {
         if (i.customId === 'config_page_indicator') return;
         const [pCat, pNum] = i.customId.slice('config_page_'.length).split(':');
-        if (!CONFIG_CATEGORIES[pCat]) return;
+        if (pCat !== PREMIUM_TAB && !TAB_GROUPS[pCat]) return;
         pageByCat[pCat] = parseInt(pNum, 10) || 0;
         return await safeComponentUpdate(i, buildCategoryPayload(pCat, interaction.guild, pageByCat[pCat]));
       }
@@ -712,15 +741,15 @@ async function executePanneau(interaction) {
       if (i.customId.startsWith('config_tab_')) {
         const catKey = i.customId.slice('config_tab_'.length);
         const targetCat = CONFIG_CATEGORIES[catKey];
-        if (!targetCat) return;
-        if (targetCat.premium && !isPremium(i.user.id)) {
+        if (!TAB_GROUPS[catKey] && !targetCat) return;
+        if (targetCat?.premium && !isPremium(i.user.id)) {
           const premiumEmbed = new EmbedBuilder().setTitle(t(gid, 'config_premium_category_title')).setDescription(t(gid, 'config_premium_category_desc')).setColor(0x1C1F26);
           // deferUpdate() a déjà été fait : on répond par un followUp éphémère
           return await i.followUp(configPayload(premiumEmbed, [buildSubscriptionRow()], {
             ephemeral: true
           }));
         }
-        pageByCat[catKey] = 0;
+        pageByCat[tabKeyOf(catKey)] = 0;
 
         // ── Panneaux boutons dédiés ──
         if (catKey === 'traduction') {
