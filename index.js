@@ -1327,7 +1327,7 @@ registerProtectionSetupHandler(client);
 registerGoodbyeHandler(client);
 registerXpHandler(client);
 registerProtectionHandlers(client);
-require('./src/handlers/permGuard').registerPermGuard(client);
+try { require('./src/handlers/permGuard').registerPermGuard(client); } catch (e) { console.error('❌ PermGuard:', e.message); }
 require('./src/commands/quests').registerQuests(client);
 require('./src/commands/roleMenu').registerRoleMenus(client);
 registerStarboardHandlers(client);
