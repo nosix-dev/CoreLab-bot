@@ -70,7 +70,7 @@ const NAME_LOCALIZATIONS = {
   note: ['note', 'note'],
   audit: ['audit', 'audit'],
   journal: ['journal', 'journal'],
-  discon: ['discon', 'discon'],
+  discon: ['shield', 'shield'],
   purge: ['purge', 'purge'],
   purgeuser: ['purgeuser', 'purge-user'],
   mute: ['mute', 'mute'],

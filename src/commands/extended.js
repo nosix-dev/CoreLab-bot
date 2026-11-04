@@ -23,7 +23,10 @@ const {
   ContainerBuilder,
   TextDisplayBuilder,
   MediaGalleryBuilder,
-  MediaGalleryItemBuilder
+  MediaGalleryItemBuilder,
+  SectionBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize
 } = require('discord.js');
 const {
   getGuildConfig,
@@ -482,95 +485,144 @@ function formatConfigValue(guildId, cfg, setting) {
       return t(guildId, 'not_set');
   }
 }
-function buildConfigHomeEmbed(guild) {
-  const gid = guild.id;
-  const totalSettings = Object.values(CONFIG_CATEGORIES).reduce((sum, c) => sum + c.settings.length, 0);
-  return new EmbedBuilder().setTitle(t(gid, 'config_home_title')).setColor(0x1C1F26).setThumbnail(guild.members.me.displayAvatarURL()).addFields({
-    name: t(gid, 'config_home_welcome_field'),
-    value: t(gid, 'config_home_welcome_value'),
-    inline: false
-  }, {
-    name: t(gid, 'config_home_stats_field'),
-    value: `\`\`\`ini\n${t(gid, 'config_settings_count')}   : ${totalSettings}\n${t(gid, 'config_categories_count')} : ${Object.keys(CONFIG_CATEGORIES).length}\n\`\`\``,
-    inline: false
-  }, {
-    name: t(gid, 'config_home_categories_field'),
-    value: Object.values(CONFIG_CATEGORIES).map(c => `${t(gid, c.titleKey)} — ${c.settings.length} paramètre(s)`).join('\n'),
-    inline: false
-  });
-}
-function buildCategoryEmbed(catKey, cfg, guildId) {
-  const cat = CONFIG_CATEGORIES[catKey];
-  const embed = new EmbedBuilder().setTitle(`${t(guildId, cat.titleKey)} — ${t(guildId, 'config_title_suffix')}`).setDescription(t(guildId, cat.descKey)).setColor(0x1C1F26);
-  cat.settings.forEach(s => {
-    embed.addFields({
-      name: `${s.emoji} ${t(guildId, s.labelKey)}`,
-      value: formatConfigValue(guildId, cfg, s),
-      inline: true
-    });
-  });
-  if (catKey === 'logs') {
-    embed.addFields({
-      name: '🎨 Style des logs',
-      value: cfg.log_style === 'embed' ? '💬 Embed' : '🖼️ Image',
-      inline: true
-    });
-  }
-  if (catKey === 'premium') {
-    embed.addFields({
-      name: '⭐ Tout ce qui est Premium sur CoreLab',
-      value: '🎨 **Personnalisation**\n' + '• 👋 Bienvenue / au revoir (message, image, boutons, carte par défaut entièrement modifiable) → boutons ci-dessous\n' + '• 🖼️ Image de l\'annonce de niveau → bouton ci-dessous\n' + '• 🎫 Tickets : apparence, message d\'ouverture, image → `/settings ticket`\n' + '• 📜 `/reglement` et 🗳️ `/vote` : titres, couleurs, images → dans ces commandes\n\n' + '⭐ **Premium**\n' + '• 🖐️ Bouton Claim des tickets → `/settings ticket`\n' + '• 💾 `/backup` (create, load, list, delete, info)\n' + '• 🔔 Notifications suivies illimitées → `/notification`',
-      inline: false
-    });
-  }
-  return embed;
-}
 function buildWelcomeGoodbyeButtonRows(guildId) {
   const row1 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('config_welcome_msg_btn').setLabel('👋 Message').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('config_welcome_img_btn').setLabel('👋 Image').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_welcome_links_btn').setLabel('👋 Boutons').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_welcome_card_btn').setLabel('👋 Carte').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_welcome_reset_btn').setLabel('👋 Réinit.').setStyle(ButtonStyle.Danger));
   const row2 = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('config_goodbye_msg_btn').setLabel('🚪 Message').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('config_goodbye_img_btn').setLabel('🚪 Image').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_goodbye_links_btn').setLabel('🚪 Boutons').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_goodbye_card_btn').setLabel('🚪 Carte').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_goodbye_reset_btn').setLabel('🚪 Réinit.').setStyle(ButtonStyle.Danger));
   return [row1, row2];
 }
-function buildCategorySelectRow(guildId) {
-  const select = new StringSelectMenuBuilder().setCustomId('config_category_select').setPlaceholder(t(guildId, 'config_category_select_placeholder')).addOptions(Object.entries(CONFIG_CATEGORIES).map(([key, cat]) => {
-    const texteComplet = t(guildId, cat.titleKey);
-    const espace = texteComplet.indexOf(' ');
-    const emoji = espace > -1 ? texteComplet.slice(0, espace) : null;
-    const label = espace > -1 ? texteComplet.slice(espace + 1) : texteComplet;
-    const option = new StringSelectMenuOptionBuilder().setLabel(label).setDescription(`${cat.settings.length} paramètre(s)`).setValue(key);
-    if (emoji) option.setEmoji(emoji);
-    return option;
-  }));
-  return new ActionRowBuilder().addComponents(select);
-}
-function buildSettingSelectRow(catKey, guildId) {
-  const cat = CONFIG_CATEGORIES[catKey];
-  const select = new StringSelectMenuBuilder().setCustomId(`config_setting_select_${catKey}`).setPlaceholder(t(guildId, 'config_setting_select_placeholder')).addOptions(cat.settings.map(s => new StringSelectMenuOptionBuilder().setLabel(t(guildId, s.labelKey)).setValue(s.value).setEmoji(s.emoji)));
-  return new ActionRowBuilder().addComponents(select);
-}
 function buildBackRow(guildId) {
   return new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('config_back_home').setLabel(t(guildId, 'config_back_button')).setStyle(ButtonStyle.Secondary));
 }
 
-// ── Rendu « style Soutiens » (Container Components V2) ──
-function buildLogStyleRow(guildId) {
-  const isEmbed = getGuildConfig(guildId).log_style === 'embed';
-  return new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('config_logstyle_embed').setLabel('💬 Embed').setStyle(isEmbed ? ButtonStyle.Success : ButtonStyle.Secondary), new ButtonBuilder().setCustomId('config_logstyle_image').setLabel('🖼️ Image').setStyle(!isEmbed ? ButtonStyle.Success : ButtonStyle.Secondary));
+// ════════════════════════════════════════════════
+// Rendu « Container V2 » (onglets + lignes paramètre + bouton Modifier)
+// ════════════════════════════════════════════════
+const PANEL_ACCENT = 0xE5484D; // couleur de la barre latérale du panneau (change-la ici)
+const PAGE_SIZE = 4;           // paramètres par page (limite Discord : 40 composants par message)
+
+function splitTitle(guildId, cat) {
+  const full = t(guildId, cat.titleKey);
+  const sp = full.indexOf(' ');
+  return { emoji: sp > -1 ? full.slice(0, sp) : null, label: sp > -1 ? full.slice(sp + 1) : full };
 }
-function buildCategoryRows(catKey, guildId) {
-  const rows = CONFIG_CATEGORIES[catKey].settings.length ? [buildSettingSelectRow(catKey, guildId)] : [];
-  if (catKey === 'logs') rows.push(buildLogStyleRow(guildId));
-  if (catKey === 'premium') rows.push(...buildWelcomeGoodbyeButtonRows(guildId), buildPremiumButtonsRow());
-  if (catKey === 'niveaux') rows.push(buildXpButtonsRow());
-  rows.push(buildBackRow(guildId));
+function txt(content) {
+  return new TextDisplayBuilder().setContent(String(content).slice(0, 4000));
+}
+function sepLine() {
+  return new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+}
+function v2Payload(container) {
+  return { components: [container], flags: MessageFlags.IsComponentsV2 };
+}
+function buildTabRows(guildId, activeKey) {
+  const buttons = Object.entries(CONFIG_CATEGORIES).map(([key, cat]) => {
+    const { emoji, label } = splitTitle(guildId, cat);
+    const b = new ButtonBuilder()
+      .setCustomId(`config_tab_${key}`)
+      .setLabel(label.slice(0, 80))
+      .setStyle(key === activeKey ? ButtonStyle.Primary : ButtonStyle.Secondary);
+    if (emoji) b.setEmoji(emoji);
+    return b;
+  });
+  const rows = [];
+  for (let i = 0; i < buttons.length; i += 5) {
+    rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
+  }
   return rows;
 }
-function buildCategoryPayload(catKey, guild) {
+function buildSettingSection(guildId, cfg, catKey, s) {
+  const isBool = s.type === 'boolean';
+  const on = !!cfg[s.value];
+  const btn = new ButtonBuilder()
+    .setCustomId(`config_setting_btn_${catKey}:${s.value}`)
+    .setLabel(isBool ? (on ? 'Désactiver' : 'Activer') : 'Modifier')
+    .setStyle(isBool ? (on ? ButtonStyle.Danger : ButtonStyle.Success) : ButtonStyle.Primary);
+  if (!isBool) btn.setEmoji('✏️');
+  return new SectionBuilder()
+    .addTextDisplayComponents(txt(`**${s.emoji} ${t(guildId, s.labelKey)}**\n> ${formatConfigValue(guildId, cfg, s)}`))
+    .setButtonAccessory(btn);
+}
+function buildPremiumInfoText() {
+  return '### ⭐ Tout ce qui est Premium sur CoreLab\n' +
+    '🎨 **Personnalisation**\n' +
+    '• 👋 Bienvenue / au revoir (message, image, boutons, carte par défaut entièrement modifiable) → boutons ci-dessous\n' +
+    '• 🖼️ Image de l\'annonce de niveau → bouton ci-dessous\n' +
+    '• 🎫 Tickets : apparence, message d\'ouverture, image → `/settings ticket`\n' +
+    '• 📜 `/reglement` et 🗳️ `/vote` : titres, couleurs, images → dans ces commandes\n\n' +
+    '⭐ **Premium**\n' +
+    '• 🖐️ Bouton Claim des tickets → `/settings ticket`\n' +
+    '• 💾 `/backup` (create, load, list, delete, info)\n' +
+    '• 🔔 Notifications suivies illimitées → `/notification`';
+}
+
+// ── Accueil ──
+function buildConfigHomePayload(guild) {
   const gid = guild.id;
-  // Carte image (style /protect-settings) : une tuile par paramètre de la catégorie
-  return configCardPayload(buildCategoryEmbed(catKey, getGuildConfig(gid), gid), buildCategoryRows(catKey, gid), {
-    guild,
-    file: `config-${catKey}.png`
-  });
+  const totalSettings = Object.values(CONFIG_CATEGORIES).reduce((sum, c) => sum + c.settings.length, 0);
+  const categories = Object.values(CONFIG_CATEGORIES)
+    .map(c => `${t(gid, c.titleKey)} — ${c.settings.length} paramètre(s)`).join('\n');
+  const container = new ContainerBuilder().setAccentColor(PANEL_ACCENT)
+    .addTextDisplayComponents(txt(`## ⚙️ ${t(gid, 'config_home_title')}\n-# CoreLab • ${guild.name}\n\n${t(gid, 'config_home_welcome_value')}`))
+    .addActionRowComponents(...buildTabRows(gid, null))
+    .addSeparatorComponents(sepLine())
+    .addTextDisplayComponents(txt(`**${t(gid, 'config_home_stats_field')}**\n> ${t(gid, 'config_settings_count')} : \`${totalSettings}\` • ${t(gid, 'config_categories_count')} : \`${Object.keys(CONFIG_CATEGORIES).length}\`\n\n${categories}`));
+  return v2Payload(container);
+}
+
+// ── Catégorie (paginée) ──
+function buildCategoryPayload(catKey, guild, page = 0) {
+  const gid = guild.id;
+  const cfg = getGuildConfig(gid);
+  const cat = CONFIG_CATEGORIES[catKey];
+  const totalPages = Math.max(1, Math.ceil(cat.settings.length / PAGE_SIZE));
+  const p = Math.min(Math.max(page, 0), totalPages - 1);
+  const isLastPage = p === totalPages - 1;
+
+  const homeBtn = new ButtonBuilder().setCustomId('config_back_home').setLabel('Accueil').setEmoji('🏠').setStyle(ButtonStyle.Secondary);
+  const container = new ContainerBuilder().setAccentColor(PANEL_ACCENT)
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(txt(`## ${t(gid, cat.titleKey)}\n-# ${t(gid, 'config_title_suffix')} • CoreLab\n\n${t(gid, cat.descKey)}`))
+        .setButtonAccessory(homeBtn)
+    )
+    .addActionRowComponents(...buildTabRows(gid, catKey))
+    .addSeparatorComponents(sepLine());
+
+  for (const s of cat.settings.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE)) {
+    container.addSectionComponents(buildSettingSection(gid, cfg, catKey, s));
+  }
+
+  if (catKey === 'logs' && isLastPage) {
+    const isEmbed = cfg.log_style === 'embed';
+    container.addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(txt(`**🎨 Style des logs**\n> ${isEmbed ? '💬 Embed' : '🖼️ Image'}`))
+        .setButtonAccessory(
+          new ButtonBuilder()
+            .setCustomId(isEmbed ? 'config_logstyle_image' : 'config_logstyle_embed')
+            .setLabel(isEmbed ? 'Passer en Image' : 'Passer en Embed')
+            .setStyle(ButtonStyle.Primary)
+        )
+    );
+  }
+  if (catKey === 'premium') {
+    container.addTextDisplayComponents(txt(buildPremiumInfoText()));
+    container.addActionRowComponents(...buildWelcomeGoodbyeButtonRows(gid), buildPremiumButtonsRow());
+  }
+  if (catKey === 'niveaux' && isLastPage) {
+    container.addActionRowComponents(buildXpButtonsRow());
+  }
+  if (totalPages > 1) {
+    container.addSeparatorComponents(sepLine());
+    container.addActionRowComponents(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`config_page_${catKey}:${p - 1}`).setLabel('◀').setStyle(ButtonStyle.Secondary).setDisabled(p === 0),
+        new ButtonBuilder().setCustomId('config_page_indicator').setLabel(`${p + 1}/${totalPages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId(`config_page_${catKey}:${p + 1}`).setLabel('▶').setStyle(ButtonStyle.Secondary).setDisabled(isLastPage)
+      )
+    );
+  }
+  return v2Payload(container);
 }
 
 // ── Système d'XP : boutons regroupés dans la catégorie Niveaux ──
@@ -609,28 +661,25 @@ async function executePanneau(interaction) {
     });
   }
   const gid = interaction.guild.id;
-  const homeEmbed = buildConfigHomeEmbed(interaction.guild);
-  const catRow = buildCategorySelectRow(gid);
+  // Page courante par catégorie (pour rester sur la bonne page après une modification)
+  const pageByCat = {};
+  const pageOf = k => pageByCat[k] || 0;
   await interaction.deferReply({
     flags: MessageFlags.Ephemeral
   });
-  await interaction.editReply(configPayload(homeEmbed, [catRow]));
+  await interaction.editReply(buildConfigHomePayload(interaction.guild));
   const replyMessage = await interaction.fetchReply();
   const collector = replyMessage.createMessageComponentCollector({
-    filter: i => i.user.id === interaction.user.id && (i.customId === 'config_category_select' || i.customId === 'config_back_home' || i.customId.startsWith('config_setting_select_') || i.customId.startsWith('config_set_role_') || i.customId.startsWith('config_set_channel_') || i.customId === 'config_welcome_msg_btn' || i.customId === 'config_welcome_img_btn' || i.customId === 'config_welcome_links_btn' || i.customId === 'config_welcome_card_btn' || i.customId === 'config_goodbye_card_btn' || i.customId === 'config_welcome_reset_btn' || i.customId === 'config_goodbye_msg_btn' || i.customId === 'config_goodbye_img_btn' || i.customId === 'config_goodbye_links_btn' || i.customId === 'config_goodbye_reset_btn' || i.customId === 'config_xp_add_btn' || i.customId === 'config_xp_remove_btn' || i.customId === 'config_xp_reset_btn' || i.customId === 'config_xp_roles_btn' || i.customId === 'config_logstyle_embed' || i.customId === 'config_logstyle_image' || i.customId === 'config_xp_img_btn' || i.customId === 'config_xp_role_add_btn' || i.customId === 'config_xp_role_remove_select' || i.customId === 'config_xp_back_btn' || i.customId === 'config_xp_roles_mode_btn' || i.customId === 'config_xp_role_pick' || i.customId.startsWith('config_xp_select_')),
+    // Les sélecteurs rôle / salon / membre arrivent sur d'autres messages éphémères,
+    // donc ce filtre large ne capte que les composants du panneau lui-même.
+    filter: i => i.user.id === interaction.user.id && i.customId.startsWith('config_'),
     time: 300000
   });
   collector.on('collect', async i => {
-    // Accusé de réception IMMÉDIAT pour la sélection de catégorie et
-    // le retour à l'accueil : ces deux cas se terminent toujours par
-    // safeComponentUpdate() (jamais de modal ni de nouveau message),
-    // donc on peut deferUpdate() sans attendre. Avant ce correctif,
-    // seul le setTimeout(2000ms) ci-dessous protégeait ce chemin :
-    // en cas de réseau lent côté hébergeur, la marge d'1s restante
-    // ne suffisait pas toujours et Discord affichait "CoreLab n'a
-    // pas répondu à temps" alors que la commande finissait par
-    // fonctionner côté serveur.
-    if (i.customId === 'config_category_select' || i.customId === 'config_back_home') {
+    // Accusé de réception IMMÉDIAT pour les onglets, la pagination et le retour
+    // à l'accueil : ces cas se terminent toujours par safeComponentUpdate()
+    // (jamais de modal ni de nouveau message), donc on peut deferUpdate() sans attendre.
+    if (i.customId.startsWith('config_tab_') || i.customId.startsWith('config_page_') || i.customId === 'config_back_home') {
       await i.deferUpdate().catch(() => { });
     }
 
@@ -647,20 +696,31 @@ async function executePanneau(interaction) {
     try {
       // ── Retour à l'accueil ──────────────────────────
       if (i.customId === 'config_back_home') {
-        const embed = buildConfigHomeEmbed(interaction.guild);
-        return await safeComponentUpdate(i, configPayload(embed, [buildCategorySelectRow(gid)]));
+        return await safeComponentUpdate(i, buildConfigHomePayload(interaction.guild));
       }
 
-      // ── Sélection de catégorie ───────────────────
-      if (i.customId === 'config_category_select') {
-        const catKey = i.values[0];
+      // ── Pagination d'une catégorie ───────────────────
+      if (i.customId.startsWith('config_page_')) {
+        if (i.customId === 'config_page_indicator') return;
+        const [pCat, pNum] = i.customId.slice('config_page_'.length).split(':');
+        if (!CONFIG_CATEGORIES[pCat]) return;
+        pageByCat[pCat] = parseInt(pNum, 10) || 0;
+        return await safeComponentUpdate(i, buildCategoryPayload(pCat, interaction.guild, pageByCat[pCat]));
+      }
+
+      // ── Onglet de catégorie ───────────────────────
+      if (i.customId.startsWith('config_tab_')) {
+        const catKey = i.customId.slice('config_tab_'.length);
         const targetCat = CONFIG_CATEGORIES[catKey];
-        if (targetCat?.premium && !isPremium(i.user.id)) {
+        if (!targetCat) return;
+        if (targetCat.premium && !isPremium(i.user.id)) {
           const premiumEmbed = new EmbedBuilder().setTitle(t(gid, 'config_premium_category_title')).setDescription(t(gid, 'config_premium_category_desc')).setColor(0x1C1F26);
-          return await i.reply(configPayload(premiumEmbed, [buildSubscriptionRow()], {
+          // deferUpdate() a déjà été fait : on répond par un followUp éphémère
+          return await i.followUp(configPayload(premiumEmbed, [buildSubscriptionRow()], {
             ephemeral: true
           }));
         }
+        pageByCat[catKey] = 0;
 
         // ── Panneaux boutons dédiés ──
         if (catKey === 'traduction') {
@@ -669,7 +729,7 @@ async function executePanneau(interaction) {
         if (catKey === 'reponses_auto') {
           return await safeComponentUpdate(i, autoresponsePayload(interaction.guild, [buildBackRow(gid)]));
         }
-        return await safeComponentUpdate(i, buildCategoryPayload(catKey, interaction.guild));
+        return await safeComponentUpdate(i, buildCategoryPayload(catKey, interaction.guild, 0));
       }
 
       // ── Logs : style d'affichage (Embed / Image) ──
@@ -677,15 +737,14 @@ async function executePanneau(interaction) {
         const logCfg = getGuildConfig(interaction.guild.id);
         logCfg.log_style = i.customId === 'config_logstyle_embed' ? 'embed' : 'image';
         persist('config');
-        return await safeComponentUpdate(i, buildCategoryPayload('logs', interaction.guild));
+        return await safeComponentUpdate(i, buildCategoryPayload('logs', interaction.guild, pageOf('logs')));
       }
 
-      // ── Sélection d'un paramètre dans une catégorie ──
-      if (i.customId.startsWith('config_setting_select_')) {
-        const catKey = i.customId.replace('config_setting_select_', '');
-        const settingKey = i.values[0];
+      // ── Bouton d'un paramètre (Modifier / Activer / Désactiver) ──
+      if (i.customId.startsWith('config_setting_btn_')) {
+        const [catKey, settingKey] = i.customId.slice('config_setting_btn_'.length).split(':');
         const cat = CONFIG_CATEGORIES[catKey];
-        const setting = cat.settings.find(s => s.value === settingKey);
+        const setting = cat?.settings.find(s => s.value === settingKey);
         if (!setting) return;
         const settingLabel = t(gid, setting.labelKey);
         if (setting.premium && !isPremium(i.user.id)) {
@@ -728,7 +787,7 @@ async function executePanneau(interaction) {
               }),
               flags: MessageFlags.Ephemeral
             });
-            await interaction.editReply(buildCategoryPayload(catKey, interaction.guild)).catch(() => { });
+            await interaction.editReply(buildCategoryPayload(catKey, interaction.guild, pageOf(catKey))).catch(() => { });
           } catch (e) {
             // Délai du sélecteur dépassé — ignoré silencieusement
           }
@@ -758,24 +817,17 @@ async function executePanneau(interaction) {
               }),
               flags: MessageFlags.Ephemeral
             });
-            await interaction.editReply(buildCategoryPayload(catKey, interaction.guild)).catch(() => { });
+            await interaction.editReply(buildCategoryPayload(catKey, interaction.guild, pageOf(catKey))).catch(() => { });
           } catch (e) {
             // Délai du sélecteur dépassé — ignoré silencieusement
           }
           return;
         }
         if (setting.type === 'boolean') {
+          // Bascule directe : le bouton change de couleur / libellé, pas besoin de message séparé
           cfg[settingKey] = !cfg[settingKey];
           persist('config');
-          const stateLabel = cfg[settingKey] ? t(gid, 'general_enabled') : t(gid, 'general_disabled');
-          await i.reply({
-            content: t(gid, 'config_boolean_set', {
-              setting: settingLabel,
-              value: stateLabel
-            }),
-            flags: MessageFlags.Ephemeral
-          });
-          return await interaction.editReply(buildCategoryPayload(catKey, interaction.guild)).catch(() => { });
+          return await safeComponentUpdate(i, buildCategoryPayload(catKey, interaction.guild, pageOf(catKey)));
         }
         if (setting.type === 'text' || setting.type === 'number') {
           const modal = new ModalBuilder().setCustomId(`config_modal_${settingKey}`).setTitle(settingLabel.slice(0, 45));
@@ -811,18 +863,13 @@ async function executePanneau(interaction) {
               }),
               flags: MessageFlags.Ephemeral
             });
-            await interaction.editReply(buildCategoryPayload(catKey, interaction.guild)).catch(() => { });
+            await interaction.editReply(buildCategoryPayload(catKey, interaction.guild, pageOf(catKey))).catch(() => { });
           } catch (e) {
             // Délai du modal dépassé — ignoré silencieusement
           }
           return;
         }
       }
-
-      // (les blocs "config_set_role_" / "config_set_channel_" sont gérés
-      // directement au moment de l'affichage du sélecteur, ci-dessous —
-      // le collecteur d'origine ne voit jamais ces interactions car elles
-      // arrivent sur un NOUVEAU message éphémère, pas sur replyMessage)
 
       // ── Bienvenue / Au revoir : message (titre, message, couleur) ──
       if (i.customId === 'config_welcome_msg_btn' || i.customId === 'config_goodbye_msg_btn') {
@@ -1109,8 +1156,7 @@ async function executePanneau(interaction) {
         return await safeComponentUpdate(i, configPayload(buildXpRolesEmbed(gid, mcfg), buildXpRolesRows(gid, mcfg, interaction.guild)));
       }
       if (i.customId === 'config_xp_back_btn') {
-        const cfg = getGuildConfig(interaction.guild.id);
-        return await safeComponentUpdate(i, buildCategoryPayload('niveaux', interaction.guild));
+        return await safeComponentUpdate(i, buildCategoryPayload('niveaux', interaction.guild, pageOf('niveaux')));
       }
       if (i.customId === 'config_xp_role_add_btn') {
         const roleSelect = new RoleSelectMenuBuilder().setCustomId('config_xp_role_pick').setPlaceholder('Choisir le rôle à attribuer');
@@ -1890,8 +1936,8 @@ const infractions_reset = {
 };
 
 // Commandes réservées au propriétaire / en MP (stats, premium) s'exécutent hors
-// contexte de serveur, elles gardent donc un texte anglais statique — il n'y a
-// pas de langue de serveur à appliquer.
+// contexte de serveur, elles gardent donc un texte anglais statique — il n'y a pas
+// de langue de serveur à appliquer.
 const stats = {
   data: new SlashCommandBuilder().setName('statistiques').setDescription('Statistiques du bot (propriétaire)'),
   async execute(interaction) {
