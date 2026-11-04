@@ -115,7 +115,7 @@ function buildPayload(interaction, view, p, uid) {
     prev = `agenda_w_${a.y}_${a.m}_${a.d}_${uid}`;
     next = `agenda_w_${b.y}_${b.m}_${b.d}_${uid}`;
     const t = parisParts(Date.now()); const mon = mondayOf(t.y, t.m, t.d);
-    cur = `agenda_w_${mon.y}_${mon.m}_${mon.d}_${uid}`;
+    cur = `agenda_tw_${mon.y}_${mon.m}_${mon.d}_${uid}`;
   } else if (view === 'a') {
     buf = renderAll(interaction);
   } else {
@@ -125,7 +125,7 @@ function buildPayload(interaction, view, p, uid) {
     prev = `agenda_m_${pm.y}_${pm.m}_${uid}`;
     next = `agenda_m_${nm.y}_${nm.m}_${uid}`;
     const t = parisParts(Date.now());
-    cur = `agenda_m_${t.y}_${t.m}_${uid}`;
+    cur = `agenda_tm_${t.y}_${t.m}_${uid}`;
   }
   const t = parisParts(Date.now());
   const mon = mondayOf(t.y, t.m, t.d);
@@ -215,7 +215,7 @@ async function routeAgendaInteraction(interaction) {
   if (uid !== interaction.user.id) {
     return interaction.reply({ content: '❌ Ce calendrier est celui d\'un autre membre : utilise `/agenda voir`.', flags: MessageFlags.Ephemeral });
   }
-  const view = parts[1];
+  const view = parts[1].replace(/^t/, ''); // « tm » / « tw » = bouton Aujourd'hui
   let p = {};
   if (view === 'm') p = { y: Number(parts[2]), m: Number(parts[3]) };
   else if (view === 'w') p = { y: Number(parts[2]), m: Number(parts[3]), d: Number(parts[4]) };
