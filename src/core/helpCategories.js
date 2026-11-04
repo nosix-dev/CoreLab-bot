@@ -25,7 +25,7 @@ const HELP_CATEGORIES = [
     label: 'Management',
     emoji: '📁',
     commands: [
-      'formulaire', 'formulaire-modifier', 'roles-reaction',
+      'formulaire', 'formulaire-modifier', 'role-react',
       'role-temporaire', 'role-temporaire-liste', 'role-temporaire-retirer',
       'planifier', 'planification-liste', 'planification-retirer',
       'rappel', 'rappels', 'rappel-retirer',

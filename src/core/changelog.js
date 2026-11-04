@@ -64,7 +64,7 @@ function load() {
 function sync() {
   try {
     const data = readJson(UPDATE_FILE);
-    if (!data) return load();
+    if (!data) { console.warn(`[Changelog] update.json introuvable ou illisible (${UPDATE_FILE}).`); return load(); }
     const entry = entryFrom(data);
     if (!entry) return load();
     const entries = load();
@@ -76,9 +76,14 @@ function sync() {
       entries.unshift(entry); // nouvelle version : en tête
     }
     const out = entries.slice(0, MAX_ENTRIES);
-    fs.mkdirSync(DIR, { recursive: true });
-    fs.writeFileSync(FILE, JSON.stringify({ entries: out }, null, 2), 'utf8');
-    console.log(`[Changelog] version ${entry.version} enregistrée (${out.length} entrée(s)).`);
+    try {
+      fs.mkdirSync(DIR, { recursive: true });
+      fs.writeFileSync(FILE, JSON.stringify({ entries: out }, null, 2), 'utf8');
+      console.log(`[Changelog] version ${entry.version} enregistrée (${out.length} entrée(s)).`);
+    } catch (e) {
+      // Écriture impossible : on renvoie quand même l'historique en mémoire pour que le site l'affiche
+      console.error(`[Changelog] écriture de ${FILE} impossible :`, e.message);
+    }
     return out;
   } catch (e) {
     console.error('[Changelog] sync impossible :', e.message);

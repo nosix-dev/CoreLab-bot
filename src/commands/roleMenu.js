@@ -1,14 +1,14 @@
 'use strict';
 
 // ─────────────────────────────────────────────────────────────────────────
-// Rôles par menu déroulant
-//   /role-menu create   titre role [description] [mode] [salon]  → crée et publie un menu avec un 1er rôle
-//   /role-menu add      menu role [label] [emoji] [description]  → ajoute un rôle au menu
-//   /role-menu remove   menu role                                → retire un rôle du menu
-//   /role-menu delete   menu                                     → supprime le menu (et son message)
-//   /role-menu list                                              → liste les menus du serveur
+// Rôles par boutons (/role-react) : un message avec jusqu'à 25 boutons, un par rôle
+//   /role-react create   titre role [description] [mode] [salon]            → crée et publie un message avec un 1er bouton
+//   /role-react add      menu role [label] [emoji] [description] [couleur]  → ajoute un bouton (rôle)
+//   /role-react remove   menu role                                          → retire un bouton
+//   /role-react delete   menu                                               → supprime le message
+//   /role-react list                                                        → liste les messages du serveur
 //
-// Le membre choisit dans le menu : chaque rôle choisi est ajouté s'il ne l'a pas, retiré sinon.
+// Le membre clique sur un bouton : le rôle est ajouté s'il ne l'a pas, retiré sinon.
 // Mode « single » : un seul rôle du menu à la fois (choisir un rôle retire les autres du menu).
 // Sécurité : un rôle avec permissions dangereuses (Administrator, ManageGuild, ManageRoles,
 // ManageChannels, ManageWebhooks, BanMembers, KickMembers), géré par une intégration, @everyone
@@ -21,7 +21,8 @@ const {
   PermissionFlagsBits: P,
   EmbedBuilder,
   ActionRowBuilder,
-  StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   MessageFlags
 } = require('discord.js');
 const crypto = require('crypto');
@@ -29,7 +30,8 @@ const { chargerDonnees, sauvegarderDonnees } = require('../core/data');
 
 const FICHIER = 'role_menus.json';
 const COULEUR = 0x5865F2;
-const MAX_ROLES = 25;
+const MAX_ROLES = 25; // 5 lignes de 5 boutons
+const STYLES = { Primary: ButtonStyle.Primary, Secondary: ButtonStyle.Secondary, Success: ButtonStyle.Success, Danger: ButtonStyle.Danger };
 const MAX_MENUS_PAR_SERVEUR = 25;
 
 const DANGEROUS_MASK = [
@@ -70,25 +72,20 @@ function buildMessage(guild, menu) {
     .setColor(COULEUR)
     .setTitle(menu.title)
     .setDescription([menu.description, lines.join('\n')].filter(Boolean).join('\n\n').slice(0, 4000))
-    .setFooter({ text: menu.mode === 'single' ? 'Un seul rôle à la fois • choisis à nouveau pour le retirer' : 'Choisis un rôle pour l\'obtenir • choisis à nouveau pour le retirer' });
+    .setFooter({ text: menu.mode === 'single' ? 'Un seul rôle à la fois • clique à nouveau pour le retirer' : 'Clique sur un bouton pour obtenir le rôle • clique à nouveau pour le retirer' });
 
-  const options = menu.roles.map(r => {
+  const buttons = menu.roles.slice(0, MAX_ROLES).map(r => {
     const role = guild.roles.cache.get(r.roleId);
-    const opt = {
-      label: (r.label || role?.name || 'Rôle').slice(0, 100),
-      value: r.roleId
-    };
-    if (r.description) opt.description = r.description.slice(0, 100);
-    if (r.emoji) opt.emoji = r.emoji;
-    return opt;
+    const btn = new ButtonBuilder()
+      .setCustomId(`rolereact:${menu.id}:${r.roleId}`)
+      .setLabel((r.label || role?.name || 'Rôle').slice(0, 80))
+      .setStyle(STYLES[r.style] || ButtonStyle.Primary);
+    if (r.emoji) btn.setEmoji(r.emoji);
+    return btn;
   });
-  const select = new StringSelectMenuBuilder()
-    .setCustomId(`rolemenu:${menu.id}`)
-    .setPlaceholder('Choisis tes rôles…')
-    .setMinValues(0)
-    .setMaxValues(menu.mode === 'single' ? 1 : Math.max(1, options.length))
-    .addOptions(options);
-  return { embeds: [embed], components: [new ActionRowBuilder().addComponents(select)] };
+  const rows = [];
+  for (let i = 0; i < buttons.length; i += 5) rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
+  return { embeds: [embed], components: rows };
 }
 
 async function refreshMessage(guild, menu) {
@@ -113,29 +110,32 @@ function parseEmoji(input) {
 // ── Commande ────────────────────────────────────────────────
 const roleMenu = {
   data: new SlashCommandBuilder()
-    .setName('role-menu')
-    .setDescription('🎭 Menus déroulants pour choisir ses rôles')
+    .setName('role-react')
+    .setDescription('🎭 Rôles par boutons : un message avec plusieurs boutons de rôles')
     .setDMPermission(false)
     .setDefaultMemberPermissions(P.ManageRoles)
-    .addSubcommand(s => s.setName('create').setDescription('Créer et publier un menu de rôles')
+    .addSubcommand(s => s.setName('create').setDescription('Créer et publier un message de rôles à boutons')
       .addStringOption(o => o.setName('titre').setDescription('Titre du menu').setRequired(true).setMaxLength(100))
       .addRoleOption(o => o.setName('role').setDescription('Premier rôle du menu').setRequired(true))
       .addStringOption(o => o.setName('description').setDescription('Texte affiché au-dessus de la liste').setMaxLength(500))
       .addStringOption(o => o.setName('mode').setDescription('Plusieurs rôles ou un seul à la fois').addChoices(
         { name: 'Plusieurs rôles', value: 'multiple' }, { name: 'Un seul rôle à la fois', value: 'single' }))
       .addChannelOption(o => o.setName('salon').setDescription('Salon où publier (par défaut : ici)')))
-    .addSubcommand(s => s.setName('add').setDescription('Ajouter un rôle à un menu')
+    .addSubcommand(s => s.setName('add').setDescription('Ajouter un bouton de rôle à un message')
       .addStringOption(o => o.setName('menu').setDescription('Menu').setRequired(true).setAutocomplete(true))
       .addRoleOption(o => o.setName('role').setDescription('Rôle à ajouter').setRequired(true))
       .addStringOption(o => o.setName('label').setDescription('Texte affiché dans le menu (par défaut : nom du rôle)').setMaxLength(100))
       .addStringOption(o => o.setName('emoji').setDescription('Emoji de l\'option'))
-      .addStringOption(o => o.setName('description').setDescription('Courte description sous le nom').setMaxLength(100)))
-    .addSubcommand(s => s.setName('remove').setDescription('Retirer un rôle d\'un menu')
+      .addStringOption(o => o.setName('description').setDescription('Courte description affichée dans le message').setMaxLength(100))
+      .addStringOption(o => o.setName('couleur').setDescription('Couleur du bouton').addChoices(
+        { name: 'Bleu', value: 'Primary' }, { name: 'Gris', value: 'Secondary' },
+        { name: 'Vert', value: 'Success' }, { name: 'Rouge', value: 'Danger' })))
+    .addSubcommand(s => s.setName('remove').setDescription('Retirer un bouton de rôle d\'un message')
       .addStringOption(o => o.setName('menu').setDescription('Menu').setRequired(true).setAutocomplete(true))
       .addRoleOption(o => o.setName('role').setDescription('Rôle à retirer').setRequired(true)))
-    .addSubcommand(s => s.setName('delete').setDescription('Supprimer un menu et son message')
+    .addSubcommand(s => s.setName('delete').setDescription('Supprimer un message de rôles et ses boutons')
       .addStringOption(o => o.setName('menu').setDescription('Menu').setRequired(true).setAutocomplete(true)))
-    .addSubcommand(s => s.setName('list').setDescription('Lister les menus de rôles du serveur')),
+    .addSubcommand(s => s.setName('list').setDescription('Lister les messages de rôles du serveur')),
 
   async autocomplete(interaction) {
     if (!interaction.guild) return interaction.respond([]);
@@ -160,7 +160,7 @@ const roleMenu = {
 
     if (sub === 'list') {
       const all = Object.values(menus);
-      if (!all.length) return reply('Aucun menu de rôles sur ce serveur. Crée-en un avec `/role-menu create`.');
+      if (!all.length) return reply('Aucun message de rôles sur ce serveur. Crée-en un avec `/role-react create`.');
       return reply(all.map(m => `• **${m.title}** — ${m.roles.length} rôle(s) — ${m.mode === 'single' ? 'un seul rôle' : 'plusieurs rôles'} — ${m.channelId ? `<#${m.channelId}>` : 'non publié'}`).join('\n').slice(0, 1900));
     }
 
@@ -190,17 +190,17 @@ const roleMenu = {
       menu.messageId = msg.id;
       menus[menu.id] = menu;
       sauver();
-      return interaction.editReply(`✅ Menu **${menu.title}** publié dans ${channel}. Ajoute d'autres rôles avec \`/role-menu add\`.`);
+      return interaction.editReply(`✅ Message **${menu.title}** publié dans ${channel}. Ajoute d'autres boutons avec \`/role-react add\`.`);
     }
 
     // add / remove / delete : menu existant
     const menu = menus[interaction.options.getString('menu')];
-    if (!menu) return reply('❌ Menu introuvable (utilise l\'autocomplétion).');
+    if (!menu) return reply('❌ Message introuvable (utilise l\'autocomplétion).');
 
     if (sub === 'add') {
       const role = interaction.options.getRole('role');
-      if (menu.roles.some(r => r.roleId === role.id)) return reply('❌ Ce rôle est déjà dans le menu.');
-      if (menu.roles.length >= MAX_ROLES) return reply(`❌ Un menu contient au maximum ${MAX_ROLES} rôles.`);
+      if (menu.roles.some(r => r.roleId === role.id)) return reply('❌ Ce rôle est déjà dans ce message.');
+      if (menu.roles.length >= MAX_ROLES) return reply(`❌ Un message contient au maximum ${MAX_ROLES} boutons.`);
       const problem = roleProblem(guild, role, executor);
       if (problem) return reply(`❌ Impossible d'ajouter ${role} : ${problem}.`);
       let emoji = null;
@@ -213,21 +213,22 @@ const roleMenu = {
         roleId: role.id,
         label: (interaction.options.getString('label') || role.name).trim().slice(0, 100),
         emoji,
-        description: (interaction.options.getString('description') || '').trim() || null
+        description: (interaction.options.getString('description') || '').trim() || null,
+        style: interaction.options.getString('couleur') || 'Primary'
       });
       sauver();
       const ok = await refreshMessage(guild, menu);
-      return reply(ok ? `✅ ${role} ajouté au menu **${menu.title}**.` : `⚠️ ${role} ajouté, mais le message du menu est introuvable (supprimé ?). Recrée le menu avec \`/role-menu create\`.`);
+      return reply(ok ? `✅ ${role} ajouté au message **${menu.title}**.` : `⚠️ ${role} ajouté, mais le message est introuvable (supprimé ?). Recrée le menu avec \`/role-react create\`.`);
     }
 
     if (sub === 'remove') {
       const role = interaction.options.getRole('role');
-      if (!menu.roles.some(r => r.roleId === role.id)) return reply('❌ Ce rôle n\'est pas dans ce menu.');
-      if (menu.roles.length <= 1) return reply('❌ Un menu doit garder au moins un rôle. Utilise `/role-menu delete` pour le supprimer.');
+      if (!menu.roles.some(r => r.roleId === role.id)) return reply('❌ Ce rôle n\'est pas dans ce message.');
+      if (menu.roles.length <= 1) return reply('❌ Un message doit garder au moins un bouton. Utilise `/role-react delete` pour le supprimer.');
       menu.roles = menu.roles.filter(r => r.roleId !== role.id);
       sauver();
       await refreshMessage(guild, menu);
-      return reply(`✅ ${role} retiré du menu **${menu.title}**.`);
+      return reply(`✅ ${role} retiré du message **${menu.title}**.`);
     }
 
     if (sub === 'delete') {
@@ -236,14 +237,15 @@ const roleMenu = {
       const channel = guild.channels.cache.get(menu.channelId);
       const msg = channel?.isTextBased?.() ? await channel.messages.fetch(menu.messageId).catch(() => null) : null;
       if (msg) await msg.delete().catch(() => {});
-      return reply(`🗑️ Menu **${menu.title}** supprimé.`);
+      return reply(`🗑️ Message **${menu.title}** supprimé.`);
     }
   }
 };
 
 // ── Sélection d'un membre ───────────────────────────────────
 async function handleSelect(interaction) {
-  const menuId = interaction.customId.split(':')[1];
+  const parts = interaction.customId.split(':');
+  const menuId = parts[1];
   const guild = interaction.guild;
   if (!guild) return;
   const reply = content => interaction.reply({ content, flags: MessageFlags.Ephemeral });
@@ -255,8 +257,9 @@ async function handleSelect(interaction) {
   if (!member) return interaction.editReply('❌ Impossible de te retrouver sur le serveur.');
 
   const menuRoleIds = new Set(menu.roles.map(r => r.roleId));
-  const selected = interaction.values.filter(v => menuRoleIds.has(v));
-  if (!selected.length) return interaction.editReply('Aucun rôle sélectionné.');
+  const picked = interaction.isButton() ? [parts[2]] : (interaction.values || []); // bouton, ou ancien menu déroulant déjà publié
+  const selected = picked.filter(v => menuRoleIds.has(v));
+  if (!selected.length) return interaction.editReply('Ce bouton n\'est plus valide.');
 
   const toAdd = [];
   const toRemove = [];
@@ -296,7 +299,9 @@ async function handleSelect(interaction) {
 function registerRoleMenus(client) {
   client.on('interactionCreate', interaction => {
     try {
-      if (interaction.isStringSelectMenu() && interaction.customId.startsWith('rolemenu:')) {
+      const ok = (interaction.isButton() && interaction.customId.startsWith('rolereact:'))
+        || (interaction.isStringSelectMenu() && interaction.customId.startsWith('rolemenu:'));
+      if (ok) {
         handleSelect(interaction).catch(e => {
           if (e?.code !== 10062) console.error('[RoleMenu] sélection :', e.message);
         });
@@ -316,4 +321,4 @@ function registerRoleMenus(client) {
   console.log('✅ Menus de rôles initialisés.');
 }
 
-module.exports = { commands: [roleMenu], registerRoleMenus, _test: { parseEmoji } };
+module.exports = { commands: [roleMenu], registerRoleMenus, _test: { parseEmoji, buildMessage } };
