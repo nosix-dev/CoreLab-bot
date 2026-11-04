@@ -595,7 +595,7 @@ function buildCategoryPayload(key, guild, page = 0) {
   const container = new ContainerBuilder().setAccentColor(PANEL_ACCENT)
     .addSectionComponents(
       new SectionBuilder()
-        .addTextDisplayComponents(txt(`## ⚙️ Configuration\n-# CoreLab${BOT_VERSION ? ` v${BOT_VERSION}` : ''}\n\n${desc}`))
+        .addTextDisplayComponents(txt(`## ⚙️ Configuration\n\n${desc}`))
         .setButtonAccessory(homeBtn)
     )
     .addActionRowComponents(...buildTabRows(gid, isPremiumTab ? null : tabKey))
