@@ -1,9 +1,10 @@
-// Journal d'audit complet.
-//   /audit voir     [acteur] [cible] [type] [jours]   → consulter (pages avec ◀ ▶)
-//   /audit stats    [jours]                           → qui fait quoi, répartition par type
-//   /audit export   [format] [acteur] [cible] [type] [jours] → fichier CSV (Excel) ou JSON
-//   /audit permissions-ia                             → audit des permissions de l'assistant IA (lecture seule)
-// Réponses éphémères, réservées à la permission « Voir les logs du serveur ».
+// /audit : audit de sécurité du serveur (score /100, catégories, problèmes détectés, boutons Détails / Actualiser).
+// /journal : journal d'audit complet.
+//   /journal voir     [acteur] [cible] [type] [jours]   → consulter (pages avec ◀ ▶)
+//   /journal stats    [jours]                           → qui fait quoi, répartition par type
+//   /journal export   [format] [acteur] [cible] [type] [jours] → fichier CSV (Excel) ou JSON
+//   /journal permissions-ia                             → audit des permissions de l'assistant IA (lecture seule)
+// Réponses éphémères. /audit : « Gérer le serveur » · /journal : « Voir les logs du serveur ».
 const {
   SlashCommandBuilder,
   PermissionFlagsBits,
@@ -13,6 +14,7 @@ const {
 } = require('discord.js');
 const journal = require('../core/auditJournal');
 const { construireRapport: rapportPermissionsIa } = require('../core/auditPermissionsIa');
+const securite = require('../core/securityAudit');
 
 const choixTypes = Object.entries(journal.TYPES).map(([value, name]) => ({ name, value }));
 
@@ -33,9 +35,9 @@ function lireFiltres(interaction) {
   };
 }
 
-const audit = {
+const journalCmd = {
   data: new SlashCommandBuilder()
-    .setName('audit')
+    .setName('journal')
     .setDescription('Journal d\'audit complet : qui a fait quoi, et quand')
     .setDefaultMemberPermissions(PermissionFlagsBits.ViewAuditLog)
     .addSubcommand(s => ajouterFiltres(s.setName('voir').setDescription('Consulter le journal d\'audit')))
@@ -92,4 +94,37 @@ const audit = {
   },
 };
 
-module.exports = [audit];
+// ── /audit : audit de sécurité ─────────────────────────────────────────────
+const audit = {
+  data: new SlashCommandBuilder()
+    .setName('audit')
+    .setDescription('Audit de sécurité du serveur : score, problèmes détectés et conseils')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDMPermission(false),
+
+  async execute(interaction) {
+    const ephemere = { flags: MessageFlags.Ephemeral };
+    if (!interaction.guild) return interaction.reply({ content: '❌ Cette commande fonctionne uniquement dans un serveur.', ...ephemere });
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+      return interaction.reply({ content: '❌ Il faut la permission **Gérer le serveur**.', ...ephemere });
+    }
+    await interaction.deferReply(ephemere);
+    return interaction.editReply(securite.construireAccueil(interaction.guild, securite.analyser(interaction.guild)));
+  },
+};
+
+// Boutons : « secaudit:refresh » · « secaudit:home » · « secaudit:detail:<catégorie> »
+async function routeSecAuditInteraction(interaction) {
+  if (!interaction.guild) return;
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+    return interaction.reply({ content: '❌ Il faut la permission **Gérer le serveur**.', flags: MessageFlags.Ephemeral });
+  }
+  const [, action, cle] = interaction.customId.split(':');
+  await interaction.deferUpdate();
+  const res = securite.analyser(interaction.guild);
+  if (action === 'detail') return interaction.editReply(securite.construireDetail(interaction.guild, res, cle));
+  return interaction.editReply(securite.construireAccueil(interaction.guild, res));
+}
+
+module.exports = [audit, journalCmd];
+module.exports.routeSecAuditInteraction = routeSecAuditInteraction;

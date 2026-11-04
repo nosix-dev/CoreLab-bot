@@ -641,6 +641,12 @@ client.on('interactionCreate', async interaction => {
     if (id.startsWith('modmail_')) {
       return routeModmailInteraction(interaction).catch(e => console.error('[Modmail] interaction :', e));
     }
+    if (id.startsWith('discon:')) {
+      return require('./src/commands/discon').routeDisconInteraction(interaction).catch(e => console.error('[DISCON] interaction :', e.message));
+    }
+    if (id.startsWith('secaudit:')) {
+      return require('./src/commands/audit').routeSecAuditInteraction(interaction).catch(e => console.error('[Audit] sécurité :', e.message));
+    }
     if (id.startsWith('auditp:')) {
       return auditJournal.handleAuditButton(interaction).catch(e => console.error('[Audit] bouton :', e.message));
     }
@@ -1398,6 +1404,6 @@ async function diagnosticConnexion(tok) {
   }
 }
 let _clientPret = false;
-client.once('clientReady', () => { _clientPret = true; });
+client.once('clientReady', () => { _clientPret = true; require('./src/core/discon').demarrerRenouvellement(client); });
 setTimeout(() => { if (!_clientPret) diagnosticConnexion(token); }, 60000).unref();
 connectWithRetry(client, token);
