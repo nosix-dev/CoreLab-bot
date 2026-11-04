@@ -73,6 +73,13 @@ try {
     // Dashboard : GET /dashboard (public) et /dashboard/private (token)
     try { if (require('./src/core/dashboardApi').handle(req, res, { client, buildStatus })) return; }
     catch (e) { console.error('[Dashboard] :', e.message); }
+    // Historique des mises à jour pour le site : GET /changelog (public, lecture seule)
+    if (req.url.split('?')[0] === '/changelog') {
+      const H = { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Cache-Control': 'public, max-age=60' };
+      if (req.method === 'OPTIONS') { res.writeHead(204, H); return res.end(); }
+      try { res.writeHead(200, H); return res.end(JSON.stringify(require('./src/core/changelog').getChangelog())); }
+      catch (e) { console.error('[Changelog] :', e.message); res.writeHead(500, H); return res.end(JSON.stringify({ entries: [] })); }
+    }
     if (['/status', '/statut'].includes(req.url.split('?')[0])) {
       res.writeHead(200, {
         'Content-Type': 'application/json',
@@ -548,6 +555,7 @@ client.once('clientReady', async () => {
   synchroniserPseudosAuDemarrage(client);
   synchroniserRoleAuDemarrage(client);
   rehydrateIaSessions(client);
+  try { require('./src/core/changelog').sync(); } catch (e) { console.error('❌ Changelog:', e.message); }
   try { require('./src/handlers/updateNotifier').notifyUpdate(client).catch(e => console.error('❌ Annonce de mise à jour:', e.message)); } catch (e) { console.error('❌ Annonce de mise à jour:', e.message); }
   console.log('══════════════════════════════════════════════');
 });
@@ -559,10 +567,13 @@ client.on('interactionCreate', async interaction => {
   if (interaction.isAutocomplete()) {
     const cmd = client.commands.get(interaction.commandName);
     if (cmd?.autocomplete) {
+      const retard = Date.now() - interaction.createdTimestamp; // délai entre l'envoi par Discord et la réception par le bot
+      if (retard > 1500) console.warn(`[Autocomplete] /${interaction.commandName} reçu avec ${retard} ms de retard (Discord attend une réponse en 3 s).`);
       try {
         await cmd.autocomplete(interaction);
       } catch (e) {
-        if (e?.code !== 10062) console.error(`[Autocomplete] /${interaction.commandName} :`, e.message);
+        console.error(`[Autocomplete] /${interaction.commandName} (retard ${retard} ms) :`, e?.code ?? '', e?.message);
+        if (!interaction.responded) interaction.respond([]).catch(() => {});
       }
     }
     return;

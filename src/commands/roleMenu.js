@@ -141,9 +141,9 @@ const roleMenu = {
     if (!interaction.guild) return interaction.respond([]);
     const focused = String(interaction.options.getFocused() || '').toLowerCase();
     const choices = Object.values(menusOf(interaction.guild.id))
-      .filter(m => m.title.toLowerCase().includes(focused) || m.id.includes(focused))
+      .filter(m => m && m.id && (String(m.title || '').toLowerCase().includes(focused) || String(m.id).includes(focused)))
       .slice(0, 25)
-      .map(m => ({ name: `${m.title} (${m.roles.length} rôle${m.roles.length > 1 ? 's' : ''})`.slice(0, 100), value: m.id }));
+      .map(m => { const n = (m.roles || []).length; return { name: `${m.title || 'Menu'} (${n} rôle${n > 1 ? 's' : ''})`.slice(0, 100), value: String(m.id) }; });
     return interaction.respond(choices);
   },
 
