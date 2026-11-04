@@ -497,7 +497,7 @@ function buildBackRow(guildId) {
 // ════════════════════════════════════════════════
 // Rendu « Container V2 » (onglets + lignes paramètre + bouton Modifier)
 // ════════════════════════════════════════════════
-const PANEL_ACCENT = 0xE5484D; // couleur de la barre latérale du panneau (change-la ici)
+const PANEL_ACCENT = 0xFFFFFF; // couleur de la barre latérale du panneau (change-la ici)
 const PAGE_SIZE = 4;           // paramètres par page (limite Discord : 40 composants par message)
 
 function splitTitle(guildId, cat) {
@@ -743,7 +743,7 @@ async function executePanneau(interaction) {
         const targetCat = CONFIG_CATEGORIES[catKey];
         if (!TAB_GROUPS[catKey] && !targetCat) return;
         if (targetCat?.premium && !isPremium(i.user.id)) {
-          const premiumEmbed = new EmbedBuilder().setTitle(t(gid, 'config_premium_category_title')).setDescription(t(gid, 'config_premium_category_desc')).setColor(0x1C1F26);
+          const premiumEmbed = new EmbedBuilder().setTitle(t(gid, 'config_premium_category_title')).setDescription(`${t(gid, 'config_premium_category_desc')}\n\n${buildPremiumInfoText()}`.slice(0, 4000)).setColor(0x1C1F26);
           // deferUpdate() a déjà été fait : on répond par un followUp éphémère
           return await i.followUp(configPayload(premiumEmbed, [buildSubscriptionRow()], {
             ephemeral: true
