@@ -19,7 +19,10 @@
 const {
   SlashCommandBuilder,
   PermissionFlagsBits: P,
-  EmbedBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
   ActionRowBuilder,
   ButtonBuilder,
   RoleSelectMenuBuilder,
@@ -30,7 +33,7 @@ const crypto = require('crypto');
 const { chargerDonnees, sauvegarderDonnees } = require('../core/data');
 
 const FICHIER = 'role_menus.json';
-const COULEUR = 0x5865F2;
+const COULEUR = 0xFFFFFF; // barre d'accent blanche, comme les annonces de mise à jour
 const MAX_ROLES = 25; // 5 lignes de 5 boutons
 const STYLES = { Primary: ButtonStyle.Primary, Secondary: ButtonStyle.Secondary, Success: ButtonStyle.Success, Danger: ButtonStyle.Danger };
 const MAX_MENUS_PAR_SERVEUR = 25;
@@ -65,31 +68,38 @@ function roleProblem(guild, role, executor = null) {
   return null;
 }
 
-// ── Rendu du message du menu ────────────────────────────────
+// ── Rendu du message (carte moderne : titre, liste des rôles, boutons) ──
 function buildMessage(guild, menu) {
-  const lines = menu.roles.map(r => {
+  const lines = menu.roles.slice(0, MAX_ROLES).map(r => {
     const role = guild.roles.cache.get(r.roleId);
     const name = role ? `<@&${role.id}>` : '*(rôle supprimé)*';
-    return `${r.emoji ? `${r.emoji} ` : ''}${name}${r.description ? ` — ${r.description}` : ''}`;
+    return `${r.emoji ? `${r.emoji} ` : '▸ '}${name}${r.description ? `  ·  ${r.description}` : ''}`;
   });
-  const embed = new EmbedBuilder()
-    .setColor(COULEUR)
-    .setTitle(menu.title)
-    .setDescription([menu.description, lines.join('\n')].filter(Boolean).join('\n\n').slice(0, 4000))
-    .setFooter({ text: menu.mode === 'single' ? 'Un seul rôle à la fois • clique à nouveau pour le retirer' : 'Clique sur un bouton pour obtenir le rôle • clique à nouveau pour le retirer' });
+  const aide = menu.mode === 'single'
+    ? '-# Un seul rôle à la fois • clique sur un bouton pour le prendre, clique à nouveau pour le retirer'
+    : '-# Clique sur un bouton pour obtenir un rôle • clique à nouveau pour le retirer';
+
+  const container = new ContainerBuilder().setAccentColor(COULEUR);
+  const entete = [`## ${menu.title}`, menu.description].filter(Boolean).join('\n');
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(entete.slice(0, 1500)));
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n').slice(0, 2400) || '*Aucun rôle*'));
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small));
 
   const buttons = menu.roles.slice(0, MAX_ROLES).map(r => {
     const role = guild.roles.cache.get(r.roleId);
     const btn = new ButtonBuilder()
       .setCustomId(`rolereact:${menu.id}:${r.roleId}`)
       .setLabel((r.label || role?.name || 'Rôle').slice(0, 80))
-      .setStyle(STYLES[r.style] || ButtonStyle.Primary);
+      .setStyle(STYLES[r.style] || ButtonStyle.Secondary);
     if (r.emoji) btn.setEmoji(r.emoji);
     return btn;
   });
-  const rows = [];
-  for (let i = 0; i < buttons.length; i += 5) rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
-  return { embeds: [embed], components: rows };
+  for (let i = 0; i < buttons.length; i += 5) container.addActionRowComponents(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small));
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(aide));
+
+  return { components: [container], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
 async function refreshMessage(guild, menu) {
@@ -98,7 +108,16 @@ async function refreshMessage(guild, menu) {
   if (!channel?.isTextBased?.()) return false;
   const msg = await channel.messages.fetch(menu.messageId).catch(() => null);
   if (!msg) return false;
-  await msg.edit(buildMessage(guild, menu)).catch(e => console.error('[RoleMenu] édition :', e.message));
+  // Ancien message (embed ou menu déroulant) : Discord interdit de le convertir, on le remplace par le nouveau design
+  if (!msg.flags?.has?.(MessageFlags.IsComponentsV2)) {
+    const neuf = await channel.send(buildMessage(guild, menu)).catch(e => { console.error('[RoleReact] remplacement :', e.message); return null; });
+    if (!neuf) return false;
+    menu.messageId = neuf.id;
+    sauver();
+    await msg.delete().catch(() => {});
+    return true;
+  }
+  await msg.edit(buildMessage(guild, menu)).catch(e => console.error('[RoleReact] édition :', e.message));
   return true;
 }
 
@@ -220,7 +239,7 @@ const roleMenu = {
         label: (interaction.options.getString('label') || role.name).trim().slice(0, 100),
         emoji,
         description: (interaction.options.getString('description') || '').trim() || null,
-        style: interaction.options.getString('couleur') || 'Primary'
+        style: interaction.options.getString('couleur') || 'Secondary'
       });
       sauver();
       const ok = await refreshMessage(guild, menu);
@@ -345,7 +364,7 @@ async function handlePick(interaction) {
     mode: d.mode,
     channelId: channel.id,
     messageId: null,
-    roles: good.map(role => ({ roleId: role.id, label: role.name.slice(0, 80), emoji: null, description: null, style: 'Primary' }))
+    roles: good.map(role => ({ roleId: role.id, label: role.name.slice(0, 80), emoji: role.unicodeEmoji || null, description: null, style: 'Secondary' }))
   };
   const msg = await channel.send(buildMessage(guild, menu)).catch(e => { console.error('[RoleReact] envoi :', e.message); return null; });
   if (!msg) return interaction.editReply({ content: '❌ Impossible de publier le message dans ce salon (permissions ?).', components: [] });
