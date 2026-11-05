@@ -506,7 +506,7 @@ function getStatuses(client) {
     name: '!help pour voir les commande !',
     type: 0
   }, {
-    name: 'Version 5.5.6 ⚙️',
+    name: 'Version 5.5.8 ⚙️',
     type: 0
   }];
 }
@@ -1341,6 +1341,7 @@ registerProtectionHandlers(client);
 try { require('./src/handlers/permGuard').registerPermGuard(client); } catch (e) { console.error('❌ PermGuard:', e.message); }
 require('./src/commands/quests').registerQuests(client);
 require('./src/commands/roleMenu').registerRoleMenus(client);
+require('./src/commands/anime').registerAnime(client);
 registerStarboardHandlers(client);
 registerModmailHandler(client);
 registerAntiScamHandler(client);

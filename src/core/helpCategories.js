@@ -83,7 +83,7 @@ const HELP_CATEGORIES = [
     label: 'Public',
     emoji: '☀️',
     commands: [
-      'niveau', 'classement', 'quests', 'sondage', 'sondage-fermer', 'sondage-liste',
+      'niveau', 'classement', 'quests', 'anime', 'sondage', 'sondage-fermer', 'sondage-liste',
       'concours', 'concours-liste', 'concours-retirage', 'suggestion', 'texte-vocal',
       'serveur-statistiques', 'membre-statistiques', 'server-stats', 'user-stats', 'avatar', 'banniere',
     ],
