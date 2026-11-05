@@ -1,0 +1,33 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.8",
+  "date": "2026-11-05",
+  "mention": false,
+  "titre": "📌 CoreLab — Collection de personnages d'anime (5.5.8)",
+  "couleur": "#FFFFFF",
+  "article": {
+    "label": "Changelog",
+    "emoji": "📜",
+    "url": "https://corelab-4cn.pages.dev/docs#p-changelog"
+  },
+  "intro": "Nouveau jeu de collection façon Mudae : **tire des personnages d'anime**, claim-les avant les autres et construis ton **harem**.",
+  "modifications": {
+    "💖 Collection d'anime": [
+      "[+] **/anime roll** : tire un personnage (waifu, husbando ou mix) avec un bouton **Claim**. 10 rolls par heure, 1 claim toutes les 3 heures.",
+      "[+] Chaque personnage a une **rareté** et une **valeur** selon sa popularité, et ne peut appartenir qu'à un seul membre par serveur.",
+      "[+] **/anime harem** : affiche ta collection (ou celle d'un membre) avec des pages. **/anime info** donne la fiche d'un personnage et son propriétaire.",
+      "[+] **/anime divorce** libère un personnage contre des pièces, **/anime give** le donne à un autre membre.",
+      "[+] **/anime wish-add**, **wish-remove** et **wish-list** : ta liste de souhaits te mentionne quand un personnage voulu sort pour quelqu'un.",
+      "[+] **/anime top** : classement des plus gros harems du serveur. **/anime daily** donne des pièces et remet rolls et claim à zéro (toutes les 20 h)."
+    ],
+    "📖 Aide": [
+      "[~] La commande **/anime** apparaît dans la catégorie **Public** de /help."
+    ]
+  },
+  "pied": "Ajoute CoreLab sur tes autres serveurs.",
+  "support": {
+    "label": "Inviter le bot",
+    "emoji": "🚀",
+    "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+  }
+}
