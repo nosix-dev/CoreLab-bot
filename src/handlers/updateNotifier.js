@@ -199,7 +199,7 @@ function buildMessages(data, client, hash) {
   const nom = data.nom || client.user.username;
   const ping = data.mention !== false; // @everyone par défaut
   const titre = shortcodesToEmoji(data.titre || `🛡️ ${nom} (${version})`);
-  const color = parseColor(data.couleur, 0xED4245);
+  const color = parseColor(data.couleur, 0xE8510D);
   const noteColor = parseColor(data.couleurNote, 0xFEE75C);
 
   let blocks = buildBlocks(buildSections(data.modifications ?? data.changes, data.vert === true));

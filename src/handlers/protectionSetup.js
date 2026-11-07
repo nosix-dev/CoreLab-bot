@@ -96,7 +96,7 @@ function buildSetupMessage(guild, client) {
   const roleMention = botRole ? `<@&${botRole.id}>` : `**${name}**`;
 
   const welcome = new EmbedBuilder()
-    .setColor(0x1C1F26)
+    .setColor(0xE8510D)
     .setTitle(`Merci d'avoir installé ${name} ❤️`)
     .setDescription(
       `**Pour bien commencer, nous vous recommandons de [consulter notre documentation](${DOCS_URL}) et de [rejoindre notre serveur Discord](${SUPPORT_URL}).**\n\n` +
@@ -105,7 +105,7 @@ function buildSetupMessage(guild, client) {
     );
 
   const scam = new EmbedBuilder()
-    .setColor(0x1C1F26)
+    .setColor(0xE8510D)
     .setTitle('👁️ Protection anti-arnaque')
     .setDescription(
       'Les liens de phishing et les images d\'arnaque (crypto, faux giveaways…) peuvent être détectés automatiquement : ' +
@@ -261,7 +261,7 @@ function wrap(container) {
 function buildPage(guild, page) {
   const cfg = getGuildConfig(guild.id);
   const meta = PAGE_META[page];
-  const c = new ContainerBuilder().setAccentColor(0x1C1F26);
+  const c = new ContainerBuilder().setAccentColor(0xE8510D);
 
   const warn = roleWarning(guild);
   if (warn) c.addTextDisplayComponents(text(warn)).addSeparatorComponents(sep());
@@ -314,7 +314,7 @@ function buildRecap(guild, notice = null) {
   const byKey = Object.fromEntries(MODULES.map(m => [m.key, m]));
   const active = MODULES.filter(m => m.on(cfg)).length;
 
-  const c = new ContainerBuilder().setAccentColor(0x1C1F26);
+  const c = new ContainerBuilder().setAccentColor(0xE8510D);
   const warn = roleWarning(guild);
   if (warn) c.addTextDisplayComponents(text(warn)).addSeparatorComponents(sep());
   c.addTextDisplayComponents(text(`## 📋 Récapitulatif\n**${active}/${MODULES.length}** modules actifs sur **${guild.name}**.`));

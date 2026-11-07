@@ -92,7 +92,7 @@ function buildEventEmbed(ev) {
   const lieu = ev.voiceId ? `<#${ev.voiceId}>` : (ev.location || 'À définir');
   return new EmbedBuilder()
     .setTitle(`${EVENT_TYPES[typeOf(ev)].titleEmoji} ${prefix}${ev.name}`.slice(0, 256))
-    .setColor(ev.status === 'cancelled' ? 0xE74C3C : 0x1C1F26)
+    .setColor(ev.status === 'cancelled' ? 0xE74C3C : 0xE8510D)
     .setDescription(`${ev.description ? ev.description + '\n\n' : ''}🕒 <t:${ts}:F> (<t:${ts}:R>)\n📍 ${lieu}`)
     .addFields(
       { name: `✅ Participent (${ev.yes.length}${ev.maxPlaces ? `/${ev.maxPlaces}` : ''})`, value: fmtList(ev.yes), inline: true },

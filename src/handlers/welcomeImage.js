@@ -86,7 +86,7 @@ function buildWelcomeContainer(member, { includeImage = true, glassBuffer = null
         `• Choisis tes rôles\n` +
         `• Présente-toi à la communauté`;
 
-    const container = new ContainerBuilder().setAccentColor(appearance.color ?? 0x1C1F26);
+    const container = new ContainerBuilder().setAccentColor(appearance.color ?? 0xE8510D);
     const separator = () => new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
     // Titre
@@ -156,7 +156,7 @@ function buildMpBienvenue(member) {
     const cfg = getGuildConfig(member.guild.id);
     const message = applyPlaceholders((cfg.welcome_dm_message || '').trim() || MP_MESSAGE_DEFAUT, member, { mentionAsName: true });
     const embed = new EmbedBuilder()
-        .setColor(0x1C1F26)
+        .setColor(0xE8510D)
         .setTitle(`Bienvenue sur ${member.guild.name} !`)
         .setDescription(`${message}\n\nEnvie du même bot sur ton propre serveur ? Ajoute **CoreLab** avec le bouton ci-dessous.`)
         .setFooter({ text: 'CoreLab • Bot tout-en-un', iconURL: client.user.displayAvatarURL() })

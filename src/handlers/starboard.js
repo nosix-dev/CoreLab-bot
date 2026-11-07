@@ -149,7 +149,7 @@ function buildStarboardDashboard(guild) {
   const on = v => v ? '🟢 Activé' : '🔴 Désactivé';
   const chan = id => id ? `<#${id}>` : '❌ Non configuré';
   const ignored = (cfg.starboard_ignored_channels || []).length ? cfg.starboard_ignored_channels.map(id => `<#${id}>`).join(', ') : 'Aucun';
-  return new EmbedBuilder().setTitle('⭐ Panneau de configuration — StarBoard').setDescription('Configure ici tout le StarBoard : salon photos, salon de destination, émoji, seuil et message d\'explication. Les messages qui reçoivent assez de réactions sont republiés dans le salon de destination.').setColor(0x1C1F26).addFields({
+  return new EmbedBuilder().setTitle('⭐ Panneau de configuration — StarBoard').setDescription('Configure ici tout le StarBoard : salon photos, salon de destination, émoji, seuil et message d\'explication. Les messages qui reçoivent assez de réactions sont republiés dans le salon de destination.').setColor(0xE8510D).addFields({
     name: 'Statut',
     value: on(cfg.starboard_enabled),
     inline: true
@@ -333,7 +333,7 @@ function buildEmojiPickerPayload(guild, page = 0) {
     return opt;
   }));
   const navRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`starboard_emoji_page_${p - 1}`).setLabel('◀').setStyle(ButtonStyle.Secondary).setDisabled(p <= 0), new ButtonBuilder().setCustomId('starboard_emoji_page_noop').setLabel(`${p + 1}/${totalPages}`).setStyle(ButtonStyle.Secondary).setDisabled(true), new ButtonBuilder().setCustomId(`starboard_emoji_page_${p + 1}`).setLabel('▶').setStyle(ButtonStyle.Secondary).setDisabled(p >= totalPages - 1), new ButtonBuilder().setCustomId('starboard_emoji_manual_btn').setLabel('⌨️ Unicode').setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId('starboard_emoji_back_btn').setLabel('↩️ Retour').setStyle(ButtonStyle.Primary));
-  const container = new ContainerBuilder().setAccentColor(containerAccent(guild.id, 0x1C1F26));
+  const container = new ContainerBuilder().setAccentColor(containerAccent(guild.id, 0xE8510D));
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ✨ Émoji du StarBoard\nÉmoji actuel : ${current}\n\nChoisis un émoji du serveur dans la liste ci-dessous.\n-# ${emojis.length} émoji(s) sur le serveur • page ${p + 1}/${totalPages} • « ⌨️ Unicode » pour saisir un émoji classique`));
   container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
   container.addActionRowComponents(new ActionRowBuilder().addComponents(select), navRow);
@@ -453,7 +453,7 @@ async function saveIgnoredChannels(interaction) {
 
 // ── Construction du message republié ──
 function buildStarboardEmbed(message) {
-  const embed = new EmbedBuilder().setColor(0x1C1F26).setFooter({
+  const embed = new EmbedBuilder().setColor(0xE8510D).setFooter({
     text: `ID: ${message.id}`
   }).setTimestamp(message.createdAt);
   const image = message.attachments.find(a => a.contentType?.startsWith('image/'));

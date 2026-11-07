@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────
-// premiumPanel.js — commande /premium (panneau Components V2, barre blanche)
+// premiumPanel.js — commande /premium (panneau Components V2, barre orange)
 //
 // Écran d'accueil : abonnements (3 SKU Discord), familles d'avantages (menu), essai gratuit,
 // puis « Mes avantages », « Soutiens » (mur des soutiens), Actualiser, Fermer.
@@ -26,7 +26,7 @@ const { stockage, chargerDonnees, sauvegarderDonnees } = require('../core/data')
 const premium = require('../core/premium');
 const { MAX_SAUVEGARDES_PREMIUM } = require('../core/constants');
 
-const COULEUR = 0x1C1F26;                 // barre blanche
+const COULEUR = 0xE8510D;
 const ESSAI_JOURS = 7;                    // durée de l'essai gratuit (Premium)
 const LIEN_BOUTIQUE = process.env.PREMIUM_SHOP_URL || process.env.SITE_URL || 'https://discord.gg/WecpyxrSBT';
 const MUR_MAX = 25;

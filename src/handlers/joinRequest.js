@@ -49,7 +49,7 @@ function construireEmbed(membre, statut = null) {
       { name: '🚪 Arrivé', value: `<t:${Math.floor((membre.joinedTimestamp || Date.now()) / 1000)}:R>`, inline: true },
     )
     .setDescription(statut || '⏳ En attente de validation (règlement du serveur non accepté).')
-    .setColor(statut ? (statut.startsWith('✅') ? 0x2ECC71 : 0xE74C3C) : 0x1C1F26)
+    .setColor(statut ? (statut.startsWith('✅') ? 0x2ECC71 : 0xE74C3C) : 0xE8510D)
     .setTimestamp();
   return embed;
 }

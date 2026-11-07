@@ -102,7 +102,7 @@ async function execute(interaction) {
         `**Destinataires :** ${roles.length ? roles.join(' ') : '*aucun*'}`,
         `**Rôle à l'acceptation :** ${accept}`,
       ].join('\n'))
-      .setColor(0x1C1F26);
+      .setColor(0xE8510D);
     return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }
 }

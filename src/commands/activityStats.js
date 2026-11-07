@@ -163,7 +163,7 @@ async function buildView({ guild, client, scope, view, days, ownerId, targetId }
   }
 
   // Conteneur
-  const container = new ContainerBuilder().setAccentColor(containerAccent(guildId, 0x1C1F26));
+  const container = new ContainerBuilder().setAccentColor(containerAccent(guildId, 0xE8510D));
   if (thumb && view === 'overview') {
     container.addSectionComponents(
       new SectionBuilder().addTextDisplayComponents(text(header)).setThumbnailAccessory(new ThumbnailBuilder().setURL(thumb))

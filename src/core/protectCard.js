@@ -528,7 +528,7 @@ function buildProtectPayload(guild, notice = null) {
     new ButtonBuilder().setCustomId('protect_honeypot_reset_btn').setLabel('Reset HoneyPot').setEmoji('🍯').setStyle(ButtonStyle.Secondary)
   );
 
-  const container = new ContainerBuilder().setAccentColor(0x1C1F26);
+  const container = new ContainerBuilder().setAccentColor(0xE8510D);
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(`## 🛡️ Protection — ${guild.name}`)
   );

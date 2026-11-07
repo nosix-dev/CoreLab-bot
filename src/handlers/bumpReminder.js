@@ -125,7 +125,7 @@ async function traiterMessage(message) {
     const ts = Math.floor(cfg.bump_next_at / 1000);
     const qui = utilisateur?.id ? ` <@${utilisateur.id}>` : '';
     const merci = new EmbedBuilder().setTitle('🙏 Merci pour le bump !')
-      .setDescription(`Merci${qui} d'avoir bumpé le serveur !\nProchain bump possible : <t:${ts}:R>`).setColor(0x1C1F26);
+      .setDescription(`Merci${qui} d'avoir bumpé le serveur !\nProchain bump possible : <t:${ts}:R>`).setColor(0xE8510D);
     await message.channel.send(await glassPayload({
       embeds: [merci],
       allowedMentions: { users: utilisateur?.id ? [utilisateur.id] : [] },
@@ -151,7 +151,7 @@ async function envoyerRappel(guild, cfg) {
   const embed = new EmbedBuilder()
     .setTitle('🔔 C\'est l\'heure de bump !')
     .setDescription('Le serveur peut de nouveau être bumpé sur **Disboard**.\nTape `/bump` dans ce salon pour le faire remonter dans la liste.')
-    .setColor(0x1C1F26);
+    .setColor(0xE8510D);
 
   await salon.send(await glassPayload({
     content: role ? `<@&${role.id}>` : undefined,

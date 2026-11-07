@@ -36,7 +36,7 @@ function buildStatsEmbed(guild) {
   const state = getCountingState(guild.id);
   return new EmbedBuilder()
     .setTitle('🔢 Jeu de Comptage')
-    .setColor(0x1C1F26)
+    .setColor(0xE8510D)
     .addFields(
       { name: 'Statut', value: cfg.counting_enabled ? '🟢 Activé' : '🔴 Désactivé', inline: true },
       { name: 'Salon', value: cfg.counting_channel_id ? `<#${cfg.counting_channel_id}>` : '❌ Non configuré', inline: true },
@@ -76,7 +76,7 @@ function registerCountingHandler(client) {
           const embed = new EmbedBuilder()
             .setTitle('🎉 Palier atteint !')
             .setDescription(`La communauté vient d'atteindre **${attendu}** !`)
-            .setColor(0x1C1F26)
+            .setColor(0xE8510D)
             .setTimestamp();
           await message.channel.send({ embeds: [embed] }).catch(() => {});
         }
@@ -103,7 +103,7 @@ function registerCountingHandler(client) {
         const embed = new EmbedBuilder()
           .setTitle('💥 Compte cassé !')
           .setDescription(`${message.author} ${raison}.\nLe compte était à **${ancienCompte}**, il repart de **1**.`)
-          .setColor(0x1C1F26)
+          .setColor(0xE8510D)
           .setTimestamp();
         await message.channel.send({ embeds: [embed] }).catch(() => {});
       }

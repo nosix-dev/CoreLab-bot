@@ -13,7 +13,7 @@ const {
   toCV2Payload
 } = require("./componentsV2");
 const { glassPayload } = require('./glassEmbed');
-const COULEUR_DEFAUT = 0x1C1F26;
+const COULEUR_DEFAUT = 0xE8510D;
 const EMOJIS_OPTIONS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
 const MAX_OPTIONS = 8;
 const MAX_IMAGES = 4;

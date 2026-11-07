@@ -42,7 +42,7 @@ function boutonsFormats(urlDe) {
 
 function carte({ guildId, titre, sousTitre, imageUrl, row }) {
   const c = new ContainerBuilder()
-    .setAccentColor(containerAccent(guildId, 0x1C1F26))
+    .setAccentColor(containerAccent(guildId, 0xE8510D))
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ${titre}`));
   if (sousTitre) c.addTextDisplayComponents(new TextDisplayBuilder().setContent(sousTitre));
   c.addSeparatorComponents(sep());
@@ -124,7 +124,7 @@ async function banniereExecute(interaction) {
   if (!utilise) {
     const couleur = user.hexAccentColor;
     const c = new ContainerBuilder()
-      .setAccentColor(user.accentColor ?? containerAccent(interaction.guild.id, 0x1C1F26))
+      .setAccentColor(user.accentColor ?? containerAccent(interaction.guild.id, 0xE8510D))
       .addTextDisplayComponents(new TextDisplayBuilder().setContent(`## 🎨 Bannière de ${nom}`))
       .addSeparatorComponents(sep())
       .addTextDisplayComponents(new TextDisplayBuilder().setContent(

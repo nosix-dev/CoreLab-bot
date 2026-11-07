@@ -1,27 +1,25 @@
 {
   "channelId": "1513697900050387045",
-  "version": "5.5.8",
-  "date": "2026-11-05",
+  "version": "5.5.9",
+  "date": "2026-11-07",
   "mention": false,
-  "titre": "📌 CoreLab — Collection de personnages d'anime (5.5.8)",
-  "couleur": "#FFFFFF",
+  "titre": "📌 CoreLab — Nouvelle couleur orange (5.5.9)",
+  "couleur": "#E8510D",
   "article": {
     "label": "Changelog",
     "emoji": "📜",
     "url": "https://corelab-4cn.pages.dev/docs#p-changelog"
   },
-  "intro": "Nouveau jeu de collection façon Mudae : **tire des personnages d'anime**, claim-les avant les autres et construis ton **harem**.",
+  "intro": "CoreLab adopte une nouvelle couleur : **l'orange `#E8510D`** remplace le blanc et la couleur par défaut sur les messages du bot, les panneaux et le rôle du bot.",
   "modifications": {
-    "💖 Collection d'anime": [
-      "[+] **/anime roll** : tire un personnage (waifu, husbando ou mix) avec un bouton **Claim**. 10 rolls par heure, 1 claim toutes les 3 heures.",
-      "[+] Chaque personnage a une **rareté** et une **valeur** selon sa popularité, et ne peut appartenir qu'à un seul membre par serveur.",
-      "[+] **/anime harem** : affiche ta collection (ou celle d'un membre) avec des pages. **/anime info** donne la fiche d'un personnage et son propriétaire.",
-      "[+] **/anime divorce** libère un personnage contre des pièces, **/anime give** le donne à un autre membre.",
-      "[+] **/anime wish-add**, **wish-remove** et **wish-list** : ta liste de souhaits te mentionne quand un personnage voulu sort pour quelqu'un.",
-      "[+] **/anime top** : classement des plus gros harems du serveur. **/anime daily** donne des pièces et remet rolls et claim à zéro (toutes les 20 h)."
+    "🎨 Couleur du bot": [
+      "[~] La barre à gauche des messages, panneaux et menus du bot (embeds et Components V2) passe de blanc/gris foncé à **orange `#E8510D`**.",
+      "[~] Les menus de rôles (**/role-menu**), le panneau de configuration, **/premium**, **/crypto** et les annonces utilisent cette couleur.",
+      "[~] Le rôle créé automatiquement pour le bot est maintenant **orange**, comme les serveurs où il existe déjà (mise à jour automatique).",
+      "[~] Dans les modals de couleur (bienvenue, tickets, règlement, embeds), le choix par défaut est **Orange CoreLab** ; le blanc reste disponible."
     ],
-    "📖 Aide": [
-      "[~] La commande **/anime** apparaît dans la catégorie **Public** de /help."
+    "📢 Annonces": [
+      "[~] La barre à gauche des annonces de mise à jour est désormais **orange**."
     ]
   },
   "pied": "Ajoute CoreLab sur tes autres serveurs.",

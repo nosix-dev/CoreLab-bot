@@ -33,7 +33,7 @@ const crypto = require('crypto');
 const { chargerDonnees, sauvegarderDonnees } = require('../core/data');
 
 const FICHIER = 'role_menus.json';
-const COULEUR = 0xFFFFFF; // barre d'accent blanche, comme les annonces de mise à jour
+const COULEUR = 0xE8510D; // barre d'accent orange CoreLab
 const MAX_ROLES = 25; // 5 lignes de 5 boutons
 const STYLES = { Primary: ButtonStyle.Primary, Secondary: ButtonStyle.Secondary, Success: ButtonStyle.Success, Danger: ButtonStyle.Danger };
 const MAX_MENUS_PAR_SERVEUR = 25;

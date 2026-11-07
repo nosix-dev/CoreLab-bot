@@ -44,7 +44,7 @@ async function sendBanDm(user, guild, reason) {
 
 function logEmbed(title, userId, tag, by, reason) {
   return new EmbedBuilder()
-    .setColor(0x1C1F26)
+    .setColor(0xE8510D)
     .setTitle(title)
     .addFields(
       { name: '👤 Membre', value: `${tag ? `${tag}\n` : ''}<@${userId}>\n\`${userId}\``, inline: true },
@@ -85,7 +85,7 @@ const cmd = {
       if (!entries.length) return interaction.reply({ content: '✅ Aucun membre blacklisté sur ce serveur.', ...eph });
       const lines = entries.slice(0, 25).map(([id, e]) =>
         `• ${e.tag ? `**${e.tag}** ` : ''}\`${id}\` — ${e.reason || 'Aucune raison'} (<t:${Math.floor(new Date(e.date).getTime() / 1000)}:d>)`);
-      const emb = new EmbedBuilder().setColor(0x1C1F26)
+      const emb = new EmbedBuilder().setColor(0xE8510D)
         .setTitle(`⛔ Blacklist — ${entries.length} membre${entries.length > 1 ? 's' : ''}`)
         .setDescription(lines.join('\n').slice(0, 4000));
       return interaction.reply({ embeds: [emb], ...eph });

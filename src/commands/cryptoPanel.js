@@ -55,7 +55,7 @@ try {
 
 const MAX_CUSTOM = 14; // 10 presets + 14 custom + "Autre" = 25 options max dans un select
 const PANEL_TIMEOUT = 15 * 60 * 1000;
-const DEFAULT_COLOR = 0x1C1F26; // barre blanche
+const DEFAULT_COLOR = 0xE8510D;
 const DEFAULT_TITLE = '💰 Adresses crypto';
 const DEFAULT_DESC = "Envoie uniquement sur le **réseau indiqué**. Vérifie toujours l'adresse avant d'envoyer : une transaction crypto est **irréversible**.";
 
@@ -268,7 +268,7 @@ function renderCryptoCard(guildName, cfg, guildId = null) {
   return canvas.toBuffer('image/png');
 }
 
-// Payload Components V2 : titre + image + infos + composants (barre d'accent blanche)
+// Payload Components V2 : titre + image + infos + composants (barre d'accent orange)
 function alertsSummary(a) {
   const interval = alertsLib.INTERVALS.find(i => i.min === a.intervalMin)?.label || `${a.intervalMin} min`;
   const coins = a.coins.map(k => alertsLib.coinMeta(a, k)).filter(Boolean).map(m => `${m.emoji} ${m.symbol}`).join(' • ') || '*aucune*';
@@ -282,7 +282,7 @@ function alertsSummary(a) {
 
 function buildPanelPayload(guild, mode, confirmReset, locked = false) {
   const cfg = getCfg(guild.id);
-  const container = new ContainerBuilder().setAccentColor(0x1C1F26);
+  const container = new ContainerBuilder().setAccentColor(0xE8510D);
   const files = [];
 
   if (mode === 'alerts') {

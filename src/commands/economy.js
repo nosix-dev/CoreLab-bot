@@ -357,7 +357,7 @@ function offerButtons(acceptId, declineId) {
   );
 }
 
-function resultEmbed(title, description, color = 0x1C1F26) {
+function resultEmbed(title, description, color = 0xE8510D) {
   return new EmbedBuilder().setTitle(title).setDescription(description).setColor(color);
 }
 
@@ -497,7 +497,7 @@ async function runEco(interaction, sub) {
     const embed = new EmbedBuilder()
       .setTitle('🎁 Récompense quotidienne')
       .setDescription(`${interaction.user} a récupéré **${formatMoney(gained, settings)}** !${bonus > 0 ? `\n✨ Bonus niveau ${level} : +${Math.round(bonus * 100)}%` : ''}`)
-      .setColor(0x1C1F26);
+      .setColor(0xE8510D);
     return interaction.reply(await gp(interaction, { embeds: [embed] }));
   }
 
@@ -524,7 +524,7 @@ async function runEco(interaction, sub) {
     const embed = new EmbedBuilder()
       .setTitle('💼 Travail terminé')
       .setDescription(`${interaction.user} ${job} et a gagné **${formatMoney(gained, settings)}** !${bonus > 0 ? `\n✨ Bonus niveau ${level} : +${Math.round(bonus * 100)}%` : ''}`)
-      .setColor(0x1C1F26);
+      .setColor(0xE8510D);
     return interaction.reply(await gp(interaction, { embeds: [embed] }));
   }
 
@@ -555,7 +555,7 @@ async function runEco(interaction, sub) {
           ? `${interaction.user} a pêché ${catchResult.emoji} **${catchResult.name}** et l'a revendu **${formatMoney(gained, settings)}** !${bonus > 0 ? `\n✨ Bonus niveau ${level} : +${Math.round(bonus * 100)}%` : ''}`
           : `${interaction.user} a pêché ${catchResult.emoji} **${catchResult.name}**... Bredouille cette fois-ci !`
       )
-      .setColor(0x1C1F26);
+      .setColor(0xE8510D);
     return interaction.reply(await gp(interaction, { embeds: [embed] }, { badge: 'CASINO' }));
   }
 
@@ -653,7 +653,7 @@ async function runEco(interaction, sub) {
           { name: `Toi (${pv})`, value: formatHand(state.playerCards), inline: true }
         )
         .setFooter({ text: footer || `Mise : ${formatMoney(state.mise, settings)}` })
-        .setColor(0x1C1F26);
+        .setColor(0xE8510D);
     }
 
     function buildRows(allowDouble) {
@@ -858,7 +858,7 @@ async function runEco(interaction, sub) {
       const embed = new EmbedBuilder()
         .setTitle(`🏆 Classement des plus riches — ${interaction.guild.name}`)
         .setDescription(lines.join('\n'))
-        .setColor(0x1C1F26);
+        .setColor(0xE8510D);
       return interaction.editReply(toCV2Payload({ embeds: [embed] }));
     }
   }
@@ -1037,7 +1037,7 @@ async function runEco(interaction, sub) {
           (missing > 0 ? `\n\n▫️ *${missing} à découvrir...*` : '\n\n✅ **Catégorie complète !**')
         )
         .setFooter({ text: `Page ${page + 1}/${pages}` })
-        .setColor(have.length ? getRarity(have[0].item.rarity).color : 0x1C1F26);
+        .setColor(have.length ? getRarity(have[0].item.rarity).color : 0xE8510D);
     }
 
     // ── Visionneuse : image officielle de la carte (comme sur la roue) ──
@@ -1387,7 +1387,7 @@ async function runEco(interaction, sub) {
     const offerEmbed = new EmbedBuilder()
       .setTitle("🔄 Proposition d'échange")
       .setDescription(`${interaction.user} te propose un échange :\n\n**Il/Elle donne :** ${formatItem(giveItem, { withRarity: true })}\n**Tu donnes :** ${formatItem(wantItem, { withRarity: true })}`)
-      .setColor(0x1C1F26)
+      .setColor(0xE8510D)
       .setFooter({ text: 'Proposition valable 2 minutes' });
     const offerMessage = await interaction.followUp({
       content: `${target}`,
@@ -1457,7 +1457,7 @@ async function runEco(interaction, sub) {
           { name: 'Travail', value: `${formatMoney(settings.workMin, settings)} → ${formatMoney(settings.workMax, settings)} / ${formatDuration(settings.workCooldownMs)}`, inline: true },
           { name: 'Roue', value: `${formatMoney(settings.wheelCost, settings)} / tour • cooldown ${formatDuration(settings.wheelCooldownMs)} • rachat ${Math.round(settings.sellRatio * 100)}%`, inline: true }
         )
-        .setColor(0x1C1F26);
+        .setColor(0xE8510D);
     }
 
     // Panneau complet = carte image (comme /protect-settings) + boutons, en Components V2.

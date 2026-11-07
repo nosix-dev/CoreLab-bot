@@ -18,7 +18,7 @@ function ts(ms) {
   return Math.floor(ms / 1000);
 }
 
-// Construit le panneau de vote (Components V2, barre blanche).
+// Construit le panneau de vote (Components V2, barre orange).
 // `notice` : petite ligne optionnelle affichée sous le titre (résultat d'un clic sur un bouton).
 function buildPanel(client, userId, notice = null) {
   const u = votes.utilisateur(userId);
@@ -44,7 +44,7 @@ function buildPanel(client, userId, notice = null) {
   ];
   if (votes.estWeekend(now)) lignes.push('🎉 Bonus weekend : les votes comptent **2×** en ce moment !');
 
-  const container = new ContainerBuilder().setAccentColor(0x1C1F26);
+  const container = new ContainerBuilder().setAccentColor(0xE8510D);
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## 🗳️ Vote pour ${nom}`));
   if (notice) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(String(notice).slice(0, 500)));
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(statut + (u.pending > 0 ? `\n🎁 **${u.pending}** récompense(s) à récupérer : **+${xpAttente} XP**` : '')));

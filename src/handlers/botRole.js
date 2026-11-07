@@ -1,7 +1,7 @@
 // ────────────────────────────────────────────────
 // botRole.js — Rôle dédié au bot, créé automatiquement
 // Crée (une seule fois par serveur) un rôle "🛡️〢CoreLab" avec la permission
-// Administrateur et la couleur noire (000000), puis le place tout en haut
+// Administrateur et la couleur orange (E8510D), puis le place tout en haut
 // de la hiérarchie que le bot est autorisé à gérer (juste sous son propre
 // rôle le plus haut — Discord interdit à un membre de placer un rôle à une
 // position égale ou supérieure à son propre rôle le plus haut).
@@ -13,7 +13,7 @@ const BOT_ROLE_NAME = '🛡️〢CoreLab';
 // Ancien nom du rôle (avant le renommage en CoreLab) : sert à renommer le rôle existant
 // au lieu d'en créer un second sur les serveurs où ScaraBot était déjà installé.
 const ANCIEN_BOT_ROLE_NAME = '🛡️〢ScaraBot';
-const BOT_ROLE_COLOR = 0xFFFFFF;
+const BOT_ROLE_COLOR = 0xE8510D;
 
 // Crée (si besoin) et repositionne le rôle du bot sur un serveur donné.
 // Idempotent : ne recrée rien si le rôle existe déjà.

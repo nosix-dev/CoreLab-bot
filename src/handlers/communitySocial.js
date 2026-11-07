@@ -22,7 +22,7 @@ const { buildRankingPayload } = require('../core/rankingCard');
 //  • Les clans gagnent des points quand leurs membres gagnent aux mini-jeux.
 // ─────────────────────────────────────────────────────────────────────────
 
-const COULEUR = 0x1C1F26;
+const COULEUR = 0xE8510D;
 const MAX_AMIS = 50;
 const MAX_MEMBRES_CLAN = 25;
 const COUT_CREATION_CLAN = 500;      // en 💠 (ignoré si l'économie est désactivée)

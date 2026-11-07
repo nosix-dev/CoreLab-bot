@@ -26,7 +26,7 @@ const {
 } = require('discord.js');
 
 // Couleur de la barre à gauche (couleur du bot). Une seule ligne à changer si besoin.
-const CONFIG_ACCENT = 0x1C1F26;
+const CONFIG_ACCENT = 0xE8510D;
 
 // Discord limite un Container à 10 composants enfants.
 const MAX_CHILDREN = 10;

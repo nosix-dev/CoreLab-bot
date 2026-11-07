@@ -126,7 +126,7 @@ function buildEmbed(guild, spec, opts = {}) {
         if (avatar) embed.setThumbnail(avatar);
         embed.setFooter({ text: `ID du membre : ${spec.memberId ?? '?'} • Serveur : ${guild.name}` });
     } else {
-        embed.setColor(THEME_COLORS[spec.theme] ?? 0x1C1F26).setTitle(truncate(spec.title ?? 'Log', 250));
+        embed.setColor(THEME_COLORS[spec.theme] ?? 0xE8510D).setTitle(truncate(spec.title ?? 'Log', 250));
         if (spec.sub) embed.setDescription(truncate(spec.sub, 500));
         for (const b of spec.blocks ?? []) add(b.label, b.value);
         if (spec.bigLabel && spec.bigValue != null) add(spec.bigLabel, String(spec.bigValue));

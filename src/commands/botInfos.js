@@ -45,7 +45,7 @@ async function execute(interaction, client) {
   const embed = new EmbedBuilder()
     .setTitle(`🤖 ${client.user.username}`)
     .setDescription(lignes.join('\n'))
-    .setColor(0x1C1F26);
+    .setColor(0xE8510D);
 
   const boutons = [
     new ButtonBuilder().setLabel('Ajouter le bot').setEmoji('🚀').setStyle(ButtonStyle.Link).setURL(`https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=8&integration_type=0&scope=bot%20applications.commands`)

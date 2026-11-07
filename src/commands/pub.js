@@ -24,7 +24,7 @@ function buildComponents(client) {
     components: [
       {
         type: 17, // Container
-        accent_color: 0x1C1F26,
+        accent_color: 0xE8510D,
         components: [
           {
             type: 9, // Section

@@ -21,7 +21,7 @@ const store = require('../core/communityStore');
 //  • Les annonces expirent toutes seules (durée au choix)
 // ─────────────────────────────────────────────────────────────────────────
 
-const COULEUR = 0x1C1F26;
+const COULEUR = 0xE8510D;
 const MAX_ANNONCES_PAR_MEMBRE = 2;
 const DUREE_DEFAUT_MIN = 60;
 const VERIF_INTERVALLE_MS = 30 * 1000;

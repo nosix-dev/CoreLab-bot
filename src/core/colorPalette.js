@@ -13,7 +13,8 @@ const {
 // ticket (handlers/interactions.js), règlement (core/reglement.js)
 // ────────────────────────────────────────────────
 const PALETTE_COULEURS_APPARENCE = [
-    { emoji: '⬜', label: 'Blanc (Défaut)', value: 'FFFFFF' },
+    { emoji: '🟧', label: 'Orange CoreLab (Défaut)', value: 'E8510D' },
+    { emoji: '⬜', label: 'Blanc', value: 'FFFFFF' },
     { emoji: '🔷', label: 'Turquoise', value: '8FC3C8' },
     { emoji: '🟥', label: 'Rouge', value: 'FF0000' },
     { emoji: '🟨', label: 'Jaune', value: 'FFFF00' },
@@ -39,12 +40,12 @@ function hexToColorInt(hex) {
 // ────────────────────────────────────────────────
 // Construit les deux LabelBuilder (select carrés + input hex) à ajouter
 // à un modal via modal.addLabelComponents(...). couleurActuelleInt est
-// la couleur actuelle en entier (ex: 0xFFFFFF), ou undefined pour le défaut.
+// la couleur actuelle en entier (ex: 0xE8510D), ou undefined pour le défaut.
 // ────────────────────────────────────────────────
 function buildCouleurLabelComponents(couleurActuelleInt) {
     const couleurActuelle = couleurActuelleInt !== undefined && couleurActuelleInt !== null
         ? couleurActuelleInt.toString(16).padStart(6, '0').toUpperCase()
-        : 'FFFFFF';
+        : 'E8510D';
 
     const couleurSelect = new StringSelectMenuBuilder()
         .setCustomId('couleur')

@@ -72,7 +72,7 @@ async function handleCreate(interaction) {
 
     const embed = new EmbedBuilder()
         .setTitle('✅ Backup créée')
-        .setColor(0x1C1F26)
+        .setColor(0xE8510D)
         .setDescription(`**${backup.name}**\nID : \`${backup.id}\`\n\nUtilise cet identifiant avec \`/backup load\` (même sur un autre serveur) pour l'appliquer.`)
         .addFields(
             { name: 'Rôles', value: String(contenu.roles.length), inline: true },
@@ -96,7 +96,7 @@ async function handleList(interaction) {
     const lignes = backups.map(b => `\`${b.id}\` — **${b.name}** (origine : ${b.guildName}) — <t:${Math.floor(new Date(b.createdAt).getTime() / 1000)}:d>`);
     const embed = new EmbedBuilder()
         .setTitle('💾 Tes backups')
-        .setColor(0x1C1F26)
+        .setColor(0xE8510D)
         .setDescription(lignes.join('\n').slice(0, 4000));
 
     return interaction.reply(toCV2Payload({ embeds: [embed], flags: MessageFlags.Ephemeral }));
@@ -112,7 +112,7 @@ async function handleInfo(interaction) {
     const apercuRoles = backup.roles.slice(0, 20).map(r => r.name).join(', ') || 'Aucun';
     const embed = new EmbedBuilder()
         .setTitle(`💾 ${backup.name}`)
-        .setColor(0x1C1F26)
+        .setColor(0xE8510D)
         .addFields(
             { name: 'ID', value: `\`${backup.id}\``, inline: true },
             { name: 'Serveur d\'origine', value: backup.guildName, inline: true },
@@ -158,7 +158,7 @@ async function handleLoad(interaction) {
 
     const embed = new EmbedBuilder()
         .setTitle('✅ Backup restaurée')
-        .setColor(0x1C1F26)
+        .setColor(0xE8510D)
         .setDescription(`**${backup.name}** (originaire de *${backup.guildName}*) a été appliquée à **${interaction.guild.name}**.\nAucun rôle/salon existant n'a été supprimé (mode additif).`)
         .addFields(
             { name: 'Rôles créés', value: String(stats.rolesCreated), inline: true },

@@ -107,7 +107,7 @@ function construireLigneAbonnements() {
 // Affiche aussi la Personnalisation et le Total pour laisser le choix.
 // ────────────────────────────────────────────────
 function construireMessagePremium() {
-  const embed = new EmbedBuilder().setTitle('✨ Fonctionnalité Premium').setDescription('Cette commande est réservée aux membres **Premium**.\n' + 'Choisis l\'abonnement qui te convient ci-dessous :\n\n' + '⭐ **Premium** — débloque les commandes\n' + '🎨 **Personnalisation** — débloque la personnalisation visuelle\n' + '💎 **Total** — débloque les deux en un seul abonnement').setColor(0x1C1F26);
+  const embed = new EmbedBuilder().setTitle('✨ Fonctionnalité Premium').setDescription('Cette commande est réservée aux membres **Premium**.\n' + 'Choisis l\'abonnement qui te convient ci-dessous :\n\n' + '⭐ **Premium** — débloque les commandes\n' + '🎨 **Personnalisation** — débloque la personnalisation visuelle\n' + '💎 **Total** — débloque les deux en un seul abonnement').setColor(0xE8510D);
   return toCV2Payload({
     embeds: [embed],
     components: [construireLigneAbonnements()],
@@ -120,7 +120,7 @@ function construireMessagePremium() {
 // Affiche aussi Premium et Total pour laisser le choix.
 // ────────────────────────────────────────────────
 function construireMessageCustomisation() {
-  const embed = new EmbedBuilder().setTitle('🎨 Fonctionnalité de Personnalisation').setDescription('Toute personnalisation (titres, couleurs, images...) fait partie de l\'abonnement **Personnalisation**.\n' + 'Choisis l\'abonnement qui te convient ci-dessous :\n\n' + '⭐ **Premium** — débloque les commandes\n' + '🎨 **Personnalisation** — débloque la personnalisation visuelle\n' + '💎 **Total** — débloque les deux en un seul abonnement').setColor(0x1C1F26);
+  const embed = new EmbedBuilder().setTitle('🎨 Fonctionnalité de Personnalisation').setDescription('Toute personnalisation (titres, couleurs, images...) fait partie de l\'abonnement **Personnalisation**.\n' + 'Choisis l\'abonnement qui te convient ci-dessous :\n\n' + '⭐ **Premium** — débloque les commandes\n' + '🎨 **Personnalisation** — débloque la personnalisation visuelle\n' + '💎 **Total** — débloque les deux en un seul abonnement').setColor(0xE8510D);
   return toCV2Payload({
     embeds: [embed],
     components: [construireLigneAbonnements()],
@@ -132,7 +132,7 @@ function construireMessageCustomisation() {
 // Message + bouton d'achat Total (3e SKU, commandes + personnalisation)
 // ────────────────────────────────────────────────
 function construireMessageTotal() {
-  const embed = new EmbedBuilder().setTitle('💎 Abonnement Total').setDescription('L\'abonnement **Total** débloque en un seul achat :\n' + '• Toutes les commandes **Premium**\n' + '• Toute la **Personnalisation** visuelle\n\n' + 'Choisis l\'abonnement qui te convient ci-dessous :').setColor(0x1C1F26);
+  const embed = new EmbedBuilder().setTitle('💎 Abonnement Total').setDescription('L\'abonnement **Total** débloque en un seul achat :\n' + '• Toutes les commandes **Premium**\n' + '• Toute la **Personnalisation** visuelle\n\n' + 'Choisis l\'abonnement qui te convient ci-dessous :').setColor(0xE8510D);
   return toCV2Payload({
     embeds: [embed],
     components: [construireLigneAbonnements()],

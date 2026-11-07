@@ -134,7 +134,7 @@ async function execute(interaction) {
     const embed = new EmbedBuilder()
       .setTitle('🔔 Rappel de bump')
       .setDescription(lignes.join('\n'))
-      .setColor(0x1C1F26);
+      .setColor(0xE8510D);
     return interaction.reply(toCV2Payload({ embeds: [embed], ephemeral: true }));
   }
 }

@@ -180,7 +180,7 @@ function buildTicketConfigEmbed(cfg, channelId) {
   return new EmbedBuilder()
     .setTitle('🎫 Gestion des tickets — ce salon')
     .setDescription('Gère les raisons de tickets de ce salon avec les boutons ci-dessous.')
-    .setColor(0x1C1F26)
+    .setColor(0xE8510D)
     .addFields({
       name: '📋 Raisons configurées',
       value: `\`${reasons.length}\``,
@@ -455,7 +455,7 @@ async function buildTicketPublishPayload(cfg, panelChannelId, guild, bannerPath 
   const embed = new EmbedBuilder()
     .setTitle(title.slice(0, 256))
     .setDescription(`${intro.slice(0, 3000)}\n\n*${status}*`.slice(0, 4000))
-    .setColor(appearance.color ?? 0x1C1F26);
+    .setColor(appearance.color ?? 0xE8510D);
 
   // Icône du serveur en miniature
   const iconUrl = guild?.iconURL({ extension: 'png', size: 256, forceStatic: true });
@@ -584,7 +584,7 @@ async function createTicketChannel(interaction, reasonLabel, reasonValue, answer
   const remplacerVariables = texte => (texte || '').replace(/\{membre\}/g, user.toString()).replace(/\{raison\}/g, reasonLabel);
   const titreOuverture = appearance.openTitle ? remplacerVariables(appearance.openTitle) : `🎫 Ticket – ${reasonLabel}`;
   const messageOuverture = appearance.openDescription ? remplacerVariables(appearance.openDescription) : `Merci ${user} !\n\n📋 **Récapitulatif de tes réponses :**`;
-  const recap = new EmbedBuilder().setTitle(titreOuverture).setColor(appearance.color ?? 0x1C1F26).setTimestamp().setDescription(messageOuverture);
+  const recap = new EmbedBuilder().setTitle(titreOuverture).setColor(appearance.color ?? 0xE8510D).setTimestamp().setDescription(messageOuverture);
   for (const [q, a] of Object.entries(answers)) {
     recap.addFields({
       name: `❓ ${q}`,

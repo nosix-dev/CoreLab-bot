@@ -392,7 +392,7 @@ function accentInt(guildId) {
 }
 
 /** Couleur de la barre des Containers : celle du thème, ou `fallback` si le serveur garde le thème par défaut. */
-function containerAccent(guildId, fallback = 0x1C1F26) {
+function containerAccent(guildId, fallback = 0xE8510D) {
   const t = getTheme(guildId);
   return isDefault(t) ? fallback : parseInt(t.accent.slice(1), 16);
 }

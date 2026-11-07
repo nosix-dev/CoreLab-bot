@@ -486,7 +486,7 @@ async function renderGlassEmbed(embed, o = {}) {
   // en-tête
   let ty = TOP;
   if (badge) {
-    const dot = colorHex(data.color) || '#ffffff';
+    const dot = colorHex(data.color) || '#e8510d';
     ctx.beginPath(); ctx.arc(X0 + 8, ty + 14, 8, 0, Math.PI * 2);
     ctx.save(); ctx.shadowColor = dot; ctx.shadowBlur = 14; ctx.fillStyle = dot; ctx.fill(); ctx.restore();
     ctx.fillStyle = P.muted; ctx.font = `20px ${FONT_BOLD}`;
@@ -853,7 +853,7 @@ async function glassUpdate(interaction, payload, o = {}) {
 /** Payload CV2 contenant uniquement une image générée (bienvenue / au revoir…). */
 function imagePayload(buffer, name = 'card.png') {
   const file = uniq(name.replace(/\.png$/, ''));
-  const container = new ContainerBuilder().setAccentColor(0x1C1F26);
+  const container = new ContainerBuilder().setAccentColor(0xE8510D);
   container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(`attachment://${file}`)));
   return { file: new AttachmentBuilder(buffer, { name: file }), fileName: file, container };
 }
