@@ -120,7 +120,7 @@ try {
   EmbedBuilder.prototype.toJSON = function () {
     const out = _origToJSON.call(this);
     if (out && (out.color === undefined || out.color === null)) {
-      out.color = 0xFFFFFF;
+      out.color = 0xE8510D;
     }
     return out;
   };
@@ -801,7 +801,7 @@ client.on('interactionCreate', async interaction => {
     const canal = guild.channels.cache.filter(c => c.type === ChannelType.GuildText).size;
     const vocaux = guild.channels.cache.filter(c => c.type === ChannelType.GuildVoice).size;
     const estBlackliste = !!(store.blacklistServeurs && store.blacklistServeurs[guild.id]);
-    const embed = new EmbedBuilder().setTitle(`📊 Statistiques — ${guild.name}`).setThumbnail(guild.iconURL() ?? null).setColor(0xFFFFFF).addFields({
+    const embed = new EmbedBuilder().setTitle(`📊 Statistiques — ${guild.name}`).setThumbnail(guild.iconURL() ?? null).setColor(0xE8510D).addFields({
       name: '🆔 ID',
       value: `\`${guild.id}\``,
       inline: true
@@ -1061,7 +1061,7 @@ client.on('messageCreate', async message => {
     const ESC = '\u001b';
     const c = (code, text) => `${ESC}[${code}m${text}${ESC}[0m`;
     const ansi = text => `\`\`\`ansi\n${text}\n\`\`\``;
-    const PANEL_COLOR = 0xFFFFFF;
+    const PANEL_COLOR = 0xE8510D;
     const avatar = client.user.displayAvatarURL();
     const hhmm = () => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
     const baseEmbed = () => new EmbedBuilder().setColor(PANEL_COLOR).setAuthor({ name: client.user.username, iconURL: avatar }).setThumbnail(avatar);

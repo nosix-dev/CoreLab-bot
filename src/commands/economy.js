@@ -933,28 +933,27 @@ async function runEco(interaction, sub) {
     );
     const startText = `**${userName}** lance la roue${tours > 1 ? ` (${tours} tours)` : ''}...`;
 
-    // Animation : à chaque image on envoie un nouveau message puis on supprime le précédent.
-    // (Modifier le message à chaque image laissait s'empiler les anciennes images de la roue.)
-    // Si le salon n'accepte pas d'envoi, on retombe sur la modification du message.
-    let animMsg = null;
-    let useEdit = typeof interaction.channel?.send !== 'function';
+    // Un seul message : chaque image remplace la précédente. Après chaque modification on vérifie ce que
+    // Discord a réellement gardé : si d'anciennes images traînent encore, on redemande explicitement de ne
+    // conserver que la plus récente (sinon les images de la roue s'empilent dans le message).
+    const keepOnly = async (res, name) => {
+      try {
+        if (!res?.attachments || res.attachments.size <= 1) return;
+        const newest = [...res.attachments.values()].find(att => att.name === name);
+        console.warn(`[Roue] ${res.attachments.size} images dans le message : on ne garde que la dernière.`);
+        await interaction.editReply({ attachments: newest ? [newest] : [] });
+      } catch (e) { console.error('[Roue] Nettoyage des images impossible :', e.message); }
+    };
     const showFrame = async (c, title) => {
       const f = await frame(c, title);
-      if (!useEdit) {
-        try {
-          const next = await interaction.channel.send({ files: [f] });
-          const old = animMsg;
-          animMsg = next;
-          if (old) old.delete().catch(() => { });
-          return;
-        } catch { useEdit = true; }
-      }
-      try { await interaction.editReply({ content: startText, files: [f], attachments: [] }); } catch { }
+      try {
+        const res = await interaction.editReply({ content: startText, files: [f], attachments: [] });
+        await keepOnly(res, f.name);
+      } catch { }
     };
 
     let center = 4;
-    if (useEdit) await interaction.reply({ content: startText, files: [await frame(center, '🎡 LA ROUE TOURNE...')] });
-    else { await interaction.reply({ content: startText }); await showFrame(center, '🎡 LA ROUE TOURNE...'); }
+    await interaction.reply({ content: startText, files: [await frame(center, '🎡 LA ROUE TOURNE...')] });
     for (let k = 0; k < STEPS.length; k++) {
       await sleep(DELAYS[k]);
       center += STEPS[k];
@@ -1009,11 +1008,10 @@ async function runEco(interaction, sub) {
       if (d.footer?.text) parts.push(`-# ${d.footer.text}`);
       if (realCard?.url) parts.push(realCard.url);
       const res = await interaction.editReply({ content: parts.join('\n').slice(0, 2000), files: finalFrame ? [finalFrame] : [], attachments: [], embeds: [] });
-      if (animMsg) animMsg.delete().catch(() => { });
+      if (finalFrame) await keepOnly(res, finalFrame.name);
       return res;
     } catch (e) {
       console.error('[Eco][Roue] Impossible d\'afficher le résultat :', e.message);
-      if (animMsg) animMsg.delete().catch(() => { });
       return;
     }
   }
