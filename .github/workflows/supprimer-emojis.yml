@@ -1,0 +1,35 @@
+name: Supprimer tous les emojis
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer les dépendances
+        run: npm install
+
+      - name: Supprimer les emojis d'application
+        env:
+          TOKEN: ${{ secrets.DISCORD_TOKEN }}
+        run: node supprimer-emojis.js --confirm
+
+      - name: Commit du mapping vidé
+        if: always()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add src/data/icons-map.json
+          git diff --cached --quiet || git commit -m "Reset icons-map.json"
+          git push
