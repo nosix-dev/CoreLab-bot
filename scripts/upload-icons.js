@@ -14,7 +14,7 @@ const TOKEN = process.env.TOKEN || process.env.DISCORD_TOKEN || process.env.BOT_
 const CLIENT_ID = process.env.CLIENT_ID || '1403513450273177772';
 const ICONS_DIR = path.resolve(process.argv[2] || path.join(__dirname, '..', 'icons'));
 const MAP_FILE = path.join(__dirname, '..', 'src', 'data', 'icons-map.json');
-const COLOR = process.env.ICON_COLOR || '#ffffff';
+const COLOR = process.env.ICON_COLOR || '#e8510d';
 const SIZE = parseInt(process.env.ICON_SIZE || '128', 10);
 const MAX_EMOJIS = 2000;
 
