@@ -905,8 +905,21 @@ async function runEco(interaction, sub) {
     const STEPS = [4, 4, 3, 3, 2, 2, 1, 1];                       // cases parcourues à chaque image (de plus en plus lent)
     const DELAYS = [650, 650, 700, 750, 850, 1000, 1200, 1500];   // pause avant chaque image (ms)
     const winnerIndex = 4 + STEPS.reduce((a, b) => a + b, 0);
-    const strip = Array.from({ length: winnerIndex + 5 }, () => rollItem());
-    strip[winnerIndex] = best.item;
+    // Bande sans doublon visible : une même carte ne peut pas apparaître deux fois à moins de 6 cases
+    // (et la carte gagnante n'est jamais répétée autour d'elle), sinon la roue montre des cartes en double.
+    const NEAR = 6;
+    const strip = [];
+    for (let i = 0; i < winnerIndex + 5; i++) {
+      if (i === winnerIndex) { strip.push(best.item); continue; }
+      let it = rollItem();
+      for (let tries = 0; tries < 40; tries++) {
+        const dupNear = strip.slice(-NEAR).some(x => x.id === it.id);
+        const dupWinner = Math.abs(i - winnerIndex) <= NEAR && it.id === best.item.id;
+        if (!dupNear && !dupWinner) break;
+        it = rollItem();
+      }
+      strip.push(it);
+    }
     // Bande façon « ouverture de caisse » : une image par étape de l'animation
     const hex = n => `#${n.toString(16).padStart(6, '0')}`;
     const reelStrip = strip.map(it => ({ name: it.name, emoji: it.emoji, color: hex(getRarity(it.rarity).color) }));
@@ -920,13 +933,33 @@ async function runEco(interaction, sub) {
     );
     const startText = `**${userName}** lance la roue${tours > 1 ? ` (${tours} tours)` : ''}...`;
 
+    // Animation : à chaque image on envoie un nouveau message puis on supprime le précédent.
+    // (Modifier le message à chaque image laissait s'empiler les anciennes images de la roue.)
+    // Si le salon n'accepte pas d'envoi, on retombe sur la modification du message.
+    let animMsg = null;
+    let useEdit = typeof interaction.channel?.send !== 'function';
+    const showFrame = async (c, title) => {
+      const f = await frame(c, title);
+      if (!useEdit) {
+        try {
+          const next = await interaction.channel.send({ files: [f] });
+          const old = animMsg;
+          animMsg = next;
+          if (old) old.delete().catch(() => { });
+          return;
+        } catch { useEdit = true; }
+      }
+      try { await interaction.editReply({ content: startText, files: [f], attachments: [] }); } catch { }
+    };
+
     let center = 4;
-    await interaction.reply({ content: startText, files: [await frame(center, '🎡 LA ROUE TOURNE...')] });
+    if (useEdit) await interaction.reply({ content: startText, files: [await frame(center, '🎡 LA ROUE TOURNE...')] });
+    else { await interaction.reply({ content: startText }); await showFrame(center, '🎡 LA ROUE TOURNE...'); }
     for (let k = 0; k < STEPS.length; k++) {
       await sleep(DELAYS[k]);
       center += STEPS[k];
       const title = k < 4 ? '🎡 LA ROUE TOURNE...' : k < STEPS.length - 1 ? '🎡 LA ROUE RALENTIT...' : "🎡 ELLE S'ARRÊTE...";
-      try { await interaction.editReply({ content: startText, files: [await frame(center, title)], attachments: [] }); } catch { }
+      await showFrame(center, title);
     }
     await sleep(900);
     const realCard = await cardPromise;
@@ -975,9 +1008,12 @@ async function runEco(interaction, sub) {
       if (d.fields?.length) parts.push(d.fields.map(f => `**${f.name} :** ${f.value}`).join(' • '));
       if (d.footer?.text) parts.push(`-# ${d.footer.text}`);
       if (realCard?.url) parts.push(realCard.url);
-      return await interaction.editReply({ content: parts.join('\n').slice(0, 2000), files: finalFrame ? [finalFrame] : [], attachments: [], embeds: [] });
+      const res = await interaction.editReply({ content: parts.join('\n').slice(0, 2000), files: finalFrame ? [finalFrame] : [], attachments: [], embeds: [] });
+      if (animMsg) animMsg.delete().catch(() => { });
+      return res;
     } catch (e) {
       console.error('[Eco][Roue] Impossible d\'afficher le résultat :', e.message);
+      if (animMsg) animMsg.delete().catch(() => { });
       return;
     }
   }
