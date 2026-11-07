@@ -22,5 +22,5 @@ const starboardSettings = makeCommand('starboard-settings', '✩ Panneau de conf
     flags: payload.flags | MessageFlags.Ephemeral
   });
 }, PermissionFlagsBits.ManageGuild);
-// N'est plus enregistrée en top-level : absorbée dans /setup starboard (voir extended.js).
+// N'est plus enregistrée en top-level : absorbée dans /settings starboard (voir extended.js).
 module.exports = { starboardSettingsCmd: starboardSettings };
