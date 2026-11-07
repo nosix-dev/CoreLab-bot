@@ -49,7 +49,7 @@ const {
   formatItem
 } = require('../core/collectionItems');
 const { getCardImage } = require('../core/pokemonCards');
-const { generateReelFrame } = require('../handlers/wheelReelImage');
+const { generateReelFrame, generateReelGif } = require('../handlers/wheelReelImage');
 
 // ────────────────────────────────────────────────
 // Économie CoreLab — casino & mini-jeux (💠 Scarabées)
@@ -926,43 +926,39 @@ async function runEco(interaction, sub) {
     const userName = interaction.user.displayName ?? interaction.user.username;
     // Nom de fichier unique à chaque image : avec toujours « roue.png », Discord pouvait afficher
     // l'ancienne et la nouvelle image ensemble (carte dupliquée) après la modification du message.
-    let frameN = 0;
-    const frame = async (c, title, final = false) => new AttachmentBuilder(
-      await generateReelFrame({ strip: reelStrip, center: c, title, user: userName, final, guildId: interaction.guildId }),
-      { name: `roue-${interaction.id}-${frameN++}.png` }
-    );
     const startText = `**${userName}** lance la roue${tours > 1 ? ` (${tours} tours)` : ''}...`;
 
-    // Un seul message : chaque image remplace la précédente. Après chaque modification on vérifie ce que
-    // Discord a réellement gardé : si d'anciennes images traînent encore, on redemande explicitement de ne
-    // conserver que la plus récente (sinon les images de la roue s'empilent dans le message).
-    const keepOnly = async (res, name) => {
-      try {
-        if (!res?.attachments || res.attachments.size <= 1) return;
-        const newest = [...res.attachments.values()].find(att => att.name === name);
-        console.warn(`[Roue] ${res.attachments.size} images dans le message : on ne garde que la dernière.`);
-        await interaction.editReply({ attachments: newest ? [newest] : [] });
-      } catch (e) { console.error('[Roue] Nettoyage des images impossible :', e.message); }
-    };
-    const showFrame = async (c, title) => {
-      const f = await frame(c, title);
-      try {
-        const res = await interaction.editReply({ content: startText, files: [f], attachments: [] });
-        await keepOnly(res, f.name);
-      } catch { }
-    };
+    // Réponse publique tout de suite (la génération du GIF peut dépasser les 3 s autorisées par Discord).
+    await interaction.deferReply();
 
+    // Toute l'animation est un SEUL GIF envoyé UNE fois (joué une seule fois, il s'arrête sur la carte gagnante).
+    // Plus aucune modification d'image : les anciennes images ne peuvent plus s'empiler dans le message.
+    const spec = (c, title, delay, final = false) => ({
+      opts: { strip: reelStrip, center: c, title, user: userName, final, guildId: interaction.guildId },
+      delay
+    });
+    const specs = [];
     let center = 4;
-    await interaction.reply({ content: startText, files: [await frame(center, '🎡 LA ROUE TOURNE...')] });
+    specs.push(spec(center, '🎡 LA ROUE TOURNE...', DELAYS[0]));
     for (let k = 0; k < STEPS.length; k++) {
-      await sleep(DELAYS[k]);
       center += STEPS[k];
       const title = k < 4 ? '🎡 LA ROUE TOURNE...' : k < STEPS.length - 1 ? '🎡 LA ROUE RALENTIT...' : "🎡 ELLE S'ARRÊTE...";
-      await showFrame(center, title);
+      specs.push(spec(center, title, k < STEPS.length - 1 ? DELAYS[k + 1] : 900));
     }
-    await sleep(900);
+    specs.push(spec(winnerIndex, "🎡 LA ROUE S'ARRÊTE !", 10000, true));
+    const gifBuf = await generateReelGif(specs);
+
+    let finalFrame = null; // utilisé seulement si le GIF n'a pas pu être généré (image finale seule)
+    if (gifBuf) {
+      await interaction.editReply({ content: startText, files: [new AttachmentBuilder(gifBuf, { name: `roue-${interaction.id}.gif` })] });
+      await sleep(specs.slice(0, -1).reduce((t, f) => t + f.delay, 0) + 700); // on attend la fin de l'animation
+    } else {
+      finalFrame = await new AttachmentBuilder(
+        await generateReelFrame({ strip: reelStrip, center: winnerIndex, title: "🎡 LA ROUE S'ARRÊTE !", user: userName, final: true, guildId: interaction.guildId }),
+        { name: `roue-${interaction.id}.png` }
+      );
+    }
     const realCard = await cardPromise;
-    const finalFrame = await frame(winnerIndex, "🎡 LA ROUE S'ARRÊTE !", true).catch(() => null);
 
     const band = bestRarity.emoji.repeat(bestRarity.order >= 5 ? 10 : 8);
     const footer = `Coût : ${formatMoney(cost, settings)} • Solde : ${formatMoney(account.wallet, settings)}`;
@@ -1007,9 +1003,10 @@ async function runEco(interaction, sub) {
       if (d.fields?.length) parts.push(d.fields.map(f => `**${f.name} :** ${f.value}`).join(' • '));
       if (d.footer?.text) parts.push(`-# ${d.footer.text}`);
       if (realCard?.url) parts.push(realCard.url);
-      const res = await interaction.editReply({ content: parts.join('\n').slice(0, 2000), files: finalFrame ? [finalFrame] : [], attachments: [], embeds: [] });
-      if (finalFrame) await keepOnly(res, finalFrame.name);
-      return res;
+      // Avec le GIF on ne touche pas aux pièces jointes (on change seulement le texte) ; sans GIF on joint l'image finale.
+      const payload = { content: parts.join('\n').slice(0, 2000), embeds: [] };
+      if (finalFrame) { payload.files = [finalFrame]; payload.attachments = []; }
+      return await interaction.editReply(payload);
     } catch (e) {
       console.error('[Eco][Roue] Impossible d\'afficher le résultat :', e.message);
       return;

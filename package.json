@@ -19,6 +19,7 @@
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
     "franc": "^6.2.0",
+    "gifenc": "^1.0.3",
     "google-translate-api-x": "^10.7.2",
     "play-dl": "^1.9.7",
     "rss-parser": "^3.13.0",

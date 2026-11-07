@@ -162,4 +162,36 @@ async function generateReelFrame({ strip, center, title, user, final = false, gu
   return canvas.toBuffer('image/png');
 }
 
-module.exports = { generateReelFrame, TILES };
+
+// ── Animation GIF : toute la roue dans UNE seule image ──────────────────────────
+// Modifier le message à chaque image laissait s'empiler les anciennes images. On génère donc l'animation
+// complète (un GIF joué une seule fois, qui reste sur la dernière image) et on l'envoie une seule fois.
+// specs : [{ opts: paramètres de generateReelFrame, delay: durée d'affichage en ms }]
+// Retourne un Buffer GIF, ou null si le module « gifenc » n'est pas installé / si la génération échoue.
+async function generateReelGif(specs) {
+  let gifenc;
+  try { gifenc = require('gifenc'); } catch { return null; }
+  try {
+    const { loadImage } = require('@napi-rs/canvas');
+    const { GIFEncoder, quantize, applyPalette } = gifenc;
+    const gif = GIFEncoder();
+    for (let i = 0; i < specs.length; i++) {
+      const png = await generateReelFrame(specs[i].opts);
+      const img = await loadImage(png);
+      const c = createCanvas(img.width, img.height);
+      const cctx = c.getContext('2d');
+      cctx.drawImage(img, 0, 0);
+      const { data } = cctx.getImageData(0, 0, c.width, c.height);
+      const palette = quantize(data, 256);
+      const index = applyPalette(data, palette);
+      gif.writeFrame(index, c.width, c.height, { palette, delay: specs[i].delay, repeat: -1 }); // repeat -1 : joué une seule fois
+    }
+    gif.finish();
+    return Buffer.from(gif.bytes());
+  } catch (e) {
+    console.error('[Roue] Génération du GIF impossible :', e.message);
+    return null;
+  }
+}
+
+module.exports = { generateReelFrame, generateReelGif, TILES };
