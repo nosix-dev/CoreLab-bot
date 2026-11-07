@@ -269,13 +269,29 @@ async function fetchLatestVideo(channelId) {
       title: title.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"'),
       url: link,
       author: decodeXmlEntities(author),
-      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      thumbnail: await bestThumbnail(videoId),
       publishedAt: published ? Date.parse(published) : null
     };
   } catch (e) {
     console.error(`Erreur fetch RSS YouTube (${channelId}):`, e.message);
     return null;
   }
+}
+
+// ────────────────────────────────────────────────
+// Miniature d'une vidéo : maxresdefault n'existe pas toujours (vidéos récentes ou
+// anciennes sans HD) → YouTube renvoie alors une 404 et Discord n'affiche rien.
+// On teste les tailles de la plus grande à la plus petite ; hqdefault existe toujours.
+// ────────────────────────────────────────────────
+async function bestThumbnail(videoId) {
+  const base = `https://i.ytimg.com/vi/${videoId}`;
+  for (const name of ['maxresdefault', 'sddefault']) {
+    try {
+      const res = await fetch(`${base}/${name}.jpg`, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+      if (res.ok) return `${base}/${name}.jpg`;
+    } catch { /* on essaie la taille suivante */ }
+  }
+  return `${base}/hqdefault.jpg`;
 }
 
 // ────────────────────────────────────────────────
@@ -346,7 +362,7 @@ async function fetchCurrentLive(channelId, fallbackName = null) {
       title,
       url: `https://www.youtube.com/watch?v=${videoId}`,
       author,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      thumbnail: await bestThumbnail(videoId),
       isLive: true
     };
   } catch (e) {
