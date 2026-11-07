@@ -911,9 +911,12 @@ async function runEco(interaction, sub) {
     const hex = n => `#${n.toString(16).padStart(6, '0')}`;
     const reelStrip = strip.map(it => ({ name: it.name, emoji: it.emoji, color: hex(getRarity(it.rarity).color) }));
     const userName = interaction.user.displayName ?? interaction.user.username;
+    // Nom de fichier unique à chaque image : avec toujours « roue.png », Discord pouvait afficher
+    // l'ancienne et la nouvelle image ensemble (carte dupliquée) après la modification du message.
+    let frameN = 0;
     const frame = async (c, title, final = false) => new AttachmentBuilder(
       await generateReelFrame({ strip: reelStrip, center: c, title, user: userName, final, guildId: interaction.guildId }),
-      { name: 'roue.png' }
+      { name: `roue-${interaction.id}-${frameN++}.png` }
     );
     const startText = `**${userName}** lance la roue${tours > 1 ? ` (${tours} tours)` : ''}...`;
 
