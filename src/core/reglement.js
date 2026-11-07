@@ -243,7 +243,7 @@ async function gererSoumissionModalReglement(interaction) {
 }
 
 // ────────────────────────────────────────────────
-// /settings rules-edit : modifier le règlement DÉJÀ publié (titre, texte,
+// /setup rules-edit : modifier le règlement DÉJÀ publié (titre, texte,
 // délai, couleur) sans le republier. L'image, les boutons de lien, le bouton
 // « Accepter » et les rôles attribués restent inchangés : on réédite le
 // message existant à partir de son propre JSON.
@@ -282,14 +282,14 @@ async function ouvrirEditionReglement(interaction) {
     const message = await recupererMessageReglement(interaction.guild, config);
     if (!message) {
         return interaction.reply({
-            content: '❌ Aucun règlement publié (ou message introuvable). Utilise d\'abord `/settings rules`.',
+            content: '❌ Aucun règlement publié (ou message introuvable). Utilise d\'abord `/setup rules`.',
             flags: MessageFlags.Ephemeral,
         });
     }
     const json = extraireConteneurReglement(message);
     if (!json) {
         return interaction.reply({
-            content: '❌ Le message du règlement n\'a pas le format attendu. Republie-le avec `/settings rules`.',
+            content: '❌ Le message du règlement n\'a pas le format attendu. Republie-le avec `/setup rules`.',
             flags: MessageFlags.Ephemeral,
         });
     }
@@ -346,7 +346,7 @@ async function gererSoumissionEditionReglement(interaction) {
     const message = await recupererMessageReglement(interaction.guild, config);
     const json = extraireConteneurReglement(message);
     if (!message || !json) {
-        return interaction.editReply({ content: '❌ Règlement introuvable, republie-le avec `/settings rules`.' });
+        return interaction.editReply({ content: '❌ Règlement introuvable, republie-le avec `/setup rules`.' });
     }
 
     const titreSaisi = (interaction.fields.getTextInputValue('titre') || '').trim();
@@ -362,7 +362,7 @@ async function gererSoumissionEditionReglement(interaction) {
 
     const textes = json.components.filter(c => c.type === 10);
     if (textes.length < 2) {
-        return interaction.editReply({ content: '❌ Le message du règlement n\'a pas le format attendu. Republie-le avec `/settings rules`.' });
+        return interaction.editReply({ content: '❌ Le message du règlement n\'a pas le format attendu. Republie-le avec `/setup rules`.' });
     }
     const titre = titreSaisi || config.rules_title || TITRE_REGLEMENT_DEFAUT;
     textes[0].content = `# ${titre}`;

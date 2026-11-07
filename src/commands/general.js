@@ -691,7 +691,7 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
 }, {
   name: 'TikTok',
   value: 'tiktok'
-})).addIntegerOption(o => o.setName('numero').setDescription('Numéro (voir /settings notifications list)').setRequired(true))), async interaction => {
+})).addIntegerOption(o => o.setName('numero').setDescription('Numéro (voir /setup notifications list)').setRequired(true))), async interaction => {
   const sub = interaction.options.getSubcommand();
   const platform = interaction.options.getString('plateforme');
   const bucketKeys = {
@@ -970,7 +970,7 @@ makeCommand('partenariat-config', 'Configurer le partenariat (titre, description
     content: `📊 **${bucket.length}** partenaire(s) enregistré(s)\n${roleInfo}`,
     flags: MessageFlags.Ephemeral
   });
-}, PermissionFlagsBits.Administrator), makeCommand('partenariat-retirer', 'Retirer un partenaire', data => data.addIntegerOption(o => o.setName('numero').setDescription('Numéro (voir /settings partnership liste)').setRequired(true)), async interaction => {
+}, PermissionFlagsBits.Administrator), makeCommand('partenariat-retirer', 'Retirer un partenaire', data => data.addIntegerOption(o => o.setName('numero').setDescription('Numéro (voir /setup partnership liste)').setRequired(true)), async interaction => {
   const idx = interaction.options.getInteger('numero') - 1;
   const bucket = getGuildBucket(interaction.guild.id, 'partnerships', []);
   const partner = bucket[idx];

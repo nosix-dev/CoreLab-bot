@@ -17,7 +17,7 @@ for (let i = 1; i <= MAX_BOUTONS_LIENS; i++) {
     );
 }
 
-// N'est plus enregistrée en top-level : absorbée dans /settings rules (voir extended.js).
+// N'est plus enregistrée en top-level : absorbée dans /setup rules (voir extended.js).
 const reglementCmd = {
     data,
     async execute(interaction) {

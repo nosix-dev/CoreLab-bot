@@ -39,7 +39,7 @@ const FAMILLES = [
     items: [
       '👋 Bienvenue / au revoir : message, image, boutons, carte → `/config`',
       '🖼️ Image de l\'annonce de niveau → `/config`',
-      '🎫 Tickets : apparence, message d\'ouverture, image → `/settings ticket`',
+      '🎫 Tickets : apparence, message d\'ouverture, image → `/setup ticket`',
       '📜 `/reglement` : titres, couleurs, images',
       '🗳️ `/vote` : titres, couleurs, images'
     ]
@@ -61,7 +61,7 @@ const FAMILLES = [
   {
     id: 'extras', emoji: '⭐', nom: 'Extras', tier: 'premium',
     items: [
-      '🖐️ Bouton Claim des tickets → `/settings ticket`',
+      '🖐️ Bouton Claim des tickets → `/setup ticket`',
       '🏅 Badge Premium sur ta carte de niveau et ton profil économie'
     ]
   }

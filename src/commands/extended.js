@@ -164,7 +164,7 @@ const annonce = {
       const configured = interaction.guild.channels.cache.get(String(channelId));
       if (!configured) {
         return interaction.reply({
-          content: '❌ Le salon d\'annonces configuré est introuvable (supprimé ?). Utilisez `/settings announcement` pour en redéfinir un.',
+          content: '❌ Le salon d\'annonces configuré est introuvable (supprimé ?). Utilisez `/setup announcement` pour en redéfinir un.',
           flags: MessageFlags.Ephemeral
         });
       }
@@ -565,10 +565,10 @@ function buildPremiumInfoText() {
     '🎨 **Personnalisation**\n' +
     '• 👋 Bienvenue / au revoir (message, image, boutons, carte par défaut entièrement modifiable) → boutons ci-dessous\n' +
     '• 🖼️ Image de l\'annonce de niveau → bouton ci-dessous\n' +
-    '• 🎫 Tickets : apparence, message d\'ouverture, image → `/settings ticket`\n' +
+    '• 🎫 Tickets : apparence, message d\'ouverture, image → `/setup ticket`\n' +
     '• 📜 `/reglement` et 🗳️ `/vote` : titres, couleurs, images → dans ces commandes\n\n' +
     '⭐ **Premium**\n' +
-    '• 🖐️ Bouton Claim des tickets → `/settings ticket`\n' +
+    '• 🖐️ Bouton Claim des tickets → `/setup ticket`\n' +
     '• 💾 `/backup` (create, load, list, delete, info)\n' +
     '• 🔔 Notifications suivies illimitées → `/notification`';
 }
@@ -1371,7 +1371,7 @@ async function executePanneau(interaction) {
 }
 
 // Ancienne commande /ticket, /langue et /reglement : conservées comme fonctions
-// réutilisables, exécutées désormais via /settings ticket, /settings language, /settings rules.
+// réutilisables, exécutées désormais via /setup ticket, /setup language, /setup rules.
 async function executeTicket(interaction) {
   const cfg = getGuildConfig(interaction.guild.id);
   const { buildTicketConfigPayload } = require('../handlers/ticket');
@@ -1387,7 +1387,7 @@ async function executeVocalTemp(interaction) {
   });
 }
 
-// ── Jeu de Comptage (sous-commandes de /settings counting) ──
+// ── Jeu de Comptage (sous-commandes de /setup counting) ──
 async function executeComptageSalon(interaction) {
   const salon = interaction.options.getChannel('cible');
   const cfg = getGuildConfig(interaction.guild.id);
@@ -1484,7 +1484,7 @@ const config = {
       for (const sub of notificationCmd.data.options) group.options.push(sub);
       return group;
     });
-    // /settings partnership — configuration principale (les options de partenariatConfigCmd sont clonées directement)
+    // /setup partnership — configuration principale (les options de partenariatConfigCmd sont clonées directement)
     cmd.addSubcommand(sub => {
       sub.setName('partenariat').setDescription('Configurer le partenariat (titre, description, image, rôle)');
       if (partenariatConfigCmd.data?.options) {
