@@ -1558,7 +1558,7 @@ async function toggleLockdown(interaction) {
     await sendProtectionLog(interaction.guild, embed);
   }
   return interaction.editReply({
-    ...buildProtectPayload(interaction.guild)
+    ...buildProtectPayload(interaction.guild, null, viewOf(interaction))
   });
 }
 
@@ -1775,7 +1775,7 @@ function registerProtectionHandlers(client) {
   console.log('✅ Système de protection (RaidMode / Captcha / Anti-spam / Anti-bot / Anti-alt / Anti-lien / Anti-Nuke / Anti-Ghostping / Anti-DDoS / Rôle de tag) initialisé.');
 }
 
-const { buildProtectPayload, TOGGLE_KEYS, buildConfigImage, nameOf } = require('../core/protectCard');
+const { buildProtectPayload, TOGGLE_KEYS, buildConfigImage, nameOf, rememberView, viewOf } = require('../core/protectCard');
 
 // ────────────────────────────────────────────────
 // Dashboard /protect-settings
@@ -1907,7 +1907,7 @@ async function toggleMarkDoubleDetection(interaction) {
   persist('configuration');
   const status = cfg.auth_double_detection_enabled ? '🟢 Activée' : '🔴 Désactivée';
   return interaction.update({
-    ...buildProtectPayload(interaction.guild, `⚠️ Détection compte double ${status}.`)
+    ...buildProtectPayload(interaction.guild, `⚠️ Détection compte double ${status}.`, viewOf(interaction))
   });
 }
 async function handleSimpleProtectToggle(interaction) {
@@ -1927,7 +1927,7 @@ async function handleSimpleProtectToggle(interaction) {
     cfg.anti_ddos_voice_enabled = false;
     persist('configuration');
     return interaction.update({
-      ...buildProtectPayload(interaction.guild, '🔴 Mode Simple désactivé : protections basiques désactivées.')
+      ...buildProtectPayload(interaction.guild, '🔴 Mode Simple désactivé : protections basiques désactivées.', viewOf(interaction))
     });
   }
 
@@ -1947,12 +1947,12 @@ async function handleSimpleProtectToggle(interaction) {
   cfg.honeypot_enabled = cfg.honeypot_channel_id ? true : false;
   persist('configuration');
   return interaction.update({
-    ...buildProtectPayload(interaction.guild, '🟢 Mode Simple activé : protections basiques appliquées (tu peux affiner ensuite).')
+    ...buildProtectPayload(interaction.guild, '🟢 Mode Simple activé : protections basiques appliquées (tu peux affiner ensuite).', viewOf(interaction))
   });
 }
 async function refreshDashboard(interaction) {
   return interaction.update({
-    ...buildProtectPayload(interaction.guild)
+    ...buildProtectPayload(interaction.guild, null, viewOf(interaction))
   });
 }
 async function toggleAndRefresh(interaction, field) {
@@ -3106,9 +3106,26 @@ async function routeProtectionInteraction(interaction) {
     const id = interaction.customId || '';
     console.log(`[DEBUG] routeProtectionInteraction called — id=${id} user=${interaction.user?.id} guild=${interaction.guild?.id} type=${interaction.type}`);
     if (interaction.isButton()) {
+      if (id.startsWith('protect_tab|') || id.startsWith('protect_page|')) {
+        const [, tab, page] = id.split('|');
+        rememberView(interaction, { tab, page: Number(page) || 0 });
+        return interaction.update(buildProtectPayload(interaction.guild, null, viewOf(interaction)));
+      }
+      if (id.startsWith('protect_tgl|') || id.startsWith('protect_cfg|')) {
+        const [kind, tab, page, key] = id.split('|');
+        rememberView(interaction, { tab, page: Number(page) || 0 });
+        if (kind === 'protect_tgl') {
+          if (key === 'auth_double_detection_enabled') return toggleMarkDoubleDetection(interaction);
+          if (!TOGGLE_KEYS.includes(key)) return interaction.deferUpdate();
+          return toggleAndRefresh(interaction, key);
+        }
+        const open = PANEL_OPENERS[key];
+        return open ? open(interaction) : interaction.deferUpdate();
+      }
+      if (id === 'protect_page_info') return interaction.deferUpdate();
       if (id === 'protect_refresh_btn') return refreshDashboard(interaction);
       if (id === 'protect_simple_btn') return handleSimpleProtectToggle(interaction);
-      if (id === 'protect_back') return interaction.update(buildProtectPayload(interaction.guild));
+      if (id === 'protect_back') return interaction.update(buildProtectPayload(interaction.guild, null, viewOf(interaction)));
       if (id === 'protect_raidmode_btn') return openRaidmodePanel(interaction);
       if (id === 'protect_raidmode_edit') return openRaidmodeModal(interaction);
       if (id === 'protect_raidmode_disable') {

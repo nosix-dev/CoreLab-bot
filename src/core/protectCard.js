@@ -18,6 +18,7 @@ const {
   MediaGalleryItemBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
+  SectionBuilder,
   MessageFlags
 } = require('discord.js');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
@@ -492,68 +493,133 @@ function nameOf(guild, kind, id) {
   return (kind === 'role' ? '@' : '#') + cleanName(obj.name);
 }
 
-// ── Payload complet (Components V2 : titre + grande image + 2 menus + boutons) ──
-// À utiliser partout à la place de { embeds:[buildProtectDashboard()], components: buildProtectRows() }.
-// `notice` (optionnel) : petite ligne de texte affichée sous le titre (remplace l'ancien `content`,
-// interdit en Components V2). `attachments: []` retire l'ancienne image lors d'un interaction.update().
-// Pour reply(), ajoute le flag Ephemeral : flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
-function buildProtectPayload(guild, notice = null) {
+// ── Panneau /protect-settings, style « Configuration » (onglets + lignes + bouton) ──
+// Components V2 : en-tête avec bouton Changelog, onglets de catégories, une ligne par module
+// (nom + état à gauche, bouton Activer/Désactiver ou Modifier à droite), pagination, boutons globaux.
+const PANEL_ACCENT = 0xE8510D;
+const CHANGELOG_URL = 'https://corelab-4cn.pages.dev/docs#p-changelog';
+const PAGE_SIZE = 5; // limite Discord : 40 composants par message
+
+const TABS = [
+  { key: 'arrivees',   label: 'Arrivées',   mods: ['raidmode', 'captcha', 'minage', 'anti_bot_enabled', 'anti_alt_enabled', 'auth', 'auth_double_detection_enabled'] },
+  { key: 'protection', label: 'Protection', mods: ['antispam', 'antieveryone', 'anti_link_enabled', 'anti_ghostping_enabled', 'anti_phishing', 'anti_scam_image', 'anti_scam_ai', 'dm_lock_enabled'] },
+  { key: 'attaques',   label: 'Attaques',   mods: ['anti_nuke_enabled', 'anti_perm_escalation_enabled', 'antiddos', 'antiddosvoice', 'honeypot'] },
+  { key: 'moderation', label: 'Modération', mods: ['logs', 'sanctions', 'signalement', 'transparence', 'tagrole'] }
+];
+
+const MODULE_ICONS = {
+  raidmode: '🚨', captcha: '🔐', minage: '⏳', anti_bot_enabled: '🤖', anti_alt_enabled: '👤', auth: '🪪',
+  auth_double_detection_enabled: '👥', antispam: '🚫', antieveryone: '🔕', anti_link_enabled: '🔗',
+  anti_ghostping_enabled: '👻', anti_phishing: '🎣', anti_scam_image: '🖼️', anti_scam_ai: '🧠',
+  dm_lock_enabled: '📪', anti_nuke_enabled: '💣', anti_perm_escalation_enabled: '🔑', antiddos: '🌊',
+  antiddosvoice: '🔊', honeypot: '🍯', logs: '📜', sanctions: '⚖️', signalement: '🚩', transparence: '📖', tagrole: '🏷️'
+};
+
+// Dernier onglet/page affiché par message (pour rester sur le même onglet après un clic).
+const viewByMessage = new Map();
+function rememberView(interaction, view) {
+  const id = interaction?.message?.id;
+  if (!id || !view) return;
+  if (viewByMessage.size > 500) viewByMessage.delete(viewByMessage.keys().next().value);
+  viewByMessage.set(id, { tab: view.tab, page: view.page });
+}
+function viewOf(interaction) {
+  return viewByMessage.get(interaction?.message?.id) || null;
+}
+
+function moduleByKey(key) { return MODULES.find(m => m.key === key); }
+
+function buildProtectPayload(guild, notice = null, view = null) {
   const cfg = getGuildConfig(guild.id);
-  const file = new AttachmentBuilder(renderProtectCard(guild.name, cfg, guild.id), { name: 'protect.png' });
+  const tab = TABS.find(t => t.key === view?.tab) || TABS[0];
+  const mods = tab.mods.map(moduleByKey).filter(Boolean);
+  const totalPages = Math.max(1, Math.ceil(mods.length / PAGE_SIZE));
+  const page = Math.min(Math.max(Number(view?.page) || 0, 0), totalPages - 1);
 
-  const toggleMenu = new StringSelectMenuBuilder()
-    .setCustomId('protect_toggle_select')
-    .setPlaceholder('Activer ou désactiver un module…')
-    .addOptions(MODULES.filter(m => m.kind === 'toggle').map(m => ({
-      label: m.label,
-      value: m.key,
-      description: m.on(cfg) ? 'Actuellement actif' : 'Actuellement désactivé',
-      emoji: m.on(cfg) ? '🟢' : '⚪'
-    })));
+  const actifs = MODULES.filter(m => m.on(cfg)).length;
+  const intro = 'Les réglages de protection de CoreLab pour ce serveur. Pour commencer, regarde **Arrivées** (captcha, anti-raid) et **Modération** (salon de logs, sanctions).\n' +
+    'Tout changement s\'applique immédiatement.' + (notice ? `\n\n${String(notice).slice(0, 500)}` : '');
 
-  const configMenu = new StringSelectMenuBuilder()
-    .setCustomId('protect_config_select')
-    .setPlaceholder('Régler un module…')
-    .addOptions(MODULES.filter(m => m.kind === 'config').map(m => ({
-      label: m.label,
-      value: m.key,
-      emoji: m.on(cfg) ? '🟢' : '⚪'
-    })));
-
-  const simpleActive = Boolean(cfg.antispam && cfg.antieveryone && (cfg.raidmode_enabled || cfg.captcha_enabled));
-  const buttons = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('protect_refresh_btn').setLabel('Actualiser').setEmoji('🔄').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('protect_simple_btn').setLabel('Mode Simple').setEmoji('🛡️').setStyle(simpleActive ? ButtonStyle.Success : ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('protect_lockdown_btn').setLabel(cfg.lockdown_active ? 'Déverrouiller' : 'Verrouiller').setEmoji('🔒').setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId('protect_honeypot_reset_btn').setLabel('Reset HoneyPot').setEmoji('🍯').setStyle(ButtonStyle.Secondary)
+  const container = new ContainerBuilder().setAccentColor(PANEL_ACCENT);
+  container.addSectionComponents(
+    new SectionBuilder()
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('## 🛡️ Protection'),
+        new TextDisplayBuilder().setContent(`-# CoreLab • ${guild.name} • ${actifs}/${MODULES.length} modules actifs`),
+        new TextDisplayBuilder().setContent(intro)
+      )
+      .setButtonAccessory(
+        new ButtonBuilder().setLabel('Changelog').setEmoji('📜').setStyle(ButtonStyle.Link).setURL(CHANGELOG_URL)
+      )
   );
 
-  const container = new ContainerBuilder().setAccentColor(0xE8510D);
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`## 🛡️ Protection — ${guild.name}`)
-  );
-  if (notice) {
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(String(notice).slice(0, 500)));
-  }
-  container.addMediaGalleryComponents(
-    new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://protect.png'))
-  );
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent('-# Le menu du haut active ou coupe un module ; celui du dessous ouvre ses réglages.')
+  // Onglets
+  container.addActionRowComponents(
+    new ActionRowBuilder().addComponents(
+      TABS.map(t => new ButtonBuilder()
+        .setCustomId(`protect_tab|${t.key}`)
+        .setLabel(t.label)
+        .setEmoji(t.key === tab.key ? '📂' : '📁')
+        .setStyle(t.key === tab.key ? ButtonStyle.Primary : ButtonStyle.Secondary))
+    )
   );
   container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+
+  // Une ligne par module : nom + état / bouton à droite
+  for (const m of mods.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)) {
+    const on = !!m.on(cfg);
+    const etat = on ? '🟢 Actif' : '🔴 Inactif';
+    let detail = '';
+    try { detail = on || m.kind === 'config' ? String(m.sub(cfg) || '') : ''; } catch { /* sans détail */ }
+    const value = detail && (on || m.kind === 'config') ? `${etat} • ${detail}` : etat;
+
+    const btn = new ButtonBuilder();
+    if (m.kind === 'toggle') {
+      btn.setCustomId(`protect_tgl|${tab.key}|${page}|${m.key}`)
+        .setLabel(on ? 'Désactiver' : 'Activer')
+        .setStyle(on ? ButtonStyle.Danger : ButtonStyle.Success);
+    } else {
+      btn.setCustomId(`protect_cfg|${tab.key}|${page}|${m.key}`)
+        .setLabel('Modifier')
+        .setEmoji('⚙️')
+        .setStyle(ButtonStyle.Primary);
+    }
+    container.addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${MODULE_ICONS[m.key] || '🛡️'} ${m.label}**\n> ${value}`))
+        .setButtonAccessory(btn)
+    );
+  }
+
+  // Pagination
+  if (totalPages > 1) {
+    container.addActionRowComponents(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`protect_page|${tab.key}|${page - 1}`).setLabel('◀').setStyle(ButtonStyle.Secondary).setDisabled(page === 0),
+        new ButtonBuilder().setCustomId('protect_page_info').setLabel(`Page ${page + 1}/${totalPages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
+        new ButtonBuilder().setCustomId(`protect_page|${tab.key}|${page + 1}`).setLabel('▶').setStyle(ButtonStyle.Secondary).setDisabled(page >= totalPages - 1)
+      )
+    );
+  }
+
+  // Boutons globaux
+  const simpleActive = Boolean(cfg.antispam && cfg.antieveryone && (cfg.raidmode_enabled || cfg.captcha_enabled));
+  container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
   container.addActionRowComponents(
-    new ActionRowBuilder().addComponents(toggleMenu),
-    new ActionRowBuilder().addComponents(configMenu),
-    buttons
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('protect_refresh_btn').setLabel('Actualiser').setEmoji('🔄').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('protect_simple_btn').setLabel('Mode Simple').setEmoji('🛡️').setStyle(simpleActive ? ButtonStyle.Success : ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('protect_lockdown_btn').setLabel(cfg.lockdown_active ? 'Déverrouiller' : 'Verrouiller').setEmoji('🔒').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('protect_honeypot_reset_btn').setLabel('Reset HoneyPot').setEmoji('🍯').setStyle(ButtonStyle.Secondary)
+    )
   );
 
   return {
     components: [container],
-    files: [file],
+    files: [],
     attachments: [],
     flags: MessageFlags.IsComponentsV2
   };
 }
 
-module.exports = { buildProtectPayload, renderProtectCard, renderCaptchaCard, buildCaptchaImage, renderConfigCard, buildConfigImage, nameOf, TOGGLE_KEYS, CONFIG_KEYS, MODULES };
+module.exports = { buildProtectPayload, rememberView, viewOf, PROTECT_TABS: TABS, renderProtectCard, renderCaptchaCard, buildCaptchaImage, renderConfigCard, buildConfigImage, nameOf, TOGGLE_KEYS, CONFIG_KEYS, MODULES };
