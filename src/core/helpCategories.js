@@ -11,7 +11,7 @@ const HELP_CATEGORIES = [
     key: 'administration',
     label: 'Administration',
     emoji: '🛡️',
-    commands: ['config', 'parametres', 'config-ia', 'backup', 'serverstats-setup', 'langue-bot', 'tickets', 'annonces', 'tableau-etoiles', 'vocaux-temp', 'premium', 'statistiques', 'role-menu', 'quests-config'],
+    commands: ['config', 'config-panel', 'parametres', 'config-ia', 'backup', 'serverstats-setup', 'langue-bot', 'tickets', 'annonces', 'tableau-etoiles', 'vocaux-temp', 'premium', 'statistiques', 'role-menu', 'quests-config'],
   },
   {
     key: 'automod',
