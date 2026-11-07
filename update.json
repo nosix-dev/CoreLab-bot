@@ -1,0 +1,27 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.19",
+  "date": "2026-11-07",
+  "mention": false,
+  "titre": "📌 CoreLab — Roue en GIF (5.5.19)",
+  "couleur": "#E8510D",
+  "article": {
+    "label": "Changelog",
+    "emoji": "📜",
+    "url": "https://corelab-4cn.pages.dev/docs#p-changelog"
+  },
+  "intro": "L'animation de **/poke-wheel** est maintenant **une seule image animée** : plus d'images qui s'empilent dans le message.",
+  "modifications": {
+    "🎡 Roue": [
+      "[~] L'animation de la roue est envoyée en un seul GIF, joué une fois, qui s'arrête sur la carte gagnante.",
+      "[-] Fini les images qui s'empilaient dans le message pendant la roue.",
+      "[+] Le résultat s'affiche dans le même message une fois l'animation terminée."
+    ]
+  },
+  "pied": "Ajoute CoreLab sur tes autres serveurs.",
+  "support": {
+    "label": "Inviter le bot",
+    "emoji": "🚀",
+    "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+  }
+}
