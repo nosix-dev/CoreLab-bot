@@ -58,12 +58,6 @@ function obtenirConfigGuilde(idGuilde) {
             xp_cooldown: 60,
             xp_min: 15,
             xp_max: 25,
-            xp_voice_enabled: false,
-            xp_voice_interval: 1,
-            xp_voice_amount: 10,
-            xp_voice_bonus_minutes: 30,
-            xp_voice_bonus_amount: 5,
-            xp_voice_bonus_max: 10,
             xp_level_channel_id: null,
             xp_roles: [],
             xp_roles_mode: 'stack',
@@ -138,12 +132,8 @@ function obtenirConfigGuilde(idGuilde) {
     if (config.xp_cooldown === undefined) config.xp_cooldown = 60;
     if (config.xp_min === undefined) config.xp_min = 15;
     if (config.xp_max === undefined) config.xp_max = 25;
-    if (config.xp_voice_enabled === undefined) config.xp_voice_enabled = false;
-    if (config.xp_voice_interval === undefined) config.xp_voice_interval = 1;
-    if (config.xp_voice_amount === undefined) config.xp_voice_amount = 10;
-    if (config.xp_voice_bonus_minutes === undefined) config.xp_voice_bonus_minutes = 30;
-    if (config.xp_voice_bonus_amount === undefined) config.xp_voice_bonus_amount = 5;
-    if (config.xp_voice_bonus_max === undefined) config.xp_voice_bonus_max = 10;
+    // L'XP en vocal n'existe plus (remplacée par /rankup) : on nettoie les anciens réglages
+    for (const k of ['xp_voice_enabled', 'xp_voice_interval', 'xp_voice_amount', 'xp_voice_bonus_minutes', 'xp_voice_bonus_amount', 'xp_voice_bonus_max']) delete config[k];
     if (config.xp_level_channel_id === undefined) config.xp_level_channel_id = null;
     if (config.xp_roles === undefined) config.xp_roles = [];
     if (config.xp_roles_mode === undefined) config.xp_roles_mode = 'stack';

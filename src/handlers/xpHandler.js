@@ -19,15 +19,9 @@ const {
 } = require('../core/premium');
 const cooldowns = new Map();
 
-// Minutes déjà cumulées en vocal par membre (clé guildId-userId)
-const voiceMinutes = new Map();
-// Minutes consécutives passées en vocal (session en cours) — sert au bonus progressif
-const voiceSession = new Map();
-const VOICE_TICK_MS = 60 * 1000;
-
 // ────────────────────────────────────────────────
 // Ajoute de l'XP à un membre et annonce la montée de niveau.
-// Utilisé par les messages ET par le vocal.
+// Utilisé par les messages (le vocal ne donne plus d'XP : voir /rankup).
 // ────────────────────────────────────────────────
 async function grantXp(member, cfg, gained, source = 'message') {
   const guild = member.guild;
@@ -50,7 +44,7 @@ async function grantXp(member, cfg, gained, source = 'message') {
   const allowedMentions = {
     parse: []
   };
-  const content = source === 'voice' ? `${member} vient d'atteindre le **niveau ${afterLevel}** grâce au vocal ! 🎙️` : `${member} vient d'atteindre le **niveau ${afterLevel}** !`;
+  const content = `${member} vient d'atteindre le **niveau ${afterLevel}** !`;
   let files = [];
   try {
     const buffer = generateLevelUpCard({
@@ -87,59 +81,6 @@ async function grantXp(member, cfg, gained, source = 'message') {
   }
 }
 
-// ────────────────────────────────────────────────
-// XP en vocal : un tick par minute, chaque membre éligible cumule
-// des minutes ; à chaque `xp_voice_interval` minutes → `xp_voice_amount` XP.
-// Exclus : bots, salon AFK, salons ignorés, membres sourd (casque coupé).
-// ────────────────────────────────────────────────
-async function voiceXpTick(client) {
-  const stillInVoice = new Set();
-  for (const guild of client.guilds.cache.values()) {
-    try {
-      const cfg = getGuildConfig(guild.id);
-      if (!cfg.xp_enabled || !cfg.xp_voice_enabled) continue;
-      const interval = Math.max(1, parseInt(cfg.xp_voice_interval, 10) || 1);
-      const baseAmount = Math.max(0, parseInt(cfg.xp_voice_amount, 10) || 0);
-      const bonusEvery = Math.max(0, parseInt(cfg.xp_voice_bonus_minutes, 10) || 0);
-      const bonusAmount = Math.max(0, parseInt(cfg.xp_voice_bonus_amount, 10) || 0);
-      const bonusMaxTiers = Math.max(0, parseInt(cfg.xp_voice_bonus_max, 10) || 0);
-      if (baseAmount <= 0 && (bonusEvery <= 0 || bonusAmount <= 0)) continue;
-      const ignored = cfg.xp_ignored_channels || [];
-      for (const state of guild.voiceStates.cache.values()) {
-        const member = state.member;
-        if (!member || member.user.bot || !state.channelId) continue;
-        if (state.channelId === guild.afkChannelId) continue;
-        if (ignored.includes(state.channelId)) continue;
-        if (state.selfDeaf || state.serverDeaf) continue;
-        const key = `${guild.id}-${member.id}`;
-        stillInVoice.add(key);
-        const session = (voiceSession.get(key) || 0) + 1;
-        voiceSession.set(key, session);
-        const minutes = (voiceMinutes.get(key) || 0) + 1;
-        if (minutes >= interval) {
-          voiceMinutes.set(key, 0);
-          // Bonus progressif : +bonusAmount XP par palier de `bonusEvery` minutes
-          // consécutives en vocal (plafonné à `bonusMaxTiers` paliers).
-          let tiers = bonusEvery > 0 ? Math.floor(session / bonusEvery) : 0;
-          if (bonusMaxTiers > 0) tiers = Math.min(tiers, bonusMaxTiers);
-          const amount = baseAmount + tiers * bonusAmount;
-          if (amount > 0) await grantXp(member, cfg, amount, 'voice');
-        } else {
-          voiceMinutes.set(key, minutes);
-        }
-      }
-    } catch (e) {
-      console.error('Erreur XP vocal :', e.message);
-    }
-  }
-  // Purge des membres qui ont quitté le vocal (le compteur repart à zéro)
-  for (const key of voiceMinutes.keys()) {
-    if (!stillInVoice.has(key)) voiceMinutes.delete(key);
-  }
-  for (const key of voiceSession.keys()) {
-    if (!stillInVoice.has(key)) voiceSession.delete(key);
-  }
-}
 function registerXpHandler(client) {
   client.on('messageCreate', async message => {
     try {
@@ -160,10 +101,7 @@ function registerXpHandler(client) {
       console.error('Erreur du système XP :', e.message);
     }
   });
-  setInterval(() => {
-    voiceXpTick(client).catch(e => console.error('Erreur XP vocal :', e.message));
-  }, VOICE_TICK_MS);
-  console.log('✅ Système XP initialisé (messages + vocal).');
+  console.log('✅ Système XP initialisé (messages).');
 }
 module.exports = {
   registerXpHandler,

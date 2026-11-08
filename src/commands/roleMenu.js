@@ -410,4 +410,4 @@ function registerRoleMenus(client) {
   console.log('✅ Menus de rôles initialisés.');
 }
 
-module.exports = { commands: [roleMenu], registerRoleMenus, _test: { parseEmoji, buildMessage, handlePick } };
+module.exports = { commands: [roleMenu], registerRoleMenus, roleProblem, _test: { parseEmoji, buildMessage, handlePick } };

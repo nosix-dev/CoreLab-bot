@@ -390,36 +390,6 @@ const CONFIG_CATEGORIES = {
       emoji: '🔼',
       type: 'number'
     }, {
-      labelKey: 'setting_xp_voice_enabled',
-      value: 'xp_voice_enabled',
-      emoji: '🎙️',
-      type: 'boolean'
-    }, {
-      labelKey: 'setting_xp_voice_interval',
-      value: 'xp_voice_interval',
-      emoji: '🕐',
-      type: 'number'
-    }, {
-      labelKey: 'setting_xp_voice_amount',
-      value: 'xp_voice_amount',
-      emoji: '🎧',
-      type: 'number'
-    }, {
-      labelKey: 'setting_xp_voice_bonus_minutes',
-      value: 'xp_voice_bonus_minutes',
-      emoji: '📶',
-      type: 'number'
-    }, {
-      labelKey: 'setting_xp_voice_bonus_amount',
-      value: 'xp_voice_bonus_amount',
-      emoji: '🚀',
-      type: 'number'
-    }, {
-      labelKey: 'setting_xp_voice_bonus_max',
-      value: 'xp_voice_bonus_max',
-      emoji: '🔝',
-      type: 'number'
-    }, {
       labelKey: 'setting_xp_level_channel',
       value: 'xp_level_channel_id',
       emoji: '🎉',
