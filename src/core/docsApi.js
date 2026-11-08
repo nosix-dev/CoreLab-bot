@@ -37,12 +37,18 @@ function mapOptions(options = []) {
   }));
 }
 
+function frOf(node) {
+  // Après localisation : « description » = anglais (si traduit), « description_localizations.fr » = français d'origine.
+  return node.description_localizations?.fr || node.description || '';
+}
+
 function mapSub(node) {
   // sous-commande (type 1) ou groupe de sous-commandes (type 2)
   const subs = (node.options || []).filter(o => o.type === 1 || o.type === 2);
   return {
     name: node.name,
     description: node.description || '',
+    descriptionFr: frOf(node),
     options: mapOptions(node.options),
     subcommands: subs.map(mapSub)
   };
@@ -65,6 +71,7 @@ function buildDocs(client) {
     return {
       name: j.name,
       description: j.description || '',
+      descriptionFr: frOf(j),
       category: categoryOf(entries[i]?.data?.name),
       permissions: permsOf(j.default_member_permissions),
       options: mapOptions(j.options),
