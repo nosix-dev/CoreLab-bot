@@ -1,0 +1,431 @@
+{
+  "entries": [
+    {
+      "version": "5.5.21",
+      "date": "2026-11-07",
+      "title": null,
+      "intro": "La **documentation du site** se met à jour toute seule : commandes, sous-commandes et changelog sont lus directement depuis le bot.",
+      "sections": [
+        {
+          "title": "📚 Documentation",
+          "items": [
+            {
+              "type": "add",
+              "text": "La page des commandes du site est générée en direct par le bot, en français et en anglais : toute commande ajoutée, modifiée ou retirée apparaît sans modifier le site."
+            },
+            {
+              "type": "add",
+              "text": "Le changelog du site est lu depuis le bot, donc chaque nouvelle version y apparaît automatiquement."
+            },
+            {
+              "type": "change",
+              "text": "**/settings** est décrit comme les réglages du serveur (tickets, règlement, StarBoard…) et **/config** ouvre le panneau, comme sur le site."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.20",
+      "date": "2026-11-07",
+      "title": null,
+      "intro": "La documentation du site peut afficher la **liste des commandes à jour automatiquement**.",
+      "sections": [
+        {
+          "title": "📚 Documentation",
+          "items": [
+            {
+              "type": "add",
+              "text": "Le bot publie la liste complète de ses commandes (sous-commandes, options, permissions, catégories) et des modules de protection pour le site."
+            },
+            {
+              "type": "change",
+              "text": "**/config** est classée dans la catégorie Administration de l'aide."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.19",
+      "date": "2026-11-07",
+      "title": null,
+      "intro": "L'animation de **/poke-wheel** est maintenant **une seule image animée** : plus d'images qui s'empilent dans le message.",
+      "sections": [
+        {
+          "title": "🎡 Roue",
+          "items": [
+            {
+              "type": "change",
+              "text": "L'animation de la roue est envoyée en un seul GIF, joué une fois, qui s'arrête sur la carte gagnante."
+            },
+            {
+              "type": "change",
+              "text": "Fini les images qui s'empilaient dans le message pendant la roue."
+            },
+            {
+              "type": "add",
+              "text": "Le résultat s'affiche dans le même message une fois l'animation terminée."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.16",
+      "date": "2026-11-07",
+      "title": null,
+      "intro": "**/poke-wheel** n'affiche plus la même carte deux fois sur la roue.",
+      "sections": [
+        {
+          "title": "🎡 Roue",
+          "items": [
+            {
+              "type": "change",
+              "text": "La même carte pouvait apparaître plusieurs fois côte à côte pendant l'animation, y compris autour de la carte gagnante : la bande est maintenant construite sans doublon proche."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.15",
+      "date": "2026-11-07",
+      "title": null,
+      "intro": "**/poke-wheel** n'affiche plus l'image de la roue en double.",
+      "sections": [
+        {
+          "title": "🎡 Roue",
+          "items": [
+            {
+              "type": "change",
+              "text": "L'image de la roue pouvait apparaître deux fois dans le même message après l'animation : une seule image reste maintenant affichée."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.14",
+      "date": "2026-11-07",
+      "title": null,
+      "intro": "Les notifications YouTube **réaffichent la miniature** de la vidéo.",
+      "sections": [
+        {
+          "title": "📺 Notifications YouTube",
+          "items": [
+            {
+              "type": "change",
+              "text": "Les miniatures n'apparaissaient plus sur certaines vidéos : CoreLab prend maintenant la meilleure miniature disponible."
+            },
+            {
+              "type": "change",
+              "text": "Même correction pour les annonces de live."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.13",
+      "date": "2026-11-07",
+      "title": null,
+      "intro": "Le panneau de configuration du serveur s'ouvre maintenant avec **/config**. Les autres réglages restent sous **/settings**.",
+      "sections": [
+        {
+          "title": "⚙️ Commandes",
+          "items": [
+            {
+              "type": "change",
+              "text": "**/settings panel** devient **/config** : une seule commande pour ouvrir le panneau de configuration du serveur."
+            },
+            {
+              "type": "change",
+              "text": "Les autres sous-commandes ne changent pas : **/settings ticket**, **rules**, **starboard**, **language**, **notifications**, etc."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.10",
+      "date": "2026-11-07",
+      "title": null,
+      "intro": "**/protect-settings** change de look : le panneau de protection s'organise maintenant en **onglets**, avec une ligne par module et un bouton à droite pour l'activer ou le modifier.",
+      "sections": [
+        {
+          "title": "🛡️ Panneau de protection",
+          "items": [
+            {
+              "type": "change",
+              "text": "**/protect-settings** remplace la carte image et les menus déroulants par un panneau en **onglets** : Arrivées, Protection, Attaques et Modération."
+            },
+            {
+              "type": "add",
+              "text": "Chaque module a sa ligne avec son état (🟢 Actif / 🔴 Inactif) et ses réglages, et un bouton **Activer**, **Désactiver** ou **Modifier** à droite."
+            },
+            {
+              "type": "add",
+              "text": "Les onglets longs sont paginés avec ◀ ▶, et le panneau reste sur le même onglet après un clic."
+            },
+            {
+              "type": "add",
+              "text": "Un bouton **Changelog** en haut à droite ouvre la page des changements."
+            },
+            {
+              "type": "change",
+              "text": "Les boutons **Actualiser**, **Mode Simple**, **Verrouiller** et **Reset HoneyPot** restent en bas du panneau."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.9",
+      "date": "2026-11-07",
+      "title": null,
+      "intro": "CoreLab adopte une nouvelle couleur : **l'orange `#E8510D`** remplace le blanc et la couleur par défaut sur les messages du bot, les panneaux et le rôle du bot.",
+      "sections": [
+        {
+          "title": "🎨 Couleur du bot",
+          "items": [
+            {
+              "type": "change",
+              "text": "La barre à gauche des messages, panneaux et menus du bot (embeds et Components V2) passe à **orange `#E8510D`**."
+            },
+            {
+              "type": "change",
+              "text": "Le rôle créé automatiquement pour le bot est maintenant **orange**."
+            },
+            {
+              "type": "change",
+              "text": "Dans les modals de couleur, le choix par défaut est **Orange CoreLab** ; le blanc reste disponible."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.8",
+      "date": "2026-11-05",
+      "title": null,
+      "intro": "Nouveau jeu de collection façon Mudae : **tire des personnages d'anime**, claim-les avant les autres et construis ton **harem**.",
+      "sections": [
+        {
+          "title": "💖 Collection d'anime",
+          "items": [
+            {
+              "type": "add",
+              "text": "**/anime roll** : tire un personnage (waifu, husbando ou mix) avec un bouton **Claim**. 10 rolls par heure, 1 claim toutes les 3 heures."
+            },
+            {
+              "type": "add",
+              "text": "Chaque personnage a une **rareté** et une **valeur** selon sa popularité, et ne peut appartenir qu'à un seul membre par serveur."
+            },
+            {
+              "type": "add",
+              "text": "**/anime harem** : affiche ta collection (ou celle d'un membre) avec des pages. **/anime info** donne la fiche d'un personnage et son propriétaire."
+            },
+            {
+              "type": "add",
+              "text": "**/anime divorce** libère un personnage contre des pièces, **/anime give** le donne à un autre membre."
+            },
+            {
+              "type": "add",
+              "text": "**/anime wish-add**, **wish-remove** et **wish-list** : ta liste de souhaits te mentionne quand un personnage voulu sort pour quelqu'un."
+            },
+            {
+              "type": "add",
+              "text": "**/anime top** : classement des plus gros harems du serveur. **/anime daily** donne des pièces et remet rolls et claim à zéro (toutes les 20 h)."
+            }
+          ]
+        },
+        {
+          "title": "📖 Aide",
+          "items": [
+            {
+              "type": "change",
+              "text": "La commande **/anime** apparaît dans la catégorie **Public** de /help."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.7",
+      "date": "2026-11-05",
+      "title": null,
+      "intro": "Les membres ont maintenant des **quêtes quotidiennes et hebdomadaires** à accomplir, les rôles se choisissent dans des **menus déroulants**, et la protection bloque les **ajouts de permissions dangereuses**.",
+      "sections": [
+        {
+          "title": "🎯 Quêtes",
+          "items": [
+            {
+              "type": "add",
+              "text": "**/quests** : affiche tes 3 quêtes du jour et tes 3 quêtes de la semaine avec leur progression et leur récompense."
+            },
+            {
+              "type": "add",
+              "text": "Les quêtes se valident en envoyant des messages, en restant en vocal, en utilisant des commandes ou en ajoutant des réactions."
+            },
+            {
+              "type": "add",
+              "text": "Le bouton **Tout récupérer** donne des pièces et de l'XP, avec un bonus quand toutes les quêtes du jour ou de la semaine sont terminées."
+            },
+            {
+              "type": "add",
+              "text": "Les quêtes du jour changent chaque jour à minuit (heure de Paris), celles de la semaine chaque lundi."
+            },
+            {
+              "type": "add",
+              "text": "**/quests-config** : active ou désactive les quêtes, règle le multiplicateur de récompenses et remet à zéro un membre."
+            }
+          ]
+        },
+        {
+          "title": "🎭 Menus de rôles",
+          "items": [
+            {
+              "type": "add",
+              "text": "**/role-menu create** : publie un menu déroulant pour choisir ses rôles, en mode **plusieurs rôles** ou **un seul à la fois**."
+            },
+            {
+              "type": "add",
+              "text": "**/role-menu add**, **remove**, **delete** et **list** : ajoute ou retire des rôles, supprime un menu ou liste les menus du serveur."
+            },
+            {
+              "type": "add",
+              "text": "Choisir un rôle déjà possédé le retire, et le message du menu se met à jour automatiquement."
+            },
+            {
+              "type": "add",
+              "text": "Les rôles avec des permissions dangereuses, gérés par un bot ou placés au-dessus du bot sont refusés."
+            }
+          ]
+        },
+        {
+          "title": "🔐 Protection",
+          "items": [
+            {
+              "type": "add",
+              "text": "**Anti-escalade** : annule l'ajout de permissions dangereuses sur un rôle, retire les rôles dangereux donnés sans autorisation et expulse les bots Administrateur non autorisés."
+            },
+            {
+              "type": "add",
+              "text": "L'auteur est sanctionné (rôles dangereux retirés) et le propriétaire du serveur est alerté en MP."
+            },
+            {
+              "type": "add",
+              "text": "Le module s'active dans **/protect-settings** et accepte une liste de personnes de confiance."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.6",
+      "date": "2026-11-04",
+      "title": null,
+      "intro": "Deux nouvelles commandes pour suivre l'**activité de ton serveur et de tes membres**, avec des graphiques et des boutons de navigation.",
+      "sections": [
+        {
+          "title": "📊 Statistiques du serveur",
+          "items": [
+            {
+              "type": "add",
+              "text": "`/server-stats` : affiche les messages du serveur sur 7, 14 ou 30 jours, avec le total, la moyenne par jour et le nombre d'utilisateurs actifs."
+            },
+            {
+              "type": "add",
+              "text": "**Vue d'ensemble** : courbe des messages, arrivées, départs et temps passé en vocal."
+            },
+            {
+              "type": "add",
+              "text": "**Top Users** : classement des membres les plus actifs."
+            },
+            {
+              "type": "add",
+              "text": "**Canaux** : classement des salons les plus actifs."
+            },
+            {
+              "type": "add",
+              "text": "**Activité Horaire** : heure de pointe et répartition matin, après-midi, soirée et nuit."
+            }
+          ]
+        },
+        {
+          "title": "👤 Statistiques d'un membre",
+          "items": [
+            {
+              "type": "add",
+              "text": "`/user-stats` : affiche l'activité d'un membre (messages, rang sur le serveur, jours actifs, temps en vocal, salon favori)."
+            },
+            {
+              "type": "add",
+              "text": "Les mêmes vues que le serveur : messages par jour, salons et activité par heure."
+            }
+          ]
+        },
+        {
+          "title": "🎨 Affichage",
+          "items": [
+            {
+              "type": "add",
+              "text": "Graphiques sombres, dans le même style que les logs."
+            },
+            {
+              "type": "add",
+              "text": "Boutons de navigation et menu pour changer la période, réservés à la personne qui a lancé la commande."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "5.5.4",
+      "date": "2026-10-29",
+      "title": null,
+      "intro": "Arrivée du **Modmail** : les membres écrivent en MP au bot et le staff répond depuis un salon privé.",
+      "sections": [
+        {
+          "title": "✨ Nouveautés",
+          "items": [
+            {
+              "type": "add",
+              "text": "**Modmail** : les membres écrivent en MP au bot, un salon privé est créé pour le staff et les réponses sont renvoyées en MP."
+            },
+            {
+              "type": "add",
+              "text": "`/modmail setup` : choisis la catégorie, le rôle du staff et un salon de logs (optionnel) pour activer le système."
+            },
+            {
+              "type": "add",
+              "text": "**Répondre** : le staff écrit directement dans le salon Modmail. Un message qui commence par `//` reste une note interne, non envoyée au membre."
+            },
+            {
+              "type": "add",
+              "text": "**Fermeture** : bouton **Fermer** ou `/modmail close`. Le membre est prévenu en MP, la transcription est envoyée dans le salon de logs puis le salon est supprimé."
+            },
+            {
+              "type": "add",
+              "text": "**Bloquer / débloquer** : `/modmail block` et `/modmail unblock` pour gérer les membres autorisés à utiliser le Modmail."
+            },
+            {
+              "type": "add",
+              "text": "**Plusieurs serveurs** : si un membre est sur plusieurs serveurs avec Modmail, le bot lui demande lequel contacter."
+            }
+          ]
+        },
+        {
+          "title": "🔴 Améliorations",
+          "items": [
+            {
+              "type": "change",
+              "text": "Les MP envoyés au bot ne sont plus transférés au propriétaire du bot, ils vont désormais au staff du serveur via le Modmail."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
