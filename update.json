@@ -1,0 +1,26 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.24",
+  "date": "2026-11-08",
+  "mention": false,
+  "titre": "📌 CoreLab — Photo de l'auteur sur le blog (5.5.24)",
+  "couleur": "#FFFFFF",
+  "article": {
+    "label": "Changelog",
+    "emoji": "📜",
+    "url": "https://corelab-4cn.pages.dev/docs#p-changelog"
+  },
+  "intro": "Les articles du **blog** affichent maintenant la **photo de l'auteur** à côté de son nom.",
+  "modifications": {
+    "📰 Blog": [
+      "[+] La photo de l'auteur s'affiche en rond à côté de son nom et de son rôle dans chaque article.",
+      "[~] Si aucune photo n'est définie, la première lettre du nom est affichée à la place."
+    ]
+  },
+  "pied": "Ajoute CoreLab sur tes autres serveurs.",
+  "support": {
+    "label": "Inviter le bot",
+    "emoji": "🚀",
+    "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+  }
+}

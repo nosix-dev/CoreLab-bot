@@ -309,8 +309,8 @@ const {
 } = require('./src/core/config');
 
 // Émoji par défaut si rien n'est configuré via /starboard-settings
-const STAR_EMOJI_ID_DEFAULT = '1548657085699461121';
-const STAR_EMOJI_DEFAULT = `<:heartwhite:${STAR_EMOJI_ID_DEFAULT}>`;
+const STAR_EMOJI_ID_DEFAULT = '1568619831278706728>';
+const STAR_EMOJI_DEFAULT = `<:heart:${STAR_EMOJI_ID_DEFAULT}>`;
 
 // Lit l'émoji configuré via /starboard-settings (cfg.starboard_emoji_id / starboard_emoji_raw).
 // Retourne { display, reactValue } : display = format à afficher dans les embeds/textes,
@@ -506,7 +506,7 @@ function getStatuses(client) {
     name: '!help pour voir les commande !',
     type: 0
   }, {
-    name: 'Version 5.5.19 ⚙️',
+    name: 'Version 5.5.24 ⚙️',
     type: 0
   }];
 }
