@@ -30,7 +30,6 @@ function activeEvents(gid) {
 
 // ── Types d'événement (couleur dans /agenda) ──
 const EVENT_TYPES = {
-  convoi: { label: 'Convoi', emoji: '🟢', titleEmoji: '🚛' },
   reunion: { label: 'Réunion', emoji: '🔵', titleEmoji: '🤝' },
   event: { label: 'Événement', emoji: '🟠', titleEmoji: '📅' }
 };

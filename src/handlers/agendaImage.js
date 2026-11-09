@@ -1,584 +1,624 @@
 'use strict';
 
 // ─────────────────────────────────────────────────────────────────────────
-// Carte calendrier (/agenda) — même style vert que les autres cartes du bot.
-//   • generateAgendaMonth(o) : grille du mois
-//   • generateAgendaWeek(o)  : liste de la semaine
-// Les événements sont passés déjà "aplatis" (jour/heure Europe/Paris).
+// Calendrier (/agenda) — même style que les cartes du bot « tuile + bandeau » :
+// fond anthracite, bandeau d'en-tête avec tuile d'icône, libellés gris + grosses valeurs,
+// pied de carte avec le nom du bot.
+//   • generateAgendaWeek(o)  : vue semaine façon Google Agenda
+//   • generateAgendaMonth(o) : vue mois
+// Les événements arrivent déjà "aplatis" (voir src/commands/agenda.js) :
+//   { type, annee, mois, jour, ts, minutes, heure, titre, duree }
+//   ts = minuit UTC du jour, minutes = heure de début (1440 = sans heure)
 // ─────────────────────────────────────────────────────────────────────────
 
 const path = require('path');
 const fs = require('fs');
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
 
-const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
-let FONT = 'sans-serif';
-let FONT_BOLD = 'sans-serif';
-try {
-  const b = path.join(FONT_DIR, 'Poppins-Bold.ttf');
-  const r = path.join(FONT_DIR, 'Poppins-Regular.ttf');
-  if (fs.existsSync(b) && fs.existsSync(r)) {
-    GlobalFonts.registerFromPath(b, 'AgendaBold');
-    GlobalFonts.registerFromPath(r, 'AgendaRegular');
-    FONT = 'AgendaRegular';
-    FONT_BOLD = 'AgendaBold';
+// Polices optionnelles : dépose des .ttf dans assets/fonts/ (utile si l'hébergeur n'a aucune police)
+for (const dossier of [
+  path.join(__dirname, '..', '..', 'assets', 'fonts'),
+  path.join(__dirname, '..', 'assets', 'fonts')
+]) {
+  try {
+    if (!fs.existsSync(dossier)) continue;
+    for (const f of fs.readdirSync(dossier)) {
+      if (/\.(ttf|otf)$/i.test(f)) GlobalFonts.registerFromPath(path.join(dossier, f), 'CalFont');
+    }
+  } catch (err) {
+    console.error('[Agenda] polices non chargées :', err.message);
   }
-} catch { /* police système */ }
-
-const MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-const DAYS_SHORT = ['LUN.', 'MAR.', 'MER.', 'JEU.', 'VEN.', 'SAM.', 'DIM.'];
-const DAYS_LOWER = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
-
-const C = {
-  bg: '#0a1c1f',
-  card: '#0e2427',
-  border: '#1e4a50',
-  pill: '#12303a',
-  pillBorder: '#215a63',
-  cell: '#0f2529',
-  cellBorder: '#173c42',
-  cellOther: '#0b1c20',
-  green: '#2dc7d4',
-  greenLight: '#7eeaf0',
-  text: '#ebf5f6',
-  muted: '#82a9ae',
-  dim: '#52707a'
-};
-const TYPE_COLOR = { convoi: '#2ecc71', reunion: '#4c8dff', event: '#f5a524' };
-const TYPE_LABEL = { convoi: 'Convoi', reunion: 'Réunion', event: 'Événement' };
-
-const W = 900;   // largeur logique : plus étroit = texte plus gros une fois affiché dans Discord
-const PAD = 22;
-const SCALE = 2; // rendu 2x pour rester net
-
-function makeCanvas(w, h, guildId) {
-  const canvas = createCanvas(w * SCALE, h * SCALE);
-  const raw = canvas.getContext('2d');
-  raw.scale(SCALE, SCALE);
-  // Pas de themedCtx : le calendrier reste sombre (comme les autres cartes), même si le look du serveur est « clair ».
-  return { canvas, ctx: raw };
 }
 
-function roundRect(ctx, x, y, w, h, r) {
+const FONT = '"CalFont","JetBrains Mono","DejaVu Sans Mono","Liberation Mono","Consolas",monospace';
+const ZOOM = 1.2; // texte plus gros par rapport à la largeur de l'image
+const police = (taille, poids = 'normal') => `${poids} ${Math.round(taille * ZOOM)}px ${FONT}`;
+
+// Palette anthracite (identique aux cartes de logs du bot)
+const PAL = {
+  bg: '#1c1f26',
+  band: '#24272e',
+  box: '#252932',
+  line: '#2a2e37',
+  text: '#f3f4f6',
+  muted: '#9ca3af',
+  dim: '#6b7280',
+  ring: '#4b5563'
+};
+const ACCENT = '#3b82f6';
+const ACCENT_LIGHT = '#93c5fd';
+const ROUGE = '#ef4444';
+const SELECTION = '#fbbf24';
+
+const TYPES = {
+  reunion: { couleur: '#a78bfa', nom: 'Réunion' },
+  evenement: { couleur: '#fbbf24', nom: 'Événement' }
+};
+
+const MOIS_NOMS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const JOURS_COURTS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+const JOURS_SEMAINE = ['LUN.', 'MAR.', 'MER.', 'JEU.', 'VEN.', 'SAM.', 'DIM.'];
+
+const W = 1076;
+const PX = 48;
+const INNER = W - PX * 2;
+const BAND_H = 112;
+const TILE_S = 72;
+const H_STATS = 86;
+const H_LEGENDE = 34;
+const H_PIED = 70;
+const JOUR_MS = 86400000;
+
+const maj = s => s.charAt(0).toUpperCase() + s.slice(1);
+const deux = n => String(n).padStart(2, '0');
+
+function rgba(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+function cheminArrondi(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
   ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
   ctx.closePath();
 }
 
-function truncate(ctx, text, maxW) {
-  if (ctx.measureText(text).width <= maxW) return text;
-  let t = String(text);
-  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+function ajuster(ctx, texte, largeurMax) {
+  if (largeurMax <= 0) return '';
+  if (ctx.measureText(texte).width <= largeurMax) return texte;
+  let t = texte;
+  while (t.length > 1 && ctx.measureText(t + '…').width > largeurMax) t = t.slice(0, -1);
   return t.trimEnd() + '…';
 }
 
-const hhmm = e => `${String(e.hh).padStart(2, '0')}h${String(e.mm).padStart(2, '0')}`;
-const pad2 = n => String(n).padStart(2, '0');
-const dowMon = (y, m, d) => (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7; // 0 = lundi
+const dateDepuisTs = ts => {
+  const d = new Date(ts);
+  return { annee: d.getUTCFullYear(), mois: d.getUTCMonth() + 1, jour: d.getUTCDate(), dow: d.getUTCDay() };
+};
 
-function addDays(y, m, d, n) {
-  const dt = new Date(Date.UTC(y, m - 1, d + n));
-  return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() };
-}
-const keyOf = (y, m, d) => `${y}-${m}-${d}`;
-
-function groupByDay(events) {
-  const map = new Map();
-  for (const e of events) {
-    const k = keyOf(e.y, e.m, e.d);
-    if (!map.has(k)) map.set(k, []);
-    map.get(k).push(e);
-  }
-  return map;
+function debutSemaine(ts) {
+  const dowLundi = (new Date(ts).getUTCDay() + 6) % 7;
+  return ts - dowLundi * JOUR_MS;
 }
 
-function drawFrame(ctx, w, h) {
-  ctx.fillStyle = C.bg;
-  ctx.fillRect(0, 0, w, h);
-  roundRect(ctx, 12, 12, w - 24, h - 24, 24);
-  ctx.fillStyle = C.card;
-  ctx.fill();
+// ───────────────────────────────────────────────
+// BRIQUES COMMUNES (style « tuile + bandeau »)
+// ───────────────────────────────────────────────
+function fondCarte(ctx, H) {
+  ctx.fillStyle = PAL.bg;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function contourCarte(ctx, H) {
+  cheminArrondi(ctx, 1, 1, W - 2, H - 2, 22);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = PAL.line;
+  ctx.stroke();
+}
+
+// Petit calendrier dessiné dans la tuile (pas d'emoji : fonctionne sans police emoji)
+function iconeCalendrier(ctx, cx, cy) {
+  const w = 34, h = 32, x = cx - w / 2, y = cy - h / 2 + 2;
   ctx.lineWidth = 3;
-  ctx.strokeStyle = C.border;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = ACCENT_LIGHT;
+  cheminArrondi(ctx, x, y, w, h, 6);
   ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x, y + 10);
+  ctx.lineTo(x + w, y + 10);
+  ctx.moveTo(x + 9, y - 4);
+  ctx.lineTo(x + 9, y + 4);
+  ctx.moveTo(x + w - 9, y - 4);
+  ctx.lineTo(x + w - 9, y + 4);
+  ctx.stroke();
+  ctx.fillStyle = ACCENT_LIGHT;
+  for (const [dx, dy] of [[9, 18], [17, 18], [25, 18], [9, 25], [17, 25]]) {
+    ctx.beginPath();
+    ctx.arc(x + dx, y + dy, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
-function drawHeader(ctx, title, subtitle, today) {
-  // Pastille check
-  const cx = 72, cy = 66, r = 28;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = C.green;
-  ctx.fill();
-  ctx.strokeStyle = C.bg;
-  ctx.lineWidth = 7;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(cx - 13, cy);
-  ctx.lineTo(cx - 3, cy + 11);
-  ctx.lineTo(cx + 15, cy - 11);
-  ctx.stroke();
-
+function dessinerBandeau(ctx, titre, sousTitre, heure) {
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = C.text;
-  ctx.font = `38px ${FONT_BOLD}`;
-  ctx.fillText(title, 118, 70);
-  ctx.fillStyle = C.muted;
-  ctx.font = `20px ${FONT}`;
-  ctx.fillText(subtitle, 120, 98);
+  ctx.fillStyle = PAL.band;
+  ctx.fillRect(0, 0, W, BAND_H);
+  ctx.fillStyle = PAL.line;
+  ctx.fillRect(0, BAND_H - 2, W, 2);
 
-  // Badge AUJOURD'HUI
-  const badge = `AUJOURD'HUI ${pad2(today.d)}/${pad2(today.m)}`;
-  ctx.font = `17px ${FONT_BOLD}`;
-  const bw = ctx.measureText(badge).width + 56;
-  const bx = W - PAD - bw, by = 44, bh = 40;
-  roundRect(ctx, bx, by, bw, bh, 20);
-  ctx.fillStyle = '#14464f';
+  const ty = (BAND_H - TILE_S) / 2;
+  cheminArrondi(ctx, PX, ty, TILE_S, TILE_S, 18);
+  ctx.fillStyle = rgba(ACCENT, 0.16);
   ctx.fill();
   ctx.lineWidth = 2;
-  ctx.strokeStyle = C.green;
+  ctx.strokeStyle = rgba(ACCENT, 0.45);
   ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(bx + 22, by + bh / 2, 5, 0, Math.PI * 2);
-  ctx.fillStyle = C.green;
-  ctx.fill();
-  ctx.fillStyle = C.greenLight;
-  ctx.textBaseline = 'middle';
-  ctx.fillText(badge, bx + 36, by + bh / 2 + 1);
-  ctx.textBaseline = 'alphabetic';
+  iconeCalendrier(ctx, PX + TILE_S / 2, ty + TILE_S / 2);
+
+  const tx = PX + TILE_S + 22;
+  ctx.textAlign = 'left';
+  ctx.font = police(25, 'bold');
+  ctx.fillStyle = PAL.text;
+  ctx.fillText(ajuster(ctx, titre.toUpperCase(), W - PX - tx - 110), tx, 54);
+  ctx.font = police(19);
+  ctx.fillStyle = PAL.muted;
+  ctx.fillText(ajuster(ctx, sousTitre, W - PX - tx - 110), tx, 86);
+
+  ctx.textAlign = 'right';
+  ctx.font = police(17);
+  ctx.fillStyle = PAL.dim;
+  ctx.fillText(heure, W - PX, 54);
+  ctx.textAlign = 'left';
 }
 
-function drawStats(ctx, y, stats, compact) {
-  const gap = 14;
-  const pw = Math.floor((W - 2 * PAD - 3 * gap) / 4);
-  const ph = compact ? 60 : 76;
+// Libellé gris + grosse valeur blanche (comme les cartes de logs)
+function dessinerStats(ctx, y, stats) {
+  // 2 colonnes étroites (compteurs) + une large pour « Prochain »
+  const parts = stats.length === 3 ? [0.25, 0.25, 0.5] : stats.map(() => 1 / stats.length);
+  let cumul = 0;
   stats.forEach((s, i) => {
-    const x = PAD + i * (pw + gap);
-    roundRect(ctx, x, y, pw, ph, 14);
-    ctx.fillStyle = C.pill;
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = s.border || C.pillBorder;
-    ctx.stroke();
-    // pastille couleur + label
-    ctx.beginPath();
-    ctx.arc(x + 20, y + (compact ? 19 : 22), 4.5, 0, Math.PI * 2);
-    ctx.fillStyle = s.color;
-    ctx.fill();
-    ctx.fillStyle = C.muted;
-    ctx.font = `14px ${FONT_BOLD}`;
-    ctx.fillText(s.label, x + 32, y + (compact ? 24 : 27));
-    // valeur
-    ctx.fillStyle = s.valueColor || C.text;
-    let size = s.small ? (compact ? 20 : 22) : (compact ? 26 : 32);
-    ctx.font = `${size}px ${FONT_BOLD}`;
-    while (ctx.measureText(s.value).width > pw - 32 && size > 14) {
-      size -= 2;
-      ctx.font = `${size}px ${FONT_BOLD}`;
+    const x = PX + cumul * INNER;
+    const colW = parts[i] * INNER;
+    cumul += parts[i];
+    ctx.textAlign = 'left';
+    ctx.font = police(14);
+    ctx.fillStyle = PAL.muted;
+    ctx.fillText(s.libelle, x, y + 18);
+    if (s.couleur) {
+      ctx.beginPath();
+      ctx.arc(x + 9, y + 50, 7, 0, Math.PI * 2);
+      ctx.fillStyle = s.couleur;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = PAL.ring;
+      ctx.stroke();
     }
-    ctx.fillText(s.value, x + 18, y + (compact ? 51 : 62));
+    ctx.font = police(26, 'bold');
+    ctx.fillStyle = PAL.text;
+    ctx.fillText(ajuster(ctx, s.valeur, colW - 24 - (s.couleur ? 24 : 0)), x + (s.couleur ? 26 : 0), y + 60);
   });
 }
 
-function drawLegendAndFooter(ctx, y, botName) {
-  ctx.font = `16px ${FONT}`;
-  let x = PAD + 6;
-  for (const k of ['convoi', 'reunion', 'event']) {
-    ctx.beginPath();
-    ctx.arc(x + 5, y - 5, 5, 0, Math.PI * 2);
-    ctx.fillStyle = TYPE_COLOR[k];
-    ctx.fill();
-    ctx.fillStyle = C.muted;
-    ctx.fillText(TYPE_LABEL[k], x + 18, y);
-    x += 18 + ctx.measureText(TYPE_LABEL[k]).width + 26;
-  }
-  ctx.fillStyle = C.dim;
-  ctx.font = `15px ${FONT}`;
-  const t = botName || 'CoreLab';
-  ctx.fillText(t, W - PAD - 6 - ctx.measureText(t).width, y);
+function construireStats(evsPlage, next) {
+  const compte = t => evsPlage.filter(e => e.type === t).length;
+  return [
+    { libelle: 'Réunions', valeur: String(compte('reunion')), couleur: TYPES.reunion.couleur },
+    { libelle: 'Événements', valeur: String(compte('evenement')), couleur: TYPES.evenement.couleur },
+    { libelle: 'Prochain', valeur: next || 'Aucun' }
+  ];
 }
 
-function drawChip(ctx, x, y, w, h, ev, dim) {
-  const col = TYPE_COLOR[ev.type] || TYPE_COLOR.event;
-  roundRect(ctx, x, y, w, h, 7);
-  ctx.fillStyle = col + (dim ? '1a' : '33');
+function dessinerLegende(ctx, y) {
+  let lx = PX;
+  ctx.textAlign = 'left';
+  ctx.font = police(14);
+  for (const t of Object.values(TYPES)) {
+    ctx.beginPath();
+    ctx.arc(lx + 6, y + 10, 5, 0, Math.PI * 2);
+    ctx.fillStyle = t.couleur;
+    ctx.fill();
+    ctx.fillStyle = PAL.muted;
+    ctx.fillText(t.nom, lx + 18, y + 15);
+    lx += 18 + ctx.measureText(t.nom).width + 28;
+  }
+}
+
+function dessinerPied(ctx, H, botName, droite) {
+  ctx.fillStyle = PAL.line;
+  ctx.fillRect(PX, H - 58, INNER, 2);
+  ctx.font = police(14);
+  ctx.fillStyle = PAL.dim;
+  ctx.textAlign = 'left';
+  ctx.fillText(botName || 'CoreLab', PX, H - 26);
+  ctx.textAlign = 'right';
+  ctx.fillText(droite, W - PX, H - 26);
+  ctx.textAlign = 'left';
+}
+
+function creerCarte(H) {
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  cheminArrondi(ctx, 1, 1, W - 2, H - 2, 22);
+  ctx.clip();
+  fondCarte(ctx, H);
+  return { canvas, ctx };
+}
+
+function finCarte(canvas, ctx, H) {
+  ctx.restore();
+  contourCarte(ctx, H);
+  return canvas.toBuffer('image/png');
+}
+
+const heureTexte = today => `${deux(Math.floor((today.minutes || 0) / 60))}:${deux((today.minutes || 0) % 60)}`;
+const dateTexte = today => `${deux(today.d)}/${deux(today.m)}/${today.y}`;
+
+// ───────────────────────────────────────────────
+// VUE SEMAINE (style Google Agenda)
+//   o : { botName, today:{y,m,d,minutes}, start:{y,m,d}, events, selTs, next }
+// ───────────────────────────────────────────────
+function generateAgendaWeek(o) {
+  const now = { annee: o.today.y, mois: o.today.m, jour: o.today.d, minutes: o.today.minutes || 0, ts: Date.UTC(o.today.y, o.today.m - 1, o.today.d) };
+  const debut = debutSemaine(Date.UTC(o.start.y, o.start.m - 1, o.start.d));
+  const selTs = o.selTs || null;
+  const evs = o.events.filter(e => e.ts >= debut && e.ts <= debut + 6 * JOUR_MS);
+
+  const avecHeure = evs.filter(e => e.minutes < 1440);
+  const sansHeure = evs.filter(e => e.minutes >= 1440);
+
+  // Plage horaire affichée
+  let h0 = 8, h1 = 22;
+  if (avecHeure.length) {
+    const minM = Math.min(...avecHeure.map(e => e.minutes));
+    const maxM = Math.max(...avecHeure.map(e => Math.min(1440, e.minutes + e.duree)));
+    h0 = Math.max(0, Math.min(8, Math.floor(minM / 60) - 1));
+    h1 = Math.min(24, Math.max(22, Math.ceil(maxM / 60) + 1));
+  }
+  const HH = 30;
+  const nbHeures = h1 - h0;
+
+  const H_JOUR = 76;
+  const H_TOUTE = sansHeure.length ? 42 : 0;
+  const H_PAD_H = 12;
+  const H_GRILLE = H_JOUR + H_TOUTE + nbHeures * HH + H_PAD_H;
+  const H = BAND_H + 20 + H_STATS + 8 + H_GRILLE + 18 + H_LEGENDE + H_PIED;
+
+  const { canvas, ctx } = creerCarte(H);
+
+  // Titre
+  const d1 = dateDepuisTs(debut);
+  const d2 = dateDepuisTs(debut + 6 * JOUR_MS);
+  const titre = `Agenda — ${MOIS_NOMS[d1.mois - 1]} ${d1.annee}`;
+  const sousTitre = (d1.mois === d2.mois
+    ? `Semaine du ${d1.jour} au ${d2.jour} ${MOIS_NOMS[d1.mois - 1]}`
+    : `Semaine du ${d1.jour} ${MOIS_NOMS[d1.mois - 1]} au ${d2.jour} ${MOIS_NOMS[d2.mois - 1]}`)
+    + ` · ${evs.length} événement${evs.length > 1 ? 's' : ''}`;
+  dessinerBandeau(ctx, titre, sousTitre, heureTexte(o.today));
+
+  let y = BAND_H + 20;
+  dessinerStats(ctx, y, construireStats(evs, o.next));
+  y += H_STATS + 8;
+
+  // ── Grille ──
+  const gutter = 60;
+  const colW = (INNER - gutter) / 7;
+  const gy = y;
+  const ix = PX;
+  cheminArrondi(ctx, ix, gy, INNER, H_GRILLE, 14);
+  ctx.fillStyle = PAL.box;
   ctx.fill();
   ctx.lineWidth = 1.5;
-  ctx.strokeStyle = col + (dim ? '66' : 'cc');
+  ctx.strokeStyle = PAL.line;
   ctx.stroke();
-  ctx.fillStyle = col;
-  roundRect(ctx, x, y, 4, h, 2);
-  ctx.fill();
-  // deux lignes : heure (gras) puis nom
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = dim ? C.muted : C.text;
-  ctx.font = `13px ${FONT_BOLD}`;
-  ctx.fillText(hhmm(ev), x + 10, y + h * 0.32);
-  ctx.font = `14px ${FONT}`;
-  ctx.fillText(truncate(ctx, ev.name, w - 16), x + 10, y + h * 0.72);
-  ctx.textBaseline = 'alphabetic';
-}
 
-/**
- * Grille du mois.
- * @param {object} o
- * @param {string} [o.guildId]
- * @param {string} [o.botName]
- * @param {number} o.year
- * @param {number} o.month         1-12
- * @param {{y:number,m:number,d:number}} o.today
- * @param {Array<{y,m,d,hh,mm,name,type}>} o.events   événements visibles sur la grille (jours voisins inclus)
- * @param {number} o.monthCount    nb d'événements dans le mois affiché
- * @param {string} o.next          texte « prochain événement » (ou 'Aucun')
- * @returns {Buffer} PNG
- */
+  const colX = i => ix + gutter + i * colW;
+  const yHeures = gy + H_JOUR + H_TOUTE;
 
-// ── Style unifié (même rendu que les logs) ──
-function agendaCompact(o, title, sub, list, max) {
-  const cc = require('../core/compactCard');
-  const counts = { convoi: 0, reunion: 0, event: 0 };
-  for (const e of list) if (counts[e.type] !== undefined) counts[e.type]++;
-  const shown = list.slice(0, max);
-  return cc.renderCompactSync({
-    guildId: o.guildId, theme: 'cyan', title: `📅 ${title}`, sub,
-    grid: 1, valueMax: 36,
-    blocks: shown.length
-      ? shown.map(e => ({ label: `${pad2(e.d)}/${pad2(e.m)} · ${hhmm(e)}`, value: `${e.name}${e.place ? ` · ${e.place}` : ''}`, dot: TYPE_COLOR[e.type] }))
-      : [{ label: '', value: 'Aucun événement' }],
-    pills: [
-      { text: `${counts.convoi} convoi${counts.convoi > 1 ? 's' : ''}`, tone: 'accent' },
-      { text: `${counts.reunion} réunion${counts.reunion > 1 ? 's' : ''}`, tone: 'accent' },
-      { text: `${counts.event} événement${counts.event > 1 ? 's' : ''}`, tone: 'accent' }
-    ],
-    footerLeft: `Prochain : ${o.next || 'Aucun'}`,
-    footerRight: list.length > max ? `+ ${list.length - max} autre${list.length - max > 1 ? 's' : ''}` : (o.botName || undefined)
-  });
-}
-
-function generateAgendaMonth(o) {
-  // La vue mois dessine toujours la vraie grille calendrier (pas la carte compacte).
-  const { year, month, today } = o;
-  const first = dowMon(year, month, 1);
-  const dim = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const rows = Math.ceil((first + dim) / 7);
-
-  const gap = 6;
-  const cw = Math.floor((W - 2 * PAD - 6 * gap) / 7);
-  const ch = 84;
-  const gridTop = 210;
-  const H = gridTop + rows * (ch + gap) + 46;
-
-  const { canvas, ctx } = makeCanvas(W, H, o.guildId);
-  drawFrame(ctx, W, H);
-
-  const counts = { convoi: 0, reunion: 0, event: 0 };
-  for (const e of o.events) {
-    if (e.m === month && e.y === year && counts[e.type] !== undefined) counts[e.type]++;
+  // Colonne d'aujourd'hui + sélection
+  for (let i = 0; i < 7; i++) {
+    const ts = debut + i * JOUR_MS;
+    if (ts === now.ts) {
+      ctx.fillStyle = rgba(ACCENT, 0.09);
+      ctx.fillRect(colX(i), gy + 1, colW, H_GRILLE - 2);
+    }
+    if (selTs && ts === selTs) {
+      ctx.fillStyle = 'rgba(255,255,255,0.045)';
+      ctx.fillRect(colX(i), gy + 1, colW, H_GRILLE - 2);
+    }
   }
-  drawHeader(ctx, `${MONTHS[month - 1]} ${year}`,
-    `Vue du mois · ${o.monthCount} événement${o.monthCount > 1 ? 's' : ''}`, today);
-  drawStats(ctx, 118, [
-    { label: 'CONVOIS', value: counts.convoi ? String(counts.convoi) : 'Aucun', color: TYPE_COLOR.convoi, small: !counts.convoi, valueColor: counts.convoi ? C.text : C.muted },
-    { label: 'RÉUNIONS', value: counts.reunion ? String(counts.reunion) : 'Aucun', color: TYPE_COLOR.reunion, small: !counts.reunion, valueColor: counts.reunion ? C.text : C.muted },
-    { label: 'ÉVÉNEMENTS', value: counts.event ? String(counts.event) : 'Aucun', color: TYPE_COLOR.event, small: !counts.event, valueColor: counts.event ? C.text : C.muted, border: counts.event ? '#3d8f9c' : undefined },
-    { label: 'PROCHAIN', value: o.next || 'Aucun', color: C.green, small: true, valueColor: C.greenLight, border: '#3d8f9c' }
-  ], true);
 
-  // En-têtes des jours
-  ctx.font = `15px ${FONT_BOLD}`;
-  ctx.fillStyle = C.muted;
-  DAYS_SHORT.forEach((d, i) => {
-    const x = PAD + i * (cw + gap);
-    ctx.fillText(d, x + 8, 200);
-  });
+  // En-têtes de jours
+  ctx.textAlign = 'center';
+  for (let i = 0; i < 7; i++) {
+    const ts = debut + i * JOUR_MS;
+    const d = dateDepuisTs(ts);
+    const cx = colX(i) + colW / 2;
+    const estAujourdhui = ts === now.ts;
 
-  const byDay = groupByDay(o.events);
-  const start = addDays(year, month, 1, -first);
+    ctx.font = police(12, 'bold');
+    ctx.fillStyle = estAujourdhui ? ACCENT_LIGHT : PAL.muted;
+    ctx.fillText(JOURS_SEMAINE[i], cx, gy + 27);
 
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < 7; c++) {
-      const cur = addDays(start.y, start.m, start.d, r * 7 + c);
-      const inMonth = cur.m === month && cur.y === year;
-      const isToday = cur.y === today.y && cur.m === today.m && cur.d === today.d;
-      const x = PAD + c * (cw + gap);
-      const y = gridTop + r * (ch + gap);
-
-      roundRect(ctx, x, y, cw, ch, 12);
-      ctx.fillStyle = isToday ? '#12333c' : (inMonth ? C.cell : C.cellOther);
+    if (estAujourdhui) {
+      ctx.beginPath();
+      ctx.arc(cx, gy + 53, 19, 0, Math.PI * 2);
+      ctx.fillStyle = ACCENT;
       ctx.fill();
-      ctx.lineWidth = isToday ? 2.5 : 1.5;
-      ctx.strokeStyle = isToday ? C.greenLight : C.cellBorder;
+    } else if (selTs && ts === selTs) {
+      ctx.beginPath();
+      ctx.arc(cx, gy + 53, 19, 0, Math.PI * 2);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = SELECTION;
       ctx.stroke();
-
-      // numéro du jour
-      if (isToday) {
-        roundRect(ctx, x + 6, y + 6, 32, 26, 8);
-        ctx.fillStyle = C.green;
-        ctx.fill();
-        ctx.fillStyle = C.bg;
-        ctx.font = `16px ${FONT_BOLD}`;
-        ctx.textAlign = 'center';
-        ctx.fillText(String(cur.d), x + 22, y + 25);
-        ctx.textAlign = 'left';
-      } else {
-        ctx.fillStyle = inMonth ? C.text : C.dim;
-        ctx.font = `19px ${FONT_BOLD}`;
-        ctx.fillText(String(cur.d), x + 12, y + 26);
-      }
-
-      // événements
-      const list = byDay.get(keyOf(cur.y, cur.m, cur.d)) || [];
-      if (list.length) {
-        // une seule puce (2 lignes) ; s'il y en a d'autres, badge « +N » en haut à droite
-        drawChip(ctx, x + 5, y + 31, cw - 10, 46, list[0], !inMonth);
-        if (list.length > 1) {
-          const t = `+${list.length - 1}`;
-          ctx.font = `13px ${FONT_BOLD}`;
-          const bw = ctx.measureText(t).width + 14;
-          roundRect(ctx, x + cw - bw - 6, y + 8, bw, 20, 10);
-          ctx.fillStyle = '#ffffff1f';
-          ctx.fill();
-          ctx.fillStyle = C.text;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(t, x + cw - bw / 2 - 6, y + 19);
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'alphabetic';
-        }
-      }
     }
-  }
-
-  drawLegendAndFooter(ctx, H - 22, o.botName);
-  return canvas.toBuffer('image/png');
-}
-
-/**
- * Vue semaine : une ligne par jour.
- * @param {object} o   mêmes champs que generateAgendaMonth + { start:{y,m,d} } (lundi) et { place(ev) }
- */
-function generateAgendaWeek(o) {
-  if (require('../core/compactCard').isCompact(o.guildId)) {
-    const s0 = addDays(o.start.y, o.start.m, o.start.d, 0), e0 = addDays(o.start.y, o.start.m, o.start.d, 6);
-    return agendaCompact(o, 'Agenda de la semaine', `Du ${pad2(s0.d)}/${pad2(s0.m)} au ${pad2(e0.d)}/${pad2(e0.m)} · ${o.weekCount} événement${o.weekCount > 1 ? 's' : ''}`, o.events, 12);
-  }
-  const { today } = o;
-  const days = Array.from({ length: 7 }, (_, i) => addDays(o.start.y, o.start.m, o.start.d, i));
-  const byDay = groupByDay(o.events);
-
-  const MAX_SHOWN = 4;
-  const rowH = days.map(dd => {
-    const n = (byDay.get(keyOf(dd.y, dd.m, dd.d)) || []).length;
-    const shown = Math.min(n, MAX_SHOWN + (n > MAX_SHOWN ? 1 : 0));
-    return Math.max(64, 16 + shown * 34);
-  });
-  const gridTop = 232;
-  const gap = 8;
-  const H = gridTop + rowH.reduce((a, b) => a + b + gap, 0) + 54;
-
-  const { canvas, ctx } = makeCanvas(W, H, o.guildId);
-  drawFrame(ctx, W, H);
-
-  const end = days[6];
-  const title = days[0].m === end.m
-    ? `${days[0].d} – ${end.d} ${MONTHS[end.m - 1]}`
-    : `${days[0].d} ${MONTHS[days[0].m - 1].slice(0, 4)}. – ${end.d} ${MONTHS[end.m - 1].slice(0, 4)}.`;
-  drawHeader(ctx, title, `Vue semaine · ${o.weekCount} événement${o.weekCount > 1 ? 's' : ''}`, today);
-
-  const counts = { convoi: 0, reunion: 0, event: 0 };
-  for (const e of o.events) if (counts[e.type] !== undefined) counts[e.type]++;
-  drawStats(ctx, 128, [
-    { label: 'CONVOIS', value: counts.convoi ? String(counts.convoi) : 'Aucun', color: TYPE_COLOR.convoi, small: !counts.convoi, valueColor: counts.convoi ? C.text : C.muted },
-    { label: 'RÉUNIONS', value: counts.reunion ? String(counts.reunion) : 'Aucun', color: TYPE_COLOR.reunion, small: !counts.reunion, valueColor: counts.reunion ? C.text : C.muted },
-    { label: 'ÉVÉNEMENTS', value: counts.event ? String(counts.event) : 'Aucun', color: TYPE_COLOR.event, small: !counts.event, valueColor: counts.event ? C.text : C.muted },
-    { label: 'PROCHAIN', value: o.next || 'Aucun', color: C.green, small: true, valueColor: C.greenLight, border: '#3d8f9c' }
-  ]);
-
-  let y = gridTop;
-  days.forEach((dd, i) => {
-    const h = rowH[i];
-    const isToday = dd.y === today.y && dd.m === today.m && dd.d === today.d;
-    roundRect(ctx, PAD, y, W - 2 * PAD, h, 12);
-    ctx.fillStyle = isToday ? '#12333c' : C.cell;
-    ctx.fill();
-    ctx.lineWidth = isToday ? 2.5 : 1.5;
-    ctx.strokeStyle = isToday ? C.greenLight : C.cellBorder;
-    ctx.stroke();
-
-    // bloc jour
-    const mid = y + h / 2;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = isToday ? C.greenLight : C.muted;
-    ctx.font = `14px ${FONT_BOLD}`;
-    ctx.fillText(DAYS_SHORT[i], PAD + 52, mid - 6);
-    ctx.fillStyle = isToday ? C.greenLight : C.text;
-    ctx.font = `28px ${FONT_BOLD}`;
-    ctx.fillText(String(dd.d), PAD + 52, mid + 26);
-    ctx.textAlign = 'left';
-
-    // séparateur vertical
-    ctx.fillStyle = C.cellBorder;
-    ctx.fillRect(PAD + 104, y + 10, 2, h - 20);
-
-    const list = byDay.get(keyOf(dd.y, dd.m, dd.d)) || [];
-    const cx = PAD + 122;
-    const cwid = W - PAD - 14 - cx;
-    if (!list.length) {
-      ctx.fillStyle = C.dim;
-      ctx.font = `16px ${FONT}`;
-      ctx.textBaseline = 'middle';
-      ctx.fillText('Rien de prévu', cx, mid + 1);
-      ctx.textBaseline = 'alphabetic';
-    } else {
-      const show = list.length <= MAX_SHOWN ? list : list.slice(0, MAX_SHOWN);
-      show.forEach((ev, k) => {
-        const cy = y + 10 + k * 34;
-        const col = TYPE_COLOR[ev.type] || TYPE_COLOR.event;
-        roundRect(ctx, cx, cy, cwid, 28, 7);
-        ctx.fillStyle = col + '33';
-        ctx.fill();
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = col + 'cc';
-        ctx.stroke();
-        ctx.fillStyle = col;
-        roundRect(ctx, cx, cy, 5, 28, 2);
-        ctx.fill();
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = C.text;
-        ctx.font = `16px ${FONT_BOLD}`;
-        const time = hhmm(ev);
-        ctx.fillText(time, cx + 16, cy + 15);
-        const tw = ctx.measureText(time).width;
-        ctx.font = `16px ${FONT}`;
-        const tail = ev.place ? `  ·  ${ev.place}` : '';
-        ctx.fillText(truncate(ctx, `${ev.name}${tail}`, cwid - 36 - tw), cx + 16 + tw + 12, cy + 15);
-        ctx.textBaseline = 'alphabetic';
-      });
-      if (list.length > MAX_SHOWN) {
-        ctx.fillStyle = C.muted;
-        ctx.font = `14px ${FONT_BOLD}`;
-        ctx.fillText(`+${list.length - MAX_SHOWN} autres`, cx + 4, y + 10 + MAX_SHOWN * 34 + 14);
-      }
-    }
-    y += h + gap;
-  });
-
-  drawLegendAndFooter(ctx, H - 28, o.botName);
-  return canvas.toBuffer('image/png');
-}
-
-/**
- * Vue « tout » : tous les événements à venir, groupés par mois.
- * @param {object} o  { guildId, botName, today, events:[{y,m,d,hh,mm,name,type,place}], next }
- */
-function generateAgendaAll(o) {
-  if (require('../core/compactCard').isCompact(o.guildId)) {
-    return agendaCompact(o, 'Agenda', `Tous les événements à venir · ${o.events.length}`, o.events, 12);
-  }
-  const { today } = o;
-  const MAX = 20;
-  const shown = o.events.slice(0, MAX);
-  const groups = [];
-  for (const e of shown) {
-    const last = groups[groups.length - 1];
-    if (last && last.y === e.y && last.m === e.m) last.list.push(e);
-    else groups.push({ y: e.y, m: e.m, list: [e] });
-  }
-  const monthH = 42, rowH = 40, gridTop = 232;
-  const body = groups.length
-    ? groups.reduce((a, g) => a + monthH + g.list.length * rowH + 10, 0) + (o.events.length > MAX ? 34 : 0)
-    : 90;
-  const H = gridTop + body + 54;
-
-  const { canvas, ctx } = makeCanvas(W, H, o.guildId);
-  drawFrame(ctx, W, H);
-  drawHeader(ctx, 'Agenda', `Tous les événements à venir · ${o.events.length}`, today);
-
-  const counts = { convoi: 0, reunion: 0, event: 0 };
-  for (const e of o.events) if (counts[e.type] !== undefined) counts[e.type]++;
-  drawStats(ctx, 128, [
-    { label: 'CONVOIS', value: counts.convoi ? String(counts.convoi) : 'Aucun', color: TYPE_COLOR.convoi, small: !counts.convoi, valueColor: counts.convoi ? C.text : C.muted },
-    { label: 'RÉUNIONS', value: counts.reunion ? String(counts.reunion) : 'Aucun', color: TYPE_COLOR.reunion, small: !counts.reunion, valueColor: counts.reunion ? C.text : C.muted },
-    { label: 'ÉVÉNEMENTS', value: counts.event ? String(counts.event) : 'Aucun', color: TYPE_COLOR.event, small: !counts.event, valueColor: counts.event ? C.text : C.muted },
-    { label: 'PROCHAIN', value: o.next || 'Aucun', color: C.green, small: true, valueColor: C.greenLight, border: '#3d8f9c' }
-  ]);
-
-  let y = gridTop;
-  if (!groups.length) {
-    roundRect(ctx, PAD, y, W - 2 * PAD, 70, 12);
-    ctx.fillStyle = C.cell;
-    ctx.fill();
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = C.cellBorder;
-    ctx.stroke();
-    ctx.fillStyle = C.dim;
-    ctx.font = `18px ${FONT}`;
-    ctx.textAlign = 'center';
+    ctx.font = police(22, 'bold');
+    ctx.fillStyle = estAujourdhui ? '#ffffff' : (d.dow === 0 || d.dow === 6 ? PAL.muted : PAL.text);
     ctx.textBaseline = 'middle';
-    ctx.fillText('Aucun événement à venir', W / 2, y + 36);
-    ctx.textAlign = 'left';
+    ctx.fillText(String(d.jour), cx, gy + 54);
     ctx.textBaseline = 'alphabetic';
   }
-  for (const g of groups) {
-    ctx.fillStyle = C.greenLight;
-    ctx.font = `22px ${FONT_BOLD}`;
-    ctx.fillText(`${MONTHS[g.m - 1]} ${g.y}`, PAD + 6, y + 28);
-    ctx.fillStyle = C.border;
-    ctx.fillRect(PAD + 6 + ctx.measureText(`${MONTHS[g.m - 1]} ${g.y}`).width + 16, y + 21, W - 2 * PAD - 6 - ctx.measureText(`${MONTHS[g.m - 1]} ${g.y}`).width - 22, 2);
-    y += monthH;
-    for (const ev of g.list) {
-      const isToday = ev.y === today.y && ev.m === today.m && ev.d === today.d;
-      roundRect(ctx, PAD, y, W - 2 * PAD, rowH - 6, 10);
-      ctx.fillStyle = isToday ? '#12333c' : C.cell;
-      ctx.fill();
-      ctx.lineWidth = isToday ? 2 : 1.5;
-      ctx.strokeStyle = isToday ? C.greenLight : C.cellBorder;
-      ctx.stroke();
 
-      const mid = y + (rowH - 6) / 2;
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = isToday ? C.greenLight : C.muted;
-      ctx.font = `15px ${FONT_BOLD}`;
-      ctx.fillText(`${DAYS_LOWER[dowMon(ev.y, ev.m, ev.d)]} ${ev.d}`, PAD + 16, mid + 1);
+  ctx.fillStyle = PAL.line;
+  ctx.fillRect(ix, gy + H_JOUR, INNER, 2);
 
-      const cx = PAD + 112;
-      const cwid = W - PAD - 10 - cx;
-      const col = TYPE_COLOR[ev.type] || TYPE_COLOR.event;
-      roundRect(ctx, cx, y + 4, cwid, rowH - 14, 7);
-      ctx.fillStyle = col + '33';
+  // Journée entière
+  if (H_TOUTE) {
+    ctx.textAlign = 'right';
+    ctx.font = police(10, 'bold');
+    ctx.fillStyle = PAL.dim;
+    ctx.fillText('JOURNÉE', ix + gutter - 8, gy + H_JOUR + 26);
+    for (let i = 0; i < 7; i++) {
+      const ts = debut + i * JOUR_MS;
+      const du = sansHeure.filter(e => e.ts === ts);
+      if (!du.length) continue;
+      const e = du[0];
+      const t = TYPES[e.type];
+      const bx = colX(i) + 4, bw = colW - 8, by = gy + H_JOUR + 8;
+      cheminArrondi(ctx, bx, by, bw, 26, 6);
+      ctx.fillStyle = rgba(t.couleur, 0.28);
       ctx.fill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = col + 'cc';
-      ctx.stroke();
-      ctx.fillStyle = col;
-      roundRect(ctx, cx, y + 4, 5, rowH - 14, 2);
-      ctx.fill();
-      ctx.fillStyle = C.text;
-      ctx.font = `16px ${FONT_BOLD}`;
-      const time = hhmm(ev);
-      ctx.fillText(time, cx + 16, mid + 1);
-      const tw = ctx.measureText(time).width;
-      ctx.font = `16px ${FONT}`;
-      const tail = ev.place ? `  ·  ${ev.place}` : '';
-      ctx.fillText(truncate(ctx, `${ev.name}${tail}`, cwid - 36 - tw), cx + 16 + tw + 12, mid + 1);
-      ctx.textBaseline = 'alphabetic';
-      y += rowH;
+      ctx.fillStyle = t.couleur;
+      ctx.fillRect(bx, by + 4, 3, 18);
+      ctx.textAlign = 'left';
+      ctx.font = police(12, 'bold');
+      ctx.fillStyle = PAL.text;
+      const reste = du.length > 1 ? ` +${du.length - 1}` : '';
+      ctx.fillText(ajuster(ctx, e.titre + reste, bw - 16), bx + 10, by + 18);
     }
-    y += 10;
-  }
-  if (o.events.length > MAX) {
-    ctx.fillStyle = C.muted;
-    ctx.font = `15px ${FONT_BOLD}`;
-    ctx.fillText(`+${o.events.length - MAX} autres événements plus tard`, PAD + 10, y + 16);
+    ctx.fillStyle = PAL.line;
+    ctx.fillRect(ix, gy + H_JOUR + H_TOUTE, INNER, 2);
   }
 
-  drawLegendAndFooter(ctx, H - 28, o.botName);
-  return canvas.toBuffer('image/png');
+  // Lignes d'heures
+  ctx.textAlign = 'right';
+  ctx.font = police(11);
+  for (let h = h0; h <= h1; h++) {
+    const ly = yHeures + H_PAD_H + (h - h0) * HH;
+    if (h < h1) {
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fillRect(ix + gutter - 6, ly, INNER - gutter + 6, 1);
+    }
+    ctx.fillStyle = PAL.dim;
+    if (h < 24) ctx.fillText(`${h}h`, ix + gutter - 12, ly + 4);
+  }
+
+  // Séparateurs de colonnes
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  for (let i = 0; i <= 7; i++) ctx.fillRect(colX(i), gy + 1, 1, H_GRILLE - 2);
+
+  // Événements horaires
+  const yDe = m => yHeures + H_PAD_H + ((m - h0 * 60) / 60) * HH;
+  for (let i = 0; i < 7; i++) {
+    const ts = debut + i * JOUR_MS;
+    const du = avecHeure.filter(e => e.ts === ts).sort((a, b) => a.minutes - b.minutes);
+
+    // Gestion des chevauchements : voies
+    const voies = [];
+    for (const e of du) {
+      e.fin = Math.min(1440, e.minutes + e.duree);
+      let v = voies.findIndex(f => f <= e.minutes);
+      if (v === -1) { v = voies.length; voies.push(0); }
+      voies[v] = e.fin;
+      e.voie = v;
+    }
+    for (const e of du) {
+      const conc = du.filter(x => x.minutes < e.fin && x.fin > e.minutes);
+      e.nbVoies = Math.max(...conc.map(x => x.voie)) + 1;
+    }
+
+    for (const e of du) {
+      const t = TYPES[e.type];
+      const largeurVoie = (colW - 8) / e.nbVoies;
+      const bx = colX(i) + 4 + e.voie * largeurVoie;
+      const bw = largeurVoie - 2;
+      const by = yDe(e.minutes) + 1;
+      const bh = Math.max(30, ((e.fin - e.minutes) / 60) * HH - 3);
+
+      cheminArrondi(ctx, bx, by, bw, bh, 7);
+      ctx.fillStyle = rgba(t.couleur, 0.24);
+      ctx.fill();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = rgba(t.couleur, 0.7);
+      ctx.stroke();
+      ctx.fillStyle = t.couleur;
+      ctx.fillRect(bx, by + 4, 4, bh - 8);
+
+      ctx.textAlign = 'left';
+      ctx.font = police(12, 'bold');
+      ctx.fillStyle = PAL.text;
+      if (bh >= 48) {
+        ctx.fillText(e.heure, bx + 11, by + 19);
+        ctx.font = police(12);
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fillText(ajuster(ctx, e.titre, bw - 18), bx + 11, by + 37);
+      } else {
+        ctx.fillText(ajuster(ctx, `${e.heure} ${e.titre}`, bw - 18), bx + 11, by + 20);
+      }
+    }
+  }
+
+  // Trait « maintenant » rouge (comme Google Agenda)
+  const iAujourdhui = Math.round((now.ts - debut) / JOUR_MS);
+  if (iAujourdhui >= 0 && iAujourdhui < 7 && now.minutes >= h0 * 60 && now.minutes <= h1 * 60) {
+    const ly = yDe(now.minutes);
+    ctx.fillStyle = ROUGE;
+    ctx.fillRect(colX(iAujourdhui), ly - 1, colW, 2);
+    ctx.beginPath();
+    ctx.arc(colX(iAujourdhui), ly, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  y = gy + H_GRILLE + 18;
+  dessinerLegende(ctx, y);
+  dessinerPied(ctx, H, o.botName, `Agenda · ${dateTexte(o.today)}`);
+  return finCarte(canvas, ctx, H);
 }
 
-module.exports = { generateAgendaMonth, generateAgendaWeek, generateAgendaAll, MONTHS, DAYS_LOWER, TYPE_LABEL, addDays, dowMon };
+// ───────────────────────────────────────────────
+// VUE MOIS
+//   o : { botName, today:{y,m,d,minutes}, year, month, events, selTs, next }
+// ───────────────────────────────────────────────
+function generateAgendaMonth(o) {
+  const annee = o.year, mois = o.month;
+  const now = { annee: o.today.y, mois: o.today.m, jour: o.today.d };
+  const selTs = o.selTs || null;
+  const debut = Date.UTC(annee, mois - 1, 1);
+  const fin = Date.UTC(annee, mois, 0);
+  const evs = o.events.filter(e => e.ts >= debut && e.ts <= fin);
+  const estMoisCourant = now.annee === annee && now.mois === mois;
+
+  const nbJours = new Date(Date.UTC(annee, mois, 0)).getUTCDate();
+  const decalage = (new Date(Date.UTC(annee, mois - 1, 1)).getUTCDay() + 6) % 7;
+  const nbLignes = Math.ceil((decalage + nbJours) / 7);
+
+  const parJour = {};
+  for (const e of evs) (parJour[e.jour] = parJour[e.jour] || []).push(e);
+
+  const GAP = 6, CASE_H = 72, H_JOURS = 32;
+  const H_GRILLE = nbLignes * CASE_H + (nbLignes - 1) * GAP;
+  const H = BAND_H + 20 + H_STATS + 8 + H_JOURS + H_GRILLE + 18 + H_LEGENDE + H_PIED;
+
+  const { canvas, ctx } = creerCarte(H);
+
+  dessinerBandeau(
+    ctx,
+    `Agenda — ${MOIS_NOMS[mois - 1]} ${annee}`,
+    `Vue du mois · ${evs.length} événement${evs.length > 1 ? 's' : ''}`,
+    heureTexte(o.today)
+  );
+
+  let y = BAND_H + 20;
+  dessinerStats(ctx, y, construireStats(evs, o.next));
+  y += H_STATS + 8;
+
+  const largeurCase = (INNER - GAP * 6) / 7;
+  ctx.font = police(13, 'bold');
+  ctx.fillStyle = PAL.muted;
+  ctx.textAlign = 'center';
+  for (let i = 0; i < 7; i++) {
+    ctx.fillText(JOURS_SEMAINE[i], PX + i * (largeurCase + GAP) + largeurCase / 2, y + 20);
+  }
+  y += H_JOURS;
+
+  const joursMoisPrec = new Date(Date.UTC(annee, mois - 1, 0)).getUTCDate();
+  for (let i = 0; i < nbLignes * 7; i++) {
+    const col = i % 7;
+    const ligne = Math.floor(i / 7);
+    const x = PX + col * (largeurCase + GAP);
+    const cy = y + ligne * (CASE_H + GAP);
+    const numero = i - decalage + 1;
+    const dansMois = numero >= 1 && numero <= nbJours;
+
+    cheminArrondi(ctx, x, cy, largeurCase, CASE_H, 12);
+    if (!dansMois) {
+      ctx.fillStyle = 'rgba(255,255,255,0.02)';
+      ctx.fill();
+      ctx.textAlign = 'left';
+      ctx.font = police(13);
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillText(String(numero < 1 ? joursMoisPrec + numero : numero - nbJours), x + 12, cy + 24);
+      continue;
+    }
+
+    const du = parJour[numero] || [];
+    const estAujourdhui = estMoisCourant && numero === now.jour;
+    const estSel = selTs && Date.UTC(annee, mois - 1, numero) === selTs;
+
+    ctx.fillStyle = estAujourdhui ? rgba(ACCENT, 0.14) : PAL.box;
+    ctx.fill();
+    ctx.lineWidth = estAujourdhui ? 2 : 1.5;
+    ctx.strokeStyle = estAujourdhui ? ACCENT : (du.length ? PAL.ring : PAL.line);
+    ctx.stroke();
+    if (estSel) {
+      cheminArrondi(ctx, x, cy, largeurCase, CASE_H, 12);
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = SELECTION;
+      ctx.stroke();
+    }
+
+    ctx.textAlign = 'left';
+    if (estAujourdhui) {
+      ctx.beginPath();
+      ctx.arc(x + 21, cy + 20, 13, 0, Math.PI * 2);
+      ctx.fillStyle = ACCENT;
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = police(15, 'bold');
+      ctx.textAlign = 'center';
+      ctx.fillText(String(numero), x + 21, cy + 25.5);
+      ctx.textAlign = 'left';
+    } else {
+      ctx.font = police(15, 'bold');
+      ctx.fillStyle = du.length ? PAL.text : PAL.muted;
+      ctx.fillText(String(numero), x + 12, cy + 25);
+    }
+
+    const maxVis = du.length > 2 ? 1 : du.length;
+    for (let k = 0; k < maxVis; k++) {
+      const e = du[k];
+      const t = TYPES[e.type];
+      const chipY = cy + 31 + k * 18;
+      cheminArrondi(ctx, x + 8, chipY, largeurCase - 16, 16, 5);
+      ctx.fillStyle = rgba(t.couleur, 0.22);
+      ctx.fill();
+      ctx.fillStyle = t.couleur;
+      ctx.fillRect(x + 8, chipY + 2, 3, 12);
+      ctx.font = police(12);
+      ctx.fillStyle = PAL.text;
+      ctx.fillText(ajuster(ctx, `${e.heure ? e.heure + ' ' : ''}${e.titre}`, largeurCase - 36), x + 17, chipY + 12);
+    }
+    if (du.length > 2) {
+      ctx.font = police(12, 'bold');
+      ctx.fillStyle = ACCENT_LIGHT;
+      ctx.fillText(`+${du.length - 1} autres`, x + 12, cy + 31 + 18 + 12);
+    }
+  }
+  y += H_GRILLE + 18;
+
+  dessinerLegende(ctx, y);
+  dessinerPied(ctx, H, o.botName, `Agenda · ${dateTexte(o.today)}`);
+  return finCarte(canvas, ctx, H);
+}
+
+module.exports = {
+  generateAgendaWeek,
+  generateAgendaMonth,
+  TYPES,
+  MOIS_NOMS,
+  JOURS_COURTS,
+  JOURS_SEMAINE,
+  JOUR_MS,
+  dateDepuisTs,
+  debutSemaine
+};
