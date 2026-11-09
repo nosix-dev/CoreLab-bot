@@ -32,6 +32,8 @@ const {
   MessageFlags
 } = require('discord.js');
 
+const { generateUpdateBanner } = require('./updateBannerImage');
+
 const REPO_ROOT = path.join(__dirname, '..', '..');
 const UPDATE_FILE = path.join(REPO_ROOT, 'update.json');
 // Si DATA_DIR est défini (disque persistant, comme core/data.js), l'état de la dernière annonce y est gardé
@@ -223,7 +225,17 @@ function buildMessages(data, client, hash) {
   // `image` : URL https ou chemin relatif au projet (ex. "assets/update_banner.png") → grande bannière en bas
   let bannerUrl = null;
   let bannerFile = null;
-  if (data.image) {
+  let bannerOnTop = false; // bannière générée : en haut du 1er message ; image perso : en bas du dernier
+  if (!data.image && data.image !== false) {
+    // Pas d'image fournie : on génère la bannière à chaque annonce (voir updateBannerImage.js ; "image": false pour la couper)
+    try {
+      bannerFile = new AttachmentBuilder(generateUpdateBanner(data, nom), { name: 'update-banner.png' });
+      bannerUrl = 'attachment://update-banner.png';
+      bannerOnTop = true;
+    } catch (e) {
+      console.error('[Update] Bannière non générée :', e.message);
+    }
+  } else if (data.image) {
     const img = String(data.image);
     if (/^https?:\/\//i.test(img)) bannerUrl = img;
     else {
@@ -242,6 +254,10 @@ function buildMessages(data, client, hash) {
     const container = new ContainerBuilder().setAccentColor(color);
     const withPing = ping && i === 0;
 
+    if (i === 0 && bannerOnTop && bannerUrl) {
+      container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(bannerUrl)));
+    }
+
     if (i === 0) {
       if (articleBtn) {
         container.addSectionComponents(
@@ -254,7 +270,7 @@ function buildMessages(data, client, hash) {
     }
     blks.forEach(b => container.addTextDisplayComponents(new TextDisplayBuilder().setContent(b)));
 
-    if (last && bannerUrl) {
+    if (last && bannerUrl && !bannerOnTop) {
       container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(bannerUrl)));
     }
 
@@ -281,7 +297,7 @@ function buildMessages(data, client, hash) {
     }
     return {
       components,
-      ...(last && bannerFile ? { files: [bannerFile] } : {}),
+      ...((bannerOnTop ? i === 0 : last) && bannerFile ? { files: [bannerFile] } : {}),
       flags: MessageFlags.IsComponentsV2,
       allowedMentions: withPing ? { parse: ['everyone'] } : { parse: [] }
     };

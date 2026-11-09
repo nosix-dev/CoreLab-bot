@@ -22,7 +22,6 @@ const event = {
       .addStringOption(o => o.setName('date').setDescription('JJ/MM/AAAA HH:MM (heure de Paris)').setRequired(true))
       .addStringOption(o => o.setName('type').setDescription('Type (couleur dans /agenda, défaut : événement)').setRequired(false)
         .addChoices(
-          { name: 'Convoi', value: 'convoi' },
           { name: 'Réunion', value: 'reunion' },
           { name: 'Événement', value: 'event' }
         ))
