@@ -14,7 +14,7 @@ const { chargerDonnees, sauvegarderDonnees } = require('../core/data');
 const FICHIER = 'mod_notes.json';
 const MAX_TEXTE = 1000;
 const MAX_NOTES_PAR_MEMBRE = 50;
-const COULEUR = 0x5865F2;
+const COULEUR = 0xE8510D;
 
 // Structure : { [guildId]: { [userId]: [{ id, text, moderator, date }] } }
 const donnees = chargerDonnees(FICHIER, {});

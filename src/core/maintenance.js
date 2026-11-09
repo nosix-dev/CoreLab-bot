@@ -12,7 +12,7 @@ const { chargerDonnees, sauvegarderDonnees } = require('./data');
 const constants = require('./constants');
 
 const FICHIER = 'maintenance.json';
-const COULEUR = 0xE67E22;
+const COULEUR = 0xE8510D;
 const DELAI_MAX_TIMER = 2147483647;
 
 let etat = Object.assign(

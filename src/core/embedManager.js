@@ -171,7 +171,7 @@ function listEmbeds(guildId) {
 
 function buildEmbedFromData(data) {
     const embed = new EmbedBuilder();
-    if (data.color !== undefined && data.color !== null) embed.setColor(data.color);
+    embed.setColor(data.color !== undefined && data.color !== null ? data.color : 0xE8510D);
     if (data.title) embed.setTitle(String(data.title).slice(0, 256));
     if (data.description) embed.setDescription(String(data.description).slice(0, 4096));
     if (data.url) { try { embed.setURL(data.url); } catch (_) { /* URL invalide, ignorée */ } }
@@ -211,7 +211,7 @@ const ZERO_WIDTH = '\u200b';
 
 function buildEmbedContainer(data) {
     const container = new ContainerBuilder();
-    if (data.color !== undefined && data.color !== null) container.setAccentColor(data.color);
+    container.setAccentColor(data.color !== undefined && data.color !== null ? data.color : 0xE8510D);
 
     let headerText = '';
     if (data.author?.name) {

@@ -68,9 +68,7 @@ function containerFromEmbed(embed, options = {}) {
     const inlineFields = !!options.inlineFields;
     const container = new ContainerBuilder();
 
-    if (data.color !== undefined && data.color !== null) {
-        container.setAccentColor(data.color);
-    }
+    container.setAccentColor(data.color !== undefined && data.color !== null ? data.color : 0xE8510D);
 
     // ── En-tête : auteur + titre + description ──
     let headerText = '';

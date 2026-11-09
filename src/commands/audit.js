@@ -65,7 +65,7 @@ const journalCmd = {
       if (!s.total) return interaction.reply({ content: `ℹ️ Aucune entrée sur les ${jours} derniers jours.`, ...ephemere });
       const liste = (items, fmt) => items.map(([k, n], i) => `${i + 1}. ${fmt(k)} — **${n}**`).join('\n') || '—';
       const embed = new EmbedBuilder()
-        .setColor(0x5865F2)
+        .setColor(0xE8510D)
         .setTitle(`📊 Journal d'audit — ${jours} dernier(s) jour(s)`)
         .setDescription(`**${s.total}** action(s) enregistrée(s)`)
         .addFields(

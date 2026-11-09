@@ -10,7 +10,7 @@ const { chargerDonnees, sauvegarderDonnees } = require('./data');
 const maintenance = require('./maintenance');
 
 const FICHIER = 'update_mode.json';
-const COULEUR = 0x3498DB;
+const COULEUR = 0xE8510D;
 
 let etat = Object.assign(
     { enabled: false, version: null, date: null, since: null, by: null },

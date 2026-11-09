@@ -293,7 +293,7 @@ function construirePage(guildId, filtres, page = 1) {
   ].filter(Boolean).join(' · ');
 
   const embed = new EmbedBuilder()
-    .setColor(0x5865F2)
+    .setColor(0xE8510D)
     .setTitle('📋 Journal d\'audit')
     .setDescription(coupe(tranche.length ? tranche.map(ligne).join('\n\n') : '*Aucune entrée pour ces filtres.*', 4000))
     .setFooter({ text: `${resultats.length} entrée(s)${filtresTxt ? ` • ${filtresTxt.replace(/<@\d+>/g, '…')}` : ''}` });

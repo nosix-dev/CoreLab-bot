@@ -27,7 +27,7 @@ const { chargerDonnees, sauvegarderDonnees } = require('../core/data');
 const { getGuildBucket, persist, getGuildConfig } = require('../core/config');
 
 const FICHIER = 'quests_data.json';
-const COULEUR = 0xF1C40F;
+const COULEUR = 0xE8510D;
 const TIMEZONE = 'Europe/Paris';
 
 const DAILY_COUNT = 3;

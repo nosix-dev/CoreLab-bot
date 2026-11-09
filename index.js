@@ -13,6 +13,8 @@ try {
   console.error('Impossible de régler le timeout réseau :', e.message);
 }
 require('dotenv').config();
+// Couleur par défaut CoreLab (#E8510D) pour tous les embeds et Containers V2 sans couleur.
+require('./src/core/defaultColor');
 // Conversion :nom: -> emoji personnalisé sur tous les messages sortants (doit être chargé tôt).
 const { loadApplicationEmojis } = require('./src/core/emojiResolver');
 

@@ -58,7 +58,7 @@ function blocNiveau(guildId, avecBoutons) {
 
 function construireConfig(guild) {
   const s = discon.etat(guild.id);
-  const c = new ContainerBuilder().setAccentColor(0x5865F2);
+  const c = new ContainerBuilder().setAccentColor(0xE8510D);
   c.addTextDisplayComponents(txt('## 📡 Configuration DISCON\nChoisissez le salon où poster le panneau DISCON et, en option, un salon vocal dont le nom reflète le niveau courant.'));
   c.addSeparatorComponents(sep(false));
 

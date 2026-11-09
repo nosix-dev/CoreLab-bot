@@ -317,7 +317,7 @@ async function automodCount(message, client) {
 
   const embed = new EmbedBuilder()
     .setTitle('🤖 Règles AutoMod')
-    .setColor(0x5865f2)
+    .setColor(0xE8510D)
     .addFields(
       { name: 'Total (tous créateurs)', value: `${total}`, inline: true },
       { name: 'Créées par le bot', value: `${totalBot}/100`, inline: true },
