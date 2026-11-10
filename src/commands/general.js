@@ -1008,7 +1008,7 @@ makeCommand('partenariat-config', 'Configurer le partenariat (titre, description
 // ────────────────────────────────────────────────
 makeCommand('partenariat', '🤝 Système de partenariat automatique (détection de lien d\'invitation)', data => data.addSubcommand(sub => sub.setName('configurer').setDescription('🔒 Admin • Configurer le salon de partenariat').addChannelOption(o => o.setName('salon').setDescription('Salon surveillé : un lien d\'invitation posté ici déclenche l\'annonce').addChannelTypes(ChannelType.GuildText).setRequired(true)).addRoleOption(o => o.setName('role').setDescription('Rôle attribué automatiquement au partenaire').setRequired(false)).addStringOption(o => o.setName('titre').setDescription('Titre personnalisé de l\'annonce').setRequired(false)).addStringOption(o => o.setName('description').setDescription('Description personnalisée de l\'annonce').setRequired(false)).addAttachmentOption(o => o.setName('image').setDescription('Image / bannière de l\'annonce').setRequired(false))), async interaction => {
   const sub = interaction.options.getSubcommand();
-  if (sub === 'configurer') {
+  if (sub === 'configurer' || sub === 'partenariat-auto') {
     const salon = interaction.options.getChannel('salon');
     const role = interaction.options.getRole('role');
     const titre = interaction.options.getString('titre');
