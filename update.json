@@ -1,0 +1,35 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.33",
+  "date": "2026-11-10",
+  "mention": false,
+  "titre": "📌 Mise a jour 5.5.33 — Agenda : retrait des convois et bannière d'annonce (5.5.33)",
+  "couleur": "#e8510d",
+  "article": {
+    "label": "Changelog",
+    "emoji": "📜",
+    "url": "https://corelab-4cn.pages.dev/docs#p-changelog"
+  },
+  "intro": "L'**agenda** ne parle plus de convois, et chaque **annonce de mise à jour** est maintenant publiée avec sa propre **bannière**.",
+  "modifications": {
+    "📅 Agenda": [
+      "[-] Le type **Convoi** est retiré de **/event create** et de **/agenda** : il reste **Réunion** et **Événement**.",
+      "[~] Les anciens événements de type convoi s'affichent comme de simples événements.",
+      "[~] Les compteurs de la carte sont maintenant **Réunions**, **Événements** et **Prochain**.",
+      "[~] **/agenda voir** est renommée **/agenda view**.",
+      "[-] L'option **date** est retirée de la commande : l'agenda s'ouvre toujours sur aujourd'hui.",
+      "[~] Il reste deux options : **vue** (semaine ou mois) et **privé** (visible seulement par toi)."
+    ],
+    "🖼️ Annonces de mise à jour": [
+      "[+] Chaque annonce est publiée avec une **bannière générée automatiquement** : nom du bot, titre de la mise à jour, commandes concernées et petit graphique.",
+      "[+] Le titre et les commandes de la bannière sont lus tout seuls dans la mise à jour, sans rien configurer.",
+      "[~] Une image personnalisée reste possible avec le champ **image**, et **\"image\": false** coupe la bannière."
+    ]
+  },
+  "pied": "Ajoute CoreLab sur tes autres serveurs.",
+  "support": {
+    "label": "Inviter le bot",
+    "emoji": "🚀",
+    "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+  }
+}
