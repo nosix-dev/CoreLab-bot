@@ -28,9 +28,9 @@ function buildOverviewEmbed(client, categories, totalCommands, totalCategories, 
     .setTimestamp();
 }
 
-function buildCategoryEmbed(client, cat, requestedBy) {
+function buildCategoryEmbed(client, cat, requestedBy, prefix = '!') {
   const lignesSlash = cat.resolvedCommands.map(c => `**/${displayCommandName(c.data.name)}** — ${c.data.description || 'Aucune description'}`);
-  const lignesPrefix = cat.resolvedPrefixCommands.map(n => `**!${n}**`);
+  const lignesPrefix = cat.resolvedPrefixCommands.map(n => `**${prefix}${n}**`);
   const corps = [...lignesSlash, ...lignesPrefix].join('\n') || 'Aucune commande dans cette catégorie.';
   // L'emoji de catégorie va dans la description (et non dans l'auteur) : Discord
   // n'affiche jamais un emoji custom dans author.name (texte brut cassé), alors
@@ -80,7 +80,7 @@ function registerHelpHandler(client) {
         const { categories } = buildHelpData(client);
         const cat = categories.find(c => c.key === interaction.values[0]);
         if (!cat) return;
-        const embed = buildCategoryEmbed(client, cat, interaction.user);
+        const embed = buildCategoryEmbed(client, cat, interaction.user, require('../core/guildPrefix').get(interaction.guildId));
         return interaction.update({ embeds: [embed], components: buildComponents(categories, cat.key) });
       }
       if (interaction.isButton() && interaction.customId === 'help_home') {

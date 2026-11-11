@@ -1249,17 +1249,25 @@ client.on('messageCreate', async message => {
       return;
     }
   }
-  if (!message.content.startsWith(client.prefix)) return;
-  const name = message.content.slice(client.prefix.length).trim().split(/\s+/)[0].toLowerCase();
+  // Préfixe choisi par le serveur (/prefix ou dashboard web) — « ! » par défaut
+  const guildPrefixes = require('./src/core/guildPrefix');
+  const usedPrefix = guildPrefixes.get(message.guild.id);
+  if (!guildPrefixes.startsWith(message.content, usedPrefix)) return;
+  const name = message.content.slice(usedPrefix.length).trim().split(/\s+/)[0].toLowerCase();
   const handler = client.prefixCommands?.[name];
   if (!handler) return;
   if (maintenance.bloquerPrefixe(message)) return;
   // broadcast réservé au propriétaire du bot uniquement
   if (name === 'broadcast' && message.author.id !== BOT_OWNER_ID) return;
+  // Les commandes lisent le message avec le préfixe d'origine (client.prefix) : on le leur présente ainsi.
+  const contenuOriginal = message.content;
+  message.content = client.prefix + message.content.slice(usedPrefix.length);
   try {
     await handler(message, client);
   } catch (e) {
     console.error(`Erreur commande prefix ${name}:`, e);
+  } finally {
+    message.content = contenuOriginal;
   }
 });
 client.on('entitlementCreate', entitlement => {

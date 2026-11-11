@@ -48,6 +48,7 @@ const MODULES = [
     desc: 'Langue du bot, rôle de mute et salons divers.',
     fields: [
       S('language', 'Langue du bot', 'fr', O(['fr', 'Français'], ['en', 'English'])),
+      T('prefix', 'Préfixe des commandes', 5, { def: '!', validate: v => require('./guildPrefix').valider(v), hint: 'Caractère(s) à taper avant une commande texte (ex. !help). 1 à 5 caractères, sans espace. Défaut : !' }),
       RO('mute_role', 'Rôle de mute', { hint: 'Utilisé par les commandes de sanction.' }),
       CH('suggestion_channel_id', 'Salon des suggestions', { section: 'Salons' }),
       CH('photo_channel_id', 'Salon photo'),
@@ -405,7 +406,11 @@ function checkField(f, v, cur, ctx) {
   };
   switch (f.type) {
     case 'bool': return { value: v === true };
-    case 'text': case 'longtext': return { value: String(v ?? '').slice(0, f.max || 200) };
+    case 'text': case 'longtext': {
+      const s = String(v ?? '').slice(0, f.max || 200);
+      if (f.validate) { const e = f.validate(s); if (e) return bad(e); }
+      return { value: s };
+    }
     case 'number': {
       const n = Number(v);
       if (!Number.isFinite(n)) return bad('nombre invalide');
