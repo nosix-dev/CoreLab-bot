@@ -514,11 +514,12 @@ async function route(req, res, { client }, url) {
   if (p === '/auth/login') {
     const state = crypto.randomBytes(16).toString('hex');
     states.set(state, Date.now());
-    const q = new URLSearchParams({ client_id: CLIENT_ID, response_type: 'code', scope: 'identify guilds', redirect_uri: REDIRECT, state, prompt: 'none' });
+    const q = new URLSearchParams({ client_id: CLIENT_ID, response_type: 'code', scope: 'identify guilds', redirect_uri: REDIRECT, state });
     return go(`https://discord.com/oauth2/authorize?${q}`);
   }
   if (p === '/auth/callback') {
     const code = url.searchParams.get('code'), state = url.searchParams.get('state');
+    if (url.searchParams.get('error')) return go(`${SITE}#error=denied`); // refus ou annulation sur Discord
     if (!code || !state || !states.has(state)) return go(`${SITE}#error=state`);
     states.delete(state);
     try {
