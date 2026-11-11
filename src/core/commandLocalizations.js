@@ -80,7 +80,7 @@ const NAME_LOCALIZATIONS = {
   rp: ['rp', 'rp'],
   'serverstats-setup': ['serverstats-setup', 'serverstats-setup'],
   social: ['social', 'social'],
-  'top-gg': ['top-gg', 'top-gg'],
+  'vote-bot': ['vote-bot', 'vote-bot'],
   vote: ['vote', 'vote'],
   create: ['créer', 'create'],
   load: ['charger', 'load'],

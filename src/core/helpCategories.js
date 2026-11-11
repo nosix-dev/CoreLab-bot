@@ -76,7 +76,7 @@ const HELP_CATEGORIES = [
     key: 'network',
     label: 'Network',
     emoji: '🌐',
-    commands: ['invite', 'vote', 'top-gg', 'bot-infos'],
+    commands: ['invite', 'vote', 'vote-bot', 'bot-infos'],
   },
   {
     key: 'public',

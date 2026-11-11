@@ -2,19 +2,17 @@
 // topggVotes.js — suivi des votes top.gg (webhook), série, récompenses, badge, rappel.
 //
 // • top.gg appelle POST /topgg (voir index.js) avec l'en-tête Authorization = TOPGG_WEBHOOK_AUTH.
-// • Chaque vote : +1 vote (+2 le weekend), série mise à jour, Premium débloqué 12 h,
-//   et 1 récompense XP « à récupérer » avec le bouton Récupérer de /top-gg.
+// • Chaque vote : +1 vote (+2 le weekend), série mise à jour,
+//   et 1 récompense XP « à récupérer » avec le bouton Récupérer de /vote-bot.
 // • Les données sont dans topgg_votes.json (racine) : couvert par la sauvegarde Discord automatique.
 // ─────────────────────────────────────────────────────────────────────────
 
 const crypto = require('crypto');
-const { chargerDonnees, sauvegarderDonnees, stockage } = require('./data');
-const { definirPremium } = require('./premium');
+const { chargerDonnees, sauvegarderDonnees } = require('./data');
 
 const FICHIER = 'topgg_votes.json';
 const COOLDOWN_VOTE_MS = 12 * 3600 * 1000;      // un vote toutes les 12 h
 const GRACE_SERIE_MS = 36 * 3600 * 1000;        // revoter en moins de 36 h garde la série
-const PREMIUM_MS = 12 * 3600 * 1000;            // Premium offert par vote
 const XP_PAR_VOTE = 350;
 const XP_BONUS_PAR_JOUR_DE_SERIE = 25;          // « plus d'XP chaque jour »
 const XP_BONUS_SERIE_MAX = 10;                  // plafond : 10 jours de bonus
@@ -58,17 +56,6 @@ function bonusSerie(u) {
     return jours * XP_BONUS_PAR_JOUR_DE_SERIE;
 }
 
-// Offre 12 h de Premium sans jamais raccourcir un abonnement payant existant.
-function accorderPremium(id, now = Date.now()) {
-    const fin = now + PREMIUM_MS;
-    const actuel = stockage.premium?.users?.[String(id)];
-    if (actuel && actuel.active) {
-        if (!actuel.expires_at) return;                              // abonnement sans fin : on ne touche à rien
-        if (new Date(actuel.expires_at).getTime() >= fin) return;    // déjà plus long
-    }
-    definirPremium(id, true, new Date(fin).toISOString());
-}
-
 // Enregistre un vote reçu du webhook.
 function enregistrerVote(userId, isWeekend = false, now = Date.now()) {
     const u = utilisateur(userId);
@@ -83,7 +70,6 @@ function enregistrerVote(userId, isWeekend = false, now = Date.now()) {
     u.pending += 1;
     u.reminderSent = false;
     if (u.totalVotes >= VOTES_BADGE) u.badge = true;
-    accorderPremium(userId, now);
     sauver();
     return u;
 }
@@ -122,11 +108,14 @@ function egal(a, b) {
 
 function handleWebhook(req, res) {
     const secret = process.env.TOPGG_WEBHOOK_AUTH;
+    console.log(`[TopGG] Requête webhook reçue (${req.method} ${req.url}).`);
     if (!secret) {
         console.error('[TopGG] TOPGG_WEBHOOK_AUTH absent : webhook refusé.');
         res.writeHead(503); return res.end();
     }
-    if (!egal(req.headers.authorization || '', secret)) {
+    const recu = req.headers.authorization || '';
+    if (!egal(recu, secret)) {
+        console.error(`[TopGG] Authorization refusée (en-tête ${recu ? 'présent mais différent' : 'absent'}). En-têtes reçus : ${Object.keys(req.headers).join(', ')}`);
         res.writeHead(401); return res.end();
     }
     let corps = '';
@@ -136,13 +125,23 @@ function handleWebhook(req, res) {
     });
     req.on('end', () => {
         let p;
-        try { p = JSON.parse(corps); } catch { res.writeHead(400); return res.end(); }
-        if (!p || !/^\d{5,25}$/.test(String(p.user || ''))) { res.writeHead(400); return res.end(); }
-        if (p.type === 'test') {
-            console.log(`[TopGG] Test reçu (utilisateur ${p.user}) : webhook OK.`);
-        } else if (p.type === 'upvote') {
-            const u = enregistrerVote(p.user, !!p.isWeekend);
-            console.log(`[TopGG] Vote de ${p.user} (total ${u.totalVotes}, série ${u.streak}).`);
+        try { p = JSON.parse(corps); } catch { console.error('[TopGG] JSON invalide :', corps.slice(0, 300)); res.writeHead(400); return res.end(); }
+        console.log('[TopGG] Payload :', corps.slice(0, 500));
+
+        // Ancien format : { type, user, isWeekend } — format alternatif : { type, data: { user: { platform_id } } }
+        const userId = String(p?.user || p?.data?.user?.platform_id || p?.data?.user?.id || '');
+        const type = String(p?.type || '');
+        if (!/^\d{5,25}$/.test(userId)) {
+            console.error('[TopGG] Utilisateur introuvable dans le payload.');
+            res.writeHead(400); return res.end();
+        }
+        if (type === 'test' || type === 'webhook.test') {
+            console.log(`[TopGG] Test reçu (utilisateur ${userId}) : webhook OK.`);
+        } else if (type === 'upvote' || type === 'vote.create') {
+            const u = enregistrerVote(userId, !!(p.isWeekend ?? p.data?.weight === 2));
+            console.log(`[TopGG] Vote de ${userId} (total ${u.totalVotes}, série ${u.streak}).`);
+        } else {
+            console.log(`[TopGG] Type ignoré : ${type}`);
         }
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('OK');
@@ -181,5 +180,5 @@ function demarrer(client) {
 module.exports = {
     utilisateur, enregistrerVote, xpAPayer, marquerRecupere, basculerRappel, peutRevoterA,
     estWeekend, serieActive, bonusSerie, handleWebhook, demarrer,
-    XP_PAR_VOTE, PREMIUM_MS, VOTES_BADGE, COOLDOWN_VOTE_MS, GRACE_SERIE_MS,
+    XP_PAR_VOTE, VOTES_BADGE, COOLDOWN_VOTE_MS, GRACE_SERIE_MS,
 };

@@ -12,7 +12,9 @@ const {
 const { getGuildConfig } = require('../core/config');
 const votes = require('../core/topggVotes');
 
-const data = new SlashCommandBuilder().setName('top-gg').setDescription('🗳️ Vote pour CoreLab sur top.gg');
+const BOTILLON_URL = 'https://botillon.fr/bots/1403513450273177772';
+
+const data = new SlashCommandBuilder().setName('vote-bot').setDescription('🗳️ Vote pour CoreLab sur top.gg et Botillon');
 
 function ts(ms) {
   return Math.floor(ms / 1000);
@@ -37,7 +39,6 @@ function buildPanel(client, userId, notice = null) {
   const lignes = [
     `🔥 Série : **${serie}** jour(s) (record **${u.bestStreak}**) · 🗳️ **${u.totalVotes}** vote(s)`,
     `🎁 Vote, puis reviens : **+${votes.XP_PAR_VOTE} XP** sur ce serveur`,
-    `✨ Chaque vote débloque aussi **${nom} Premium** pendant **${votes.PREMIUM_MS / 3600000} h**`,
     u.badge
       ? '💎 Badge **Supporter** débloqué !'
       : `💎 **${Math.min(u.totalVotes, votes.VOTES_BADGE)}/${votes.VOTES_BADGE}** votes pour le badge **Supporter**`
@@ -52,10 +53,11 @@ function buildPanel(client, userId, notice = null) {
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(lignes.join('\n')));
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setLabel('Voter').setEmoji('🗳️').setStyle(ButtonStyle.Link).setURL(`https://top.gg/bot/${client.user.id}/vote`),
-    new ButtonBuilder().setCustomId('topgg_claim').setLabel('Récupérer').setEmoji('🎁').setStyle(ButtonStyle.Success).setDisabled(u.pending <= 0),
+    new ButtonBuilder().setLabel('Voter (top.gg)').setEmoji('🗳️').setStyle(ButtonStyle.Link).setURL(`https://top.gg/bot/${client.user.id}/vote`),
+    new ButtonBuilder().setCustomId('topgg_claim').setLabel('Récupérer').setEmoji('🎁').setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId('topgg_remind').setLabel(`Rappel : ${u.reminder ? 'oui' : 'non'}`).setEmoji('🔔').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setLabel('Page du bot').setEmoji('🌐').setStyle(ButtonStyle.Link).setURL(`https://top.gg/bot/${client.user.id}`)
+    new ButtonBuilder().setLabel('Page du bot').setEmoji('🌐').setStyle(ButtonStyle.Link).setURL(`https://top.gg/bot/${client.user.id}`),
+    new ButtonBuilder().setLabel('Botillon').setEmoji('🤖').setStyle(ButtonStyle.Link).setURL(BOTILLON_URL)
   );
   container.addActionRowComponents(row);
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(

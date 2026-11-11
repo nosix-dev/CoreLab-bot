@@ -115,9 +115,8 @@ function texteStatut(id) {
   else if (actif(e.prem)) l = '⭐ **CoreLab Premium** est activé sur ce compte.';
   else if (actif(e.perso)) l = '🎨 **Personnalisation** est activée sur ce compte.';
   else {
-    return '🔒 Pas encore d\'abonnement sur ce compte.\n' +
-      '-# Chaque vote sur top.gg offre 12 h de Premium (`/top-gg`).' +
-      (essaiDisponible(id) ? ` Tu peux aussi essayer ${ESSAI_JOURS} jours gratuitement.` : '');
+    return '🔒 Pas encore d\'abonnement sur ce compte.' +
+      (essaiDisponible(id) ? `\n-# Tu peux essayer ${ESSAI_JOURS} jours gratuitement.` : '');
   }
   const fin = finAbonnement(id);
   return fin ? `${l}\n-# Actif jusqu'au <t:${ts(fin)}:f> (<t:${ts(fin)}:R>).` : `${l}\n-# Géré par Discord : paiement, remboursements et renouvellements.`;
