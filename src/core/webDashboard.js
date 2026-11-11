@@ -492,8 +492,13 @@ exports._test = { sessions, checkField, readValues };
 
 async function route(req, res, { client }, url) {
   const env = process.env;
-  const CLIENT_ID = env.DISCORD_CLIENT_ID || '1403513450273177772';
-  const SECRET = env.DISCORD_CLIENT_SECRET, REDIRECT = env.DISCORD_REDIRECT_URI, SITE = env.DASHBOARD_URL;
+  const DEFAULT_ID = '1403513450273177772';
+  const envId = (env.DISCORD_CLIENT_ID || '').trim();
+  // Un vrai Client ID est un nombre de 17 à 20 chiffres : sinon (ex. un secret collé par erreur) on prend l'ID par défaut
+  const CLIENT_ID = /^\d{17,20}$/.test(envId) ? envId : DEFAULT_ID;
+  const SECRET = (env.DISCORD_CLIENT_SECRET || '').trim(), REDIRECT = (env.DISCORD_REDIRECT_URI || '').trim(), SITE = (env.DASHBOARD_URL || '').trim();
+  if (envId && CLIENT_ID !== envId) console.warn('[WebDashboard] DISCORD_CLIENT_ID invalide (ce n\'est pas un nombre) : ID par défaut utilisé');
+  if (SECRET && /^\d+$/.test(SECRET)) console.warn('[WebDashboard] DISCORD_CLIENT_SECRET ne contient que des chiffres : c\'est probablement l\'ID et non le secret');
   const cors = origin => ({
     'Access-Control-Allow-Origin': origin, 'Vary': 'Origin',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
@@ -514,6 +519,7 @@ async function route(req, res, { client }, url) {
   if (p === '/auth/login') {
     const state = crypto.randomBytes(16).toString('hex');
     states.set(state, Date.now());
+    console.log(`[WebDashboard] login : client_id=${CLIENT_ID} secret=${SECRET.length} car. redirect=${REDIRECT}`);
     const q = new URLSearchParams({ client_id: CLIENT_ID, response_type: 'code', scope: 'identify guilds', redirect_uri: REDIRECT, state });
     return go(`https://discord.com/oauth2/authorize?${q}`);
   }
