@@ -556,4 +556,7 @@ function registerRankup(client) {
   console.log('✅ Rankup initialisé (messages + vocal).');
 }
 
-module.exports = { commands: [rankup], registerRankup, _test: { parseDuration, fmtMinutes, meets, sortedRanks, voiceTick, evaluate, userStats, cfgOf } };
+// Accès pour le dashboard web (src/core/webDashboard.js) : même données en mémoire que /rankup setup
+const dashboard = { cfgOf, save: sauver };
+
+module.exports = { commands: [rankup], registerRankup, dashboard, _test: { parseDuration, fmtMinutes, meets, sortedRanks, voiceTick, evaluate, userStats, cfgOf } };
