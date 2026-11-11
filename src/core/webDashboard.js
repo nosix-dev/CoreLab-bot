@@ -523,11 +523,17 @@ async function route(req, res, { client }, url) {
     if (!code || !state || !states.has(state)) return go(`${SITE}#error=state`);
     states.delete(state);
     try {
-      const tk = await fetch(`${DISCORD}/oauth2/token`, {
+      const r = await fetch(`${DISCORD}/oauth2/token`, {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ client_id: CLIENT_ID, client_secret: SECRET, grant_type: 'authorization_code', code, redirect_uri: REDIRECT })
-      }).then(x => x.json());
-      if (!tk.access_token) throw new Error('jeton refusé par Discord');
+      });
+      const raw = await r.text();
+      let tk = {};
+      try { tk = JSON.parse(raw); } catch {}
+      if (!tk.access_token) {
+        console.error('[WebDashboard] token', r.status, raw.slice(0, 200));
+        throw new Error('jeton refusé par Discord');
+      }
       const headers = { Authorization: `Bearer ${tk.access_token}` };
       const [user, guilds] = await Promise.all([
         fetch(`${DISCORD}/users/@me`, { headers }).then(x => x.json()),
