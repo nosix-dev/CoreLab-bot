@@ -72,6 +72,17 @@ try {
       try { return require('./src/core/topggVotes').handleWebhook(req, res); }
       catch (e) { console.error('[TopGG] webhook :', e.message); res.writeHead(500); return res.end(); }
     }
+    // Nouveau dashboard web : /panel/... (connexion Discord + réglages des serveurs)
+    if (req.url.split('?')[0].startsWith('/panel')) {
+      try {
+        const { getGuildBucket: getB, setGuildBucket: setB } = require('./src/core/data');
+        if (require('./src/core/webDashboard').handle(req, res, { client, get: getB, set: setB })) return;
+      } catch (e) {
+        console.error('[WebDashboard] :', e);
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        return res.end('WebDashboard erreur : ' + e.message);
+      }
+    }
     // Dashboard : GET /dashboard (public) et /dashboard/private (token)
     try { if (require('./src/core/dashboardApi').handle(req, res, { client, buildStatus })) return; }
     catch (e) { console.error('[Dashboard] :', e.message); }
@@ -508,7 +519,7 @@ function getStatuses(client) {
     name: '!help pour voir les commande !',
     type: 0
   }, {
-    name: 'Version 5.5.33 ⚙️',
+    name: 'Version 5.5.34 ⚙️',
     type: 0
   }];
 }
