@@ -41,6 +41,63 @@ const O = (...pairs) => pairs.map(([v, l]) => ({ v, l }));
 const ACTIONS = O(['kick', 'Expulser'], ['ban', 'Bannir'], ['timeout', 'Mettre en sourdine (timeout)']);
 const LANGS = O(['fr', 'Français'], ['en', 'English'], ['es', 'Español'], ['de', 'Deutsch'], ['it', 'Italiano'], ['pt', 'Português'], ['nl', 'Nederlands'], ['pl', 'Polski'], ['ru', 'Русский'], ['tr', 'Türkçe'], ['ar', 'العربية'], ['ja', '日本語'], ['ko', '한국어'], ['zh-CN', '中文 (简体)']);
 
+
+/* ---------- Cartes de bienvenue / d'au revoir (image « verre fumé ») ----------
+   Mêmes réglages que le bouton « 🎨 Carte » du panneau /settings (cfg.welcome_card / cfg.goodbye_card).
+   Valeur vide ou « par défaut » = la clé est supprimée, comme le fait l'éditeur du bot. */
+function cardModule(kind) {
+  const bye = kind === 'goodbye', k = `${kind}_card.`;
+  const P = { premium: true, emptyDelete: true };
+  const HID = 'Vide = valeur par défaut · « - » = masquer.';
+  const VARS = 'Variables : {user.name} {server.name} {server.member_count}.';
+  const TX = (key, label, max, hint, x) => T(k + key, label, max, { ...P, hint, ...x });
+  const HX = (key, label, x) => ({ key: k + key, label, type: 'hexcolor', def: '', hint: 'Désactivé = couleur par défaut du thème.', ...P, ...x });
+  const SL = (key, label, options, x) => S(k + key, label, 'defaut', options, { ...P, delValue: 'defaut', ...x });
+  const ON = (key, label, min, max, hint, x) => ({ key: k + key, label, type: 'optnumber', min, max, def: '', hint, ...P, ...x });
+  const fields = [
+    TX('title', 'Titre (petit texte du haut)', 40, `${HID} Défaut : ${bye ? 'AU REVOIR' : 'BIENVENUE'}.`, { section: 'Textes' }),
+    TX('subtitle', 'Sous-titre', 120, `${VARS} Vide = texte par défaut.`),
+    TX('pillMember', 'Pastille « numéro de membre »', 24, `${HID} Défaut : ${bye ? 'MEMBRES RESTANTS' : 'MEMBRE N°'}.`),
+    TX('pillCreated', 'Pastille « compte créé »', 24, `${HID} Défaut : COMPTE CRÉÉ.`)
+  ];
+  if (bye) fields.push(TX('pillJoined', 'Pastille « arrivé le »', 24, `${HID} Défaut : ARRIVÉ LE.`));
+  fields.push(
+    TX('customPillLabel', 'Pastille libre : titre', 24, '« - » = masquer le titre.', { section: 'Pastille libre & pied de carte' }),
+    TX('customPillValue', 'Pastille libre : texte', 40, 'Vide = pas de pastille. Variables autorisées.'),
+    TX('footer', 'Pied de carte (petit texte en bas)', 100, 'Vide = aucun. Variables autorisées.'),
+
+    SL('style', 'Style', O(['clair', 'Clair'], ['sombre', 'Sombre (verre fumé)']), { section: 'Style & couleurs', def: 'clair', delValue: 'clair' }),
+    HX('accent', 'Couleur d’accent', { hint: 'Halo du fond en style sombre. Désactivé = défaut.' }),
+    HX('bg', 'Couleur de fond', { hint: 'Remplace le dégradé. Désactivé = défaut.' }),
+    HX('textColor', 'Couleur du texte'),
+    HX('nameColor', 'Couleur du pseudo', { section: 'Couleurs détaillées' }),
+    HX('titleColor', 'Couleur du titre'),
+    HX('subColor', 'Couleur du sous-titre'),
+    HX('pillBg', 'Fond des pastilles', { hint: 'Pastilles de stats et cadre de l’avatar. Désactivé = défaut.' }),
+    HX('ringColor', 'Contour de l’avatar'),
+
+    B(k + 'hideAvatar', 'Masquer l’avatar du membre', false, { premium: true, delWhen: false, section: 'Avatar' }),
+    SL('avatarShape', 'Forme', O(['defaut', 'Rond'], ['arrondi', 'Carré arrondi'], ['carre', 'Carré'])),
+    SL('avatarSize', 'Taille', O(['petit', 'Petit'], ['defaut', 'Normal'], ['grand', 'Grand'])),
+    SL('avatarPos', 'Position', O(['defaut', 'À gauche'], ['droite', 'À droite'])),
+    B(k + 'avatarRing', 'Afficher le contour de l’avatar', true, { premium: true, delWhen: true }),
+
+    SL('height', 'Hauteur de la carte', O(['compacte', 'Compacte'], ['defaut', 'Normale'], ['haute', 'Haute']), { section: 'Mise en page' }),
+    SL('radius', 'Arrondi des coins', O(['carre', 'Carrés'], ['leger', 'Légèrement arrondis'], ['defaut', 'Normaux'], ['rond', 'Très arrondis'])),
+    SL('nameSize', 'Taille du pseudo', O(['petit', 'Petit'], ['moyen', 'Moyen'], ['defaut', 'Grand'], ['enorme', 'Énorme'])),
+    SL('dateFormat', 'Format des dates', O(['defaut', '12/01/2026'], ['texte', '12 janv. 2026'])),
+
+    ON('bgDim', 'Assombrissement de l’image de fond (0-90)', 0, 90, 'Pour que le texte reste lisible. Vide = défaut.', { section: 'Image de fond' }),
+    ON('bgBlur', 'Flou de l’image de fond (0-30)', 0, 30, '0 = net. Vide = défaut.'),
+    ON('glassOpacity', 'Opacité du verre (0-100)', 0, 100, '0 = transparent, 100 = opaque. Vide = défaut.')
+  );
+  return {
+    id: `${kind}card`, name: bye ? '🎨 Carte d’au revoir' : '🎨 Carte de bienvenue', group: 'Membres', toggle: null, preview: kind,
+    desc: `Apparence de l’image envoyée ${bye ? 'quand un membre part' : 'quand un membre arrive'} (personnalisation Premium). Sans image de fond, le bot garde son style uniforme et seuls le titre et le sous-titre sont pris en compte : ajoutez une image de fond pour activer les autres réglages.`,
+    fields
+  };
+}
+
 const MODULES = [
   /* ---------- Général ---------- */
   {
@@ -53,7 +110,8 @@ const MODULES = [
       CH('suggestion_channel_id', 'Salon des suggestions', { section: 'Salons' }),
       CH('photo_channel_id', 'Salon photo'),
       CH('repost_channel_id', 'Salon de repost'),
-      RO('photo_winner_role_id', 'Rôle du gagnant photo')
+      RO('photo_winner_role_id', 'Rôle du gagnant photo'),
+      CH('announce_channel_id', 'Salon des annonces', { section: 'Salons', hint: 'Utilisé pour les annonces d’événements du bot.' })
     ]
   },
   {
@@ -70,7 +128,9 @@ const MODULES = [
       B('log_voice', 'Salons vocaux', true),
       B('log_emojis', 'Emojis', true),
       B('log_server', 'Réglages du serveur', true),
-      B('log_bans', 'Bans et débans', true)
+      B('log_bans', 'Bans et débans', true),
+      B('log_messages_sent', 'Messages envoyés', true),
+      B('log_sanctions', 'Sanctions (warns, mutes, blacklist…)', true)
     ]
   },
   {
@@ -276,7 +336,9 @@ const MODULES = [
       CH('honeypot_review_channel_id', 'Salon de vérification des sanctions', { dep: 'honeypot_enabled' }),
       CH('infraction_channel_id', 'Salon des infractions', { section: 'Sanctions par défaut' }),
       S('infraction_default_action', 'Action par défaut', 'timeout', ACTIONS),
-      N('infraction_default_duration_minutes', 'Durée par défaut (minutes)', 1440, 1, 40320)
+      N('infraction_default_duration_minutes', 'Durée par défaut (minutes)', 1440, 1, 40320),
+      T('infraction_default_reason', 'Raison par défaut', 500, { emptyDelete: true, hint: 'Vide = aucune raison pré-remplie.' }),
+      S('honeypot_lang', 'Langue du message du salon piège', 'fr', O(['fr', 'Français'], ['en', 'English']), { section: 'HoneyPot' })
     ]
   },
   {
@@ -298,12 +360,88 @@ const MODULES = [
       B('transparence_enabled', 'Activer le journal de transparence', false),
       CH('transparence_channel_id', 'Salon de transparence', { dep: 'transparence_enabled' })
     ]
+  },
+
+  /* ---------- Serveur ---------- */
+  {
+    id: 'rules', name: '📜 Règlement', group: 'Serveur', toggle: null,
+    desc: 'Apparence et comportement du règlement à accepter. Le texte et le message se publient avec /reglement ; les changements ici s’appliquent à la prochaine modification du message.',
+    fields: [
+      CH('rules_channel_id', 'Salon du règlement', { hint: 'Normalement défini par /reglement.' }),
+      T('rules_title', 'Titre du règlement', 256, { emptyDelete: true, hint: 'Vide = « 📜 Règlement du serveur ».' }),
+      { key: 'rules_color', label: 'Couleur du règlement', type: 'color', def: '#e8510d' },
+      N('rules_accept_delay', 'Délai avant de pouvoir accepter (secondes)', 0, 0, 3600, { hint: '0 = acceptation immédiate.' })
+    ]
+  },
+  {
+    id: 'tickets', name: '🎫 Tickets', group: 'Serveur', toggle: null,
+    desc: 'Salons du système de tickets. Les catégories, raisons et l’apparence de chaque panel se gèrent avec /ticket.',
+    fields: [
+      CH('ticket_channel_id', 'Salon des logs de tickets'),
+      CH('ticket_panel_channel_id', 'Salon du panel de tickets')
+    ]
+  },
+  {
+    id: 'partenariat', name: '🤝 Partenariats auto', group: 'Serveur', toggle: null,
+    desc: 'Message envoyé automatiquement quand un partenariat est enregistré.',
+    fields: [
+      CH('partenariatAuto.salonId', 'Salon du message', { hint: 'Vide = désactivé.' }),
+      RO('partenariatAuto.roleId', 'Rôle donné au partenaire'),
+      T('partenariatAuto.titre', 'Titre du message', 256, { emptyDelete: true }),
+      L('partenariatAuto.description', 'Texte du message', 1500, { emptyDelete: true })
+    ]
+  },
+  {
+    id: 'autoresponses', name: '💬 Réponses automatiques', group: 'Serveur', toggle: 'autoresponse_enabled',
+    desc: 'Active ou coupe les réponses automatiques. Les réponses se créent avec /config-panel.',
+    fields: [
+      B('autoresponse_enabled', 'Activer les réponses automatiques', true)
+    ]
+  },
+  {
+    id: 'ai', name: '🤖 Assistant IA', group: 'Serveur', toggle: null,
+    desc: 'L’assistant IA CoreLab. Le salon et la catégorie se créent avec /config-ia.',
+    fields: [
+      B('ia_enabled', 'Activer l’assistant IA', false, { hint: 'Sans salon IA enregistré (/config-ia), l’assistant ne répondra pas.' }),
+      CH('ia_channel_id', 'Salon de l’assistant', { dep: 'ia_enabled' }),
+      CAT('ia_category_id', 'Catégorie de l’assistant', { dep: 'ia_enabled' })
+    ]
+  },
+  {
+    id: 'serverstats', name: '📊 Statistiques du serveur', group: 'Serveur', toggle: 'serverstats_enabled',
+    desc: 'Salons vocaux compteurs mis à jour toutes les 10 minutes. Les compteurs se créent avec /serverstats-setup.',
+    fields: [
+      B('serverstats_enabled', 'Activer les compteurs', false),
+      CAT('serverstats_category_id', 'Catégorie des compteurs', { dep: 'serverstats_enabled' })
+    ]
   }
 ];
+MODULES.splice(MODULES.findIndex(m => m.id === 'welcome') + 1, 0, cardModule('welcome'), cardModule('goodbye'));
 
 /* ============================================================ */
 
-const sessions = new Map(); // token -> { user, guilds, exp }
+const sessions = new Map(); // (conservé pour les tests) token -> { user, guilds, exp }
+const SESSION_MS = 30 * 24 * 3600 * 1000; // 30 jours
+
+/* Session « sans état » : le jeton contient lui-même la session, signé en HMAC.
+   Elle survit donc aux redémarrages / mises en veille de Render. */
+function signerSession(data, secret) {
+  const body = Buffer.from(JSON.stringify(data)).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
+  return `${body}.${sig}`;
+}
+function lireSession(tok, secret) {
+  if (!tok || !secret || tok.length > 12000) return null;
+  const [body, sig] = tok.split('.');
+  if (!body || !sig) return null;
+  const attendu = crypto.createHmac('sha256', secret).update(body).digest('base64url');
+  const a = Buffer.from(sig), b = Buffer.from(attendu);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const d = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    return d && d.exp > Date.now() ? d : null;
+  } catch { return null; }
+}
 const states = new Map();   // state -> timestamp
 setInterval(() => {
   const now = Date.now();
@@ -329,6 +467,24 @@ const delPath = (o, p) => {
   for (let i = 0; i < ks.length - 1; i++) { c = c?.[ks[i]]; if (c == null) return; }
   delete c[ks[ks.length - 1]];
 };
+
+function readRaw(req, limit) {
+  return new Promise((ok, ko) => {
+    const parts = []; let n = 0;
+    req.on('data', c => { const b = Buffer.isBuffer(c) ? c : Buffer.from(c); n += b.length; if (n > limit) { ko(new Error('trop gros')); req.destroy(); return; } parts.push(b); });
+    req.on('end', () => ok(Buffer.concat(parts)));
+    req.on('error', ko);
+  });
+}
+// Reconnaît le type réel de l'image (on ne se fie pas au Content-Type envoyé)
+function sniffImage(b) {
+  if (b.length < 12) return null;
+  if (b[0] === 0x89 && b.toString('latin1', 1, 4) === 'PNG') return 'png';
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpg';
+  if (b.toString('latin1', 0, 4) === 'GIF8') return 'gif';
+  if (b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP') return 'webp';
+  return null;
+}
 
 function readBody(req, limit = 60000) {
   return new Promise((ok, ko) => {
@@ -380,6 +536,8 @@ function readField(f, raw) {
     case 'select': return typeof raw === 'string' && raw ? raw : f.def;
     case 'channel': case 'category': case 'role': return raw ? String(raw) : '';
     case 'channels': case 'roles': return Array.isArray(raw) ? raw.map(String) : [];
+    case 'hexcolor': return typeof raw === 'string' && /^#[0-9a-f]{6}$/i.test(raw) ? raw.toLowerCase() : '';
+    case 'optnumber': return raw === null || raw === undefined || raw === '' || !Number.isFinite(Number(raw)) ? '' : Number(raw);
     case 'color': return Number.isInteger(raw) ? '#' + raw.toString(16).padStart(6, '0') : (f.def || '#ffffff');
     case 'ranks': return Array.isArray(raw) ? raw.map(r => ({ roleId: String(r.roleId), messages: r.messages | 0, minutes: r.minutes | 0 })) : [];
     case 'xproles': return Array.isArray(raw) ? raw.map(r => ({ level: r.level | 0, roleId: String(r.roleId) })) : [];
@@ -419,7 +577,18 @@ function checkField(f, v, cur, ctx) {
     case 'select': {
       const s = String(v ?? '');
       if (!f.options.some(o => o.v === s) && s !== cur) return bad('choix invalide');
-      return { value: s };
+      return { value: f.delValue !== undefined && s === f.delValue ? '' : s };
+    }
+    case 'hexcolor': {
+      if (v === '' || v == null) return { value: '' };
+      const m = /^#?([0-9a-f]{6})$/i.exec(String(v));
+      return m ? { value: '#' + m[1].toLowerCase() } : bad('couleur invalide');
+    }
+    case 'optnumber': {
+      if (v === '' || v == null) return { value: '' };
+      const n = Number(v);
+      if (!Number.isFinite(n)) return bad('nombre invalide');
+      return { value: Math.min(f.max ?? 1e9, Math.max(f.min ?? -1e9, Math.round(n))) };
     }
     case 'color': {
       const m = /^#?([0-9a-f]{6})$/i.exec(String(v ?? ''));
@@ -551,12 +720,11 @@ async function route(req, res, { client }, url) {
         fetch(`${DISCORD}/users/@me/guilds`, { headers }).then(x => x.json())
       ]);
       if (!user.id || !Array.isArray(guilds)) throw new Error('profil illisible');
-      const token = crypto.randomBytes(32).toString('hex');
-      sessions.set(token, {
+      const token = signerSession({
         user: { id: user.id, username: user.global_name || user.username, avatar: user.avatar },
-        guilds: guilds.filter(g => hasAccess(g.permissions, g.owner)).map(g => ({ id: g.id, name: g.name, icon: g.icon })),
-        exp: Date.now() + 6 * 3600 * 1000
-      });
+        guilds: guilds.filter(g => hasAccess(g.permissions, g.owner)).slice(0, 100).map(g => ({ id: g.id, name: String(g.name || '').slice(0, 60), icon: g.icon })),
+        exp: Date.now() + SESSION_MS
+      }, SECRET);
       return go(`${SITE}#token=${token}`);
     } catch (e) {
       console.error('[WebDashboard] connexion :', e.message);
@@ -566,20 +734,59 @@ async function route(req, res, { client }, url) {
 
   /* ---------- Session ---------- */
   const tok = (req.headers.authorization || '').replace('Bearer ', '');
-  const sess = sessions.get(tok);
-  if (!sess || sess.exp < Date.now()) return J(401, { error: 'unauthorized' });
+  const sess = lireSession(tok, SECRET);
+  if (!sess) return J(401, { error: 'unauthorized' });
 
   if (p === '/api/me' && req.method === 'GET') {
     return J(200, { user: sess.user, guilds: sess.guilds.map(g => ({ ...g, botIn: client.guilds.cache.has(g.id) })) });
   }
-  if (p === '/api/logout' && req.method === 'POST') { sessions.delete(tok); return J(200, { ok: true }); }
+  if (p === '/api/logout' && req.method === 'POST') { return J(200, { ok: true }); }
 
-  const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+))?$/);
+  const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye))?$/);
   if (!m) return J(404, { error: 'not_found' });
-  const [, guildId, isMeta, modId] = m;
+  const [, guildId, isMeta, modId, previewKind, bgKind] = m;
   if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
   const guild = client.guilds.cache.get(guildId);
   if (!guild) return J(404, { error: 'bot_absent' });
+
+  /* ---------- Image de fond des cartes (même dossier que le bouton « 🖼️ Image de fond » du bot) ---------- */
+  if (bgKind) {
+    const ge = require('./glassEmbed'), fs = require('fs'), path = require('path');
+    const removeBg = () => { for (const ext of ge.CARD_BG_EXTS) { const f = path.join(ge.CARD_BG_DIR, `${guildId}_${bgKind}.${ext}`); if (fs.existsSync(f)) { try { fs.unlinkSync(f); } catch { /* ignoré */ } } } };
+    if (req.method === 'GET') { const bg = ge.findCardBackground(guildId, bgKind); return J(200, { has: !!bg, ext: bg ? bg.ext : null }); }
+    if (req.method === 'POST') {
+      if (!premiumOk(sess.user.id)) return J(403, { error: 'premium' });
+      if (url.searchParams.get('remove')) { removeBg(); return J(200, { ok: true, has: false }); }
+      let buf;
+      try { buf = await readRaw(req, 8 * 1024 * 1024); } catch { return J(413, { error: 'too_big' }); }
+      const ext = sniffImage(buf);
+      if (!ext) return J(400, { error: 'invalid_image' });
+      fs.mkdirSync(ge.CARD_BG_DIR, { recursive: true });
+      removeBg();
+      fs.writeFileSync(path.join(ge.CARD_BG_DIR, `${guildId}_${bgKind}.${ext}`), buf);
+      console.log(`[WebDashboard] ${sess.user.username} a changé l'image de fond (${bgKind}) sur ${guild.name}`);
+      return J(200, { ok: true, has: true, ext });
+    }
+    return J(405, { error: 'method' });
+  }
+
+  if (previewKind && req.method === 'GET') {
+    try {
+      const { renderWelcomeCard } = require('./glassEmbed');
+      const u = sess.user, uid = BigInt(u.id);
+      const avatarUrl = u.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=256` : `https://cdn.discordapp.com/embed/avatars/${Number((uid >> 22n) % 6n)}.png`;
+      const buf = await renderWelcomeCard({
+        guildId, kind: previewKind, username: u.username, avatarUrl, serverName: guild.name, memberCount: guild.memberCount,
+        card: obtenirConfigGuilde(guildId)[`${previewKind}_card`] || {},
+        createdTs: Number((uid >> 22n) + 1420070400000n), joinedTs: Date.now() - 30 * 86400000
+      });
+      res.writeHead(200, { 'Content-Type': 'image/png', ...cors(ORIGIN) });
+      return res.end(buf);
+    } catch (e) {
+      console.error('[WebDashboard] aperçu carte :', e.message);
+      return J(500, { error: 'preview' });
+    }
+  }
 
   if (!isMeta && !modId && req.method === 'GET') {
     const modules = MODULES.map(mod => {
@@ -605,7 +812,7 @@ async function route(req, res, { client }, url) {
     if (!mod) return J(404, { error: 'module' });
 
     if (req.method === 'GET') {
-      return J(200, { module: { id: mod.id, name: mod.name, desc: mod.desc, fields: mod.fields.map(publicField) }, values: readValues(mod, guildId), premium: premiumOk(sess.user.id) });
+      return J(200, { module: { id: mod.id, name: mod.name, desc: mod.desc, preview: mod.preview || null, fields: mod.fields.map(publicField) }, values: readValues(mod, guildId), premium: premiumOk(sess.user.id) });
     }
 
     if (req.method === 'PUT') {
@@ -638,9 +845,10 @@ async function route(req, res, { client }, url) {
       }
       const dest = target(mod, guildId);
       for (const [f, v] of staged) {
-        if (f.emptyDelete && v === '') delPath(dest, f.key);
+        if ((f.emptyDelete && v === '') || (f.type === 'bool' && f.delWhen !== undefined && v === f.delWhen)) delPath(dest, f.key);
         else setPath(dest, f.key, v);
       }
+      if (mod.preview) { const ck = `${mod.preview}_card`; if (dest[ck] && !Object.keys(dest[ck]).length) delete dest[ck]; }
       await commit(mod, guildId);
       console.log(`[WebDashboard] ${sess.user.username} a modifié « ${mod.id} » sur ${guild.name} (${staged.length} réglage(s))`);
       return J(200, { ok: true, values: readValues(mod, guildId) });
