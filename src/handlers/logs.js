@@ -941,21 +941,9 @@ function registerLogHandlers(client) {
                 console.error(`Salon de notification d'ajout introuvable (${SALON_NOTIF_AJOUT_BOT}).`);
                 return;
             }
-            const payload = await buildPayload(guild, {
-                theme: 'green',
-                title: '➕ Bot ajouté à un serveur',
-                sub: guild.name,
-                blocks: [
-                    { label: 'Membres', value: String(guild.memberCount) },
-                    { label: 'Propriétaire', value: owner ? owner.user.tag : 'Inconnu' },
-                    { label: 'Ajouté par', value: inviter ? inviter.tag : 'Inconnu' },
-                    { label: 'Serveur créé il y a', value: formatAge(Date.now() - guild.createdTimestamp) },
-                ],
-                bigLabel: 'Serveurs du bot',
-                bigValue: String(client.guilds.cache.size),
-                footerLeft: `ID ${guild.id}`,
-                footerRight: guild.name,
-            }, { components: [botRow(guild.id)] });
+            const payload = await require('../commands/activityStats').buildBotNotif({
+                guild, client, kind: 'add', inviter, owner, row: botRow(guild.id),
+            });
             await salonNotif.send(payload).catch(e => {
                 console.error("Impossible d'envoyer la notification guildCreate dans le salon dédié :", e.message);
             });
@@ -972,18 +960,10 @@ function registerLogHandlers(client) {
                 console.error(`Salon de notification de retrait introuvable (${SALON_NOTIF_AJOUT_BOT}).`);
                 return;
             }
-            const payload = await buildPayload(guild, {
-                theme: 'red',
-                title: "➖ Bot retiré d'un serveur",
-                sub: guild.name,
-                blocks: [
-                    { label: 'Membres (avant de partir)', value: String(guild.memberCount) },
-                ],
-                bigLabel: 'Serveurs du bot',
-                bigValue: String(client.guilds.cache.size),
-                footerLeft: `ID ${guild.id}`,
-                footerRight: guild.name,
-            }, { components: [botRow(guild.id)] });
+            const owner = guild.members?.cache?.get(guild.ownerId) ?? null;
+            const payload = await require('../commands/activityStats').buildBotNotif({
+                guild, client, kind: 'remove', owner, row: botRow(guild.id),
+            });
             await salonNotif.send(payload).catch(e => {
                 console.error("Impossible d'envoyer la notification guildDelete dans le salon dédié :", e.message);
             });

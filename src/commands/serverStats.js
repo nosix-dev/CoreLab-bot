@@ -20,16 +20,16 @@ const {
 } = require('../core/serverStatsCounters');
 
 // ────────────────────────────────────────────────
-// /serverstats-setup — salons vocaux verrouillés dont le nom affiche une statistique
+// /bot-stats — salons vocaux verrouillés dont le nom affiche une statistique
 // du serveur (Membres, En ligne, Boosts...). Les noms sont ensuite mis à jour toutes les
 // 10 min par src/tasks/serverStats.js (config : serverstats_enabled / _category_id / _counters).
 // ────────────────────────────────────────────────
 
-const CATEGORY_NAME = '📊 Statistiques';
+const CATEGORY_NAME = '📊 CoreLabStats';
 const PANEL_TIMEOUT = 10 * 60 * 1000;
 
 const data = new SlashCommandBuilder()
-  .setName('serverstats-setup')
+  .setName('bot-stats')
   .setDescription('Configurer les salons de statistiques du serveur (membres, en ligne, boosts...)')
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .setDMPermission(false);

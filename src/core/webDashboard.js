@@ -409,7 +409,7 @@ const MODULES = [
   },
   {
     id: 'serverstats', name: '📊 Statistiques du serveur', group: 'Serveur', toggle: 'serverstats_enabled',
-    desc: 'Salons vocaux compteurs mis à jour toutes les 10 minutes. Les compteurs se créent avec /serverstats-setup.',
+    desc: 'Salons vocaux compteurs mis à jour toutes les 10 minutes. Les compteurs se créent avec /bot-stats.',
     fields: [
       B('serverstats_enabled', 'Activer les compteurs', false),
       CAT('serverstats_category_id', 'Catégorie des compteurs', { dep: 'serverstats_enabled' })

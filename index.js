@@ -810,49 +810,12 @@ client.on('interactionCreate', async interaction => {
         flags: MessageFlags.Ephemeral
       }).catch(() => { });
     }
-    const owner = await guild.fetchOwner().catch(() => null);
-    const canal = guild.channels.cache.filter(c => c.type === ChannelType.GuildText).size;
-    const vocaux = guild.channels.cache.filter(c => c.type === ChannelType.GuildVoice).size;
-    const estBlackliste = !!(store.blacklistServeurs && store.blacklistServeurs[guild.id]);
-    const embed = new EmbedBuilder().setTitle(`📊 Statistiques — ${guild.name}`).setThumbnail(guild.iconURL() ?? null).setColor(0xE8510D).addFields({
-      name: '🆔 ID',
-      value: `\`${guild.id}\``,
-      inline: true
-    }, {
-      name: '👑 Propriétaire',
-      value: owner ? `**${owner.user.tag}**\nID: \`${owner.id}\`` : 'Inconnu',
-      inline: true
-    }, {
-      name: '👥 Membres',
-      value: `\`${guild.memberCount}\``,
-      inline: true
-    }, {
-      name: '🚀 Niveau de boost',
-      value: `\`${guild.premiumTier ?? 0}\` (${guild.premiumSubscriptionCount ?? 0} boosts)`,
-      inline: true
-    }, {
-      name: '💬 Salons textuels',
-      value: `\`${canal}\``,
-      inline: true
-    }, {
-      name: '🔊 Salons vocaux',
-      value: `\`${vocaux}\``,
-      inline: true
-    }, {
-      name: '📅 Créé le',
-      value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`,
-      inline: true
-    }, {
-      name: '⛔ Blacklist',
-      value: estBlackliste ? '✅ Oui' : '❌ Non',
-      inline: true
-    }).setFooter({
-      text: `Total de serveurs du bot : ${client.guilds.cache.size}`
+    return require('./src/commands/activityStats').openGuildStats(interaction, guild).catch(async e => {
+      console.error('[BotAdd] stats :', e);
+      const msg = { content: '❌ Impossible d\'afficher les statistiques pour le moment.', flags: MessageFlags.Ephemeral };
+      if (interaction.deferred || interaction.replied) await interaction.followUp(msg).catch(() => { });
+      else await interaction.reply(msg).catch(() => { });
     });
-    return interaction.reply({
-      embeds: [embed],
-      flags: MessageFlags.Ephemeral
-    }).catch(() => { });
   }
   if (interaction.isButton() && interaction.customId.startsWith('botadd_blacklist_') && !interaction.customId.includes('_confirm_') && interaction.customId !== 'botadd_blacklist_cancel') {
     if (interaction.user.id !== BOT_OWNER_ID) {

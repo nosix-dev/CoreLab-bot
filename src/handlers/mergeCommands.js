@@ -186,8 +186,7 @@ const MERGES = [
     extend: true,
     subs: [
       { from: 'config-panel', as: 'panel', en: 'panel' },
-      { from: 'config-ia', as: 'ia', en: 'ai' },
-      { from: 'serverstats-setup', as: 'stats-salons', en: 'stats-channels' }
+      { from: 'config-ia', as: 'ia', en: 'ai' }
     ]
   }
 ];

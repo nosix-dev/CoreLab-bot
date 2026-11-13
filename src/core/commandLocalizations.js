@@ -78,7 +78,7 @@ const NAME_LOCALIZATIONS = {
   'protect-settings': ['protect-settings', 'protect-settings'],
   report: ['report', 'report'],
   rp: ['rp', 'rp'],
-  'serverstats-setup': ['serverstats-setup', 'serverstats-setup'],
+  'bot-stats': ['bot-stats', 'bot-stats'],
   social: ['social', 'social'],
   'vote-bot': ['vote-bot', 'vote-bot'],
   vote: ['vote', 'vote'],
