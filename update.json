@@ -1,0 +1,36 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.35",
+  "date": "2026-11-13",
+  "mention": false,
+  "titre": "📌 Mise a jour 5.5.35 — Stats, logs du bot et /bot-stats",
+  "couleur": "#e8510d",
+  "article": {
+    "label": "Changelog",
+    "emoji": "📜",
+    "url": "https://corelab-4cn.pages.dev/docs#p-changelog"
+  },
+  "intro": "Les **logs d'ajout et de retrait du bot**, **/server-stats** et **/user-stats** ont maintenant le même look, avec le nombre d'**humains** et de **bots**. La commande **/bot-stats** est de retour et crée la catégorie **📊・CoreStats**.",
+  "modifications": {
+    "📊 Statistiques des messages": [
+      "[+] La vue d'ensemble de **/server-stats** affiche le nombre d'**humains**, de **bots** et de **membres**.",
+      "[~] **/server-stats** et **/user-stats** gardent le look des statistiques des messages : vue d'ensemble, graphique, boutons de navigation et choix de la période."
+    ],
+    "🧮 Salons de statistiques": [
+      "[+] **/bot-stats** : retour de la commande pour créer les salons vocaux de statistiques (Membres, En ligne, Humains, Bots, Salons, Rôles, Boosts), mis à jour automatiquement.",
+      "[~] La commande n'est plus cachée dans `/config stats-salons`.",
+      "[+] Au clic sur **Appliquer**, le bot crée la catégorie **📊・CoreStats** pour ranger les salons.",
+      "[~] Si la catégorie des statistiques existe déjà, elle est renommée en **📊・CoreStats** au prochain clic sur **Appliquer**."
+    ],
+    "🧩 Aide et dashboard": [
+      "[~] **/bot-stats** remplace l'ancien nom de la commande dans la liste de l'aide.",
+      "[~] Le texte de la section « Statistiques du serveur » du dashboard indique maintenant **/bot-stats**."
+    ]
+  },
+  "pied": "Ajoute CoreLab sur tes autres serveurs.",
+  "support": {
+    "label": "Inviter le bot",
+    "emoji": "🚀",
+    "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+  }
+}
