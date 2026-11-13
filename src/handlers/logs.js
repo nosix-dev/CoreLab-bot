@@ -7,6 +7,11 @@ const {
     ButtonStyle,
     AttachmentBuilder,
     EmbedBuilder,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MessageFlags,
 } = require('discord.js');
 const compactCard = require('../core/compactCard');
 const { generateLogCardAsync, formatAge } = require('./logCardImage');
@@ -922,6 +927,34 @@ function registerLogHandlers(client) {
         new ButtonBuilder().setCustomId(`botadd_stats_${guildId}`).setLabel('Statistique').setStyle(ButtonStyle.Secondary).setEmoji('📊'),
     );
 
+    // ── Carte de notification : style stats (avec graphique), repli en version texte si ça échoue ──
+    // (ainsi la notification arrive toujours dans le salon, même en cas de souci sur le nouveau style)
+    const buildBotNotifPayload = async (kind, guild, { inviter = null, owner = null } = {}) => {
+        try {
+            return await require('../commands/activityStats').buildBotNotif({
+                guild, client, kind, inviter, owner, row: botRow(guild.id),
+            });
+        } catch (e) {
+            console.error(`[BotNotif] Carte avec graphique indisponible (${kind}), version texte utilisée :`, e);
+            const ajout = kind === 'add';
+            const nbBots = guild.members?.cache?.filter(m => m.user.bot).size ?? 0;
+            const humains = Math.max(0, (guild.memberCount || 0) - nbBots);
+            const lignes = [
+                `## ${ajout ? '➕ Bot ajouté à un serveur' : "➖ Bot retiré d'un serveur"} — ${guild.name}`,
+                `🧑 **Humains** : ${humains}  •  🤖 **Bots** : ${nbBots}  •  👥 **Membres** : ${guild.memberCount}`,
+                `👑 **Propriétaire** : ${owner?.user?.tag ?? 'Inconnu'}` + (ajout ? `  •  👤 **Ajouté par** : ${inviter ? inviter.tag : 'Inconnu'}` : ''),
+                `📅 **Serveur créé il y a** : ${formatAge(Date.now() - guild.createdTimestamp)}  •  🌐 **Serveurs du bot** : ${client.guilds.cache.size}`,
+            ];
+            const container = new ContainerBuilder()
+                .setAccentColor(ajout ? 0x57F287 : 0xED4245)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(lignes.join('\n')))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ID ${guild.id}`))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
+                .addActionRowComponents(botRow(guild.id));
+            return { components: [container], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
+        }
+    };
+
     // ── ➕ Bot ajouté à un serveur ──────────────────────────────
     client.on('guildCreate', async guild => {
         try {
@@ -941,9 +974,7 @@ function registerLogHandlers(client) {
                 console.error(`Salon de notification d'ajout introuvable (${SALON_NOTIF_AJOUT_BOT}).`);
                 return;
             }
-            const payload = await require('../commands/activityStats').buildBotNotif({
-                guild, client, kind: 'add', inviter, owner, row: botRow(guild.id),
-            });
+            const payload = await buildBotNotifPayload('add', guild, { inviter, owner });
             await salonNotif.send(payload).catch(e => {
                 console.error("Impossible d'envoyer la notification guildCreate dans le salon dédié :", e.message);
             });
@@ -961,9 +992,7 @@ function registerLogHandlers(client) {
                 return;
             }
             const owner = guild.members?.cache?.get(guild.ownerId) ?? null;
-            const payload = await require('../commands/activityStats').buildBotNotif({
-                guild, client, kind: 'remove', owner, row: botRow(guild.id),
-            });
+            const payload = await buildBotNotifPayload('remove', guild, { owner });
             await salonNotif.send(payload).catch(e => {
                 console.error("Impossible d'envoyer la notification guildDelete dans le salon dédié :", e.message);
             });
