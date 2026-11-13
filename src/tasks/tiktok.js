@@ -95,12 +95,17 @@ async function fetchLatestVideo(username) {
       signal: AbortSignal.timeout(18000)
     });
     if (!res.ok) {
-      console.error(`[TikTok] Réponse HTTP non OK (${res.status}) pour @${username}`);
+      const corps = await res.text().catch(() => '');
+      const hint = res.status === 429 ? ' (quota/limite RapidAPI atteint ?)' : res.status === 401 || res.status === 403 ? ' (clé RAPIDAPI_KEY invalide ou abonnement inactif ?)' : '';
+      console.error(`[TikTok] Réponse HTTP non OK (${res.status})${hint} pour @${username} :`, corps.slice(0, 200));
       return null;
     }
     const json = await res.json();
     const videos = json?.data?.videos;
-    if (!Array.isArray(videos) || !videos.length) return null;
+    if (!Array.isArray(videos) || !videos.length) {
+      console.warn(`[TikTok] Aucune vidéo dans la réponse pour @${username} (code=${json?.code}, msg=${json?.msg})`);
+      return null;
+    }
 
     // Trie explicitement par date de publication par sécurité (normalement déjà trié).
     const trie = [...videos].sort((a, b) => Number(b.create_time || 0) - Number(a.create_time || 0));
@@ -119,6 +124,9 @@ function buildVideoEmbed(video) {
 }
 
 const { alreadyPosted } = require('../core/alreadyPosted');
+
+// Fenêtre de rattrapage d'une vidéo manquée pendant une coupure du bot
+const CATCHUP_MS = 12 * 60 * 60 * 1000;
 
 // Verrou anti-chevauchement
 let isChecking = false;
@@ -149,14 +157,19 @@ async function runCheck(client) {
         }
         const latest = await fetchLatestVideo(entry.username);
         if (!latest || !latest.id) continue;
-        if (!entry.lastVideoId) {
-          entry.lastVideoId = latest.id;
-          changed = true;
-          continue; // pas de spam de l'historique existant au premier check
-        }
         if (entry.lastVideoId === latest.id) continue;
         const discordChannel = guild.channels.cache.get(entry.channelId);
         if (!discordChannel?.isTextBased?.()) continue;
+        if (!entry.lastVideoId) {
+          // Premier check (ou état perdu au redéploiement) : on ne spamme pas l'historique,
+          // mais on rattrape une vidéo publiée il y a moins de CATCHUP_MS qui n'a pas été postée.
+          const recente = latest.publishedAt && (Date.now() - latest.publishedAt) < CATCHUP_MS;
+          if (!recente || await alreadyPosted(discordChannel, [latest.id, latest.url])) {
+            entry.lastVideoId = latest.id;
+            changed = true;
+            continue;
+          }
+        }
         // Déjà postée dans le salon (état JSON perdu au redéploiement) : on la marque comme envoyée sans la reposter
         if (await alreadyPosted(discordChannel, [latest.id, latest.url])) {
           entry.lastVideoId = latest.id;
@@ -189,7 +202,7 @@ async function runCheck(client) {
     }
   }
 }
-function startTiktokChecker(client, intervalMs = 120000) {
+function startTiktokChecker(client, intervalMs = Number(process.env.TIKTOK_INTERVAL_MS) || 300000) {
   if (intervalStarted) {
     console.warn('[TikTok] startTiktokChecker() déjà appelé, appel ignoré.');
     return;
