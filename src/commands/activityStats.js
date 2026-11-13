@@ -76,6 +76,23 @@ async function nomsMembres(guild, ids) {
   return out;
 }
 
+// Compte humains / bots (fetch des membres si le cache est incomplet, sinon cache seul)
+async function compterMembres(guild, noFetch = false) {
+  try {
+    if (!noFetch && guild.members.cache.size < guild.memberCount) {
+      await Promise.race([
+        guild.members.fetch(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000)),
+      ]);
+    }
+  } catch { /* on garde le cache */ }
+  const bots = guild.members.cache.filter(m => m.user.bot).size;
+  const total = guild.memberCount;
+  const complet = guild.members.cache.size >= total;
+  const humains = complet ? total - bots : guild.members.cache.size - bots;
+  return { total, bots, humains: Math.max(0, humains) };
+}
+
 function nomSalon(guild, id) {
   const name = guild.channels.cache.get(id)?.name;
   return name ? `#${name}` : '#salon-supprimé';
@@ -84,6 +101,7 @@ function nomSalon(guild, id) {
 // ── Construction d'une vue (texte + image + boutons) ────────────────────
 async function buildView({ guild, client, scope, view, days, ownerId, targetId }) {
   const isUser = scope === 'u';
+  const isRemote = scope === 'b'; // vue d'un serveur depuis la notification d'ajout du bot
   const stats = summarize(guild.id, days, isUser ? targetId : null);
   const labels = stats.keys.map(dateLabel);
   const nowUnix = Math.floor(Date.now() / 1000);
@@ -128,10 +146,13 @@ async function buildView({ guild, client, scope, view, days, ownerId, targetId }
       png = graphHeures(guildId, stats);
     }
   } else if (view === 'overview') {
+    const m = await compterMembres(guild);
     header =
-      '## 📈 Statistiques des Messages\n' +
+      `## 📈 Statistiques des Messages${isRemote ? ` — ${guild.name}` : ''}\n` +
       `📨 **Total (${days}j)** : ${fmt(stats.total)}  •  📊 **Moyenne/jour** : ${fmt1(stats.avg)}  •  👥 **Utilisateurs actifs** : ${fmt(stats.activeUsers)}\n` +
-      `📥 **Arrivées** : ${fmt(stats.joins)}  •  📤 **Départs** : ${fmt(stats.leaves)}  •  🎙️ **Vocal** : ${dureeVocal(stats.voiceMinutes)}`;
+      `📥 **Arrivées** : ${fmt(stats.joins)}  •  📤 **Départs** : ${fmt(stats.leaves)}  •  🎙️ **Vocal** : ${dureeVocal(stats.voiceMinutes)}\n` +
+      `🧑 **Humains** : ${fmt(m.humains)}  •  🤖 **Bots** : ${fmt(m.bots)}  •  👥 **Membres** : ${fmt(m.total)}`;
+    if (isRemote) thumb = guild.iconURL({ size: 256 }) || null;
     png = lineChart({ guildId, caption: `Messages des ${days} derniers jours`, sub: sousTitre, labels, values: stats.perDay });
   } else if (view === 'messages') {
     header =
@@ -176,7 +197,7 @@ async function buildView({ guild, client, scope, view, days, ownerId, targetId }
     .addTextDisplayComponents(text(`-# Aujourd'hui à <t:${nowUnix}:t>`))
     .addSeparatorComponents(sep());
 
-  const target = isUser ? targetId : '0';
+  const target = isUser ? targetId : (isRemote ? guildId : '0');
   const rowBoutons = new ActionRowBuilder();
   for (const v of (isUser ? VIEWS_USER : VIEWS_SERVER)) {
     rowBoutons.addComponents(
@@ -293,7 +314,7 @@ async function userExecute(interaction, client) {
 // ── Boutons + menu période (appelé depuis index.js) ─────────────────────
 async function routeActivityInteraction(interaction) {
   const [, scope, view, daysStr, ownerId, targetId] = String(interaction.customId).split('|');
-  if (!interaction.guild || !['s', 'u'].includes(scope)) return;
+  if (!interaction.guild || !['s', 'u', 'b'].includes(scope)) return;
 
   if (interaction.user.id !== ownerId) {
     return interaction.reply({
@@ -307,11 +328,16 @@ async function routeActivityInteraction(interaction) {
   const vues = scope === 'u' ? VIEWS_USER : VIEWS_SERVER;
   const vue = vues.some(v => v.id === view) ? view : 'overview';
 
+  const guildCible = scope === 'b' ? interaction.client.guilds.cache.get(targetId) : interaction.guild;
+  if (!guildCible) {
+    return interaction.reply({ content: '❌ Serveur introuvable (le bot l\'a peut-être déjà quitté).', flags: MessageFlags.Ephemeral });
+  }
+
   try {
     await interaction.deferUpdate();
     const payload = await buildView({
-      guild: interaction.guild, client: interaction.client, scope, view: vue,
-      days, ownerId, targetId: scope === 'u' ? targetId : '0'
+      guild: guildCible, client: interaction.client, scope, view: vue,
+      days, ownerId, targetId: scope === 'u' ? targetId : (scope === 'b' ? targetId : '0')
     });
     await interaction.editReply({ ...payload, attachments: [] });
   } catch (e) {
@@ -320,7 +346,71 @@ async function routeActivityInteraction(interaction) {
   }
 }
 
+// Notification d'ajout / de retrait du bot, au même style que le panneau de stats
+async function buildBotNotif({ guild, client, kind, inviter, owner, row }) {
+  const ajout = kind === 'add';
+  const stats = summarize(guild.id, 7, null);
+  const labels = stats.keys.map(dateLabel);
+  const m = await compterMembres(guild, !ajout);
+  const fileName = `botnotif-${guild.id}.png`;
+  const png = lineChart({
+    guildId: guild.id, caption: 'Messages des 7 derniers jours', sub: '7 jours',
+    labels, values: stats.perDay
+  });
+
+  const header =
+    `## ${ajout ? '➕ Bot ajouté à un serveur' : '➖ Bot retiré d\'un serveur'} — ${guild.name}\n` +
+    `🧑 **Humains** : ${fmt(m.humains)}  •  🤖 **Bots** : ${fmt(m.bots)}  •  👥 **Membres** : ${fmt(m.total)}\n` +
+    `👑 **Propriétaire** : ${owner ? owner.user.tag : 'Inconnu'}` +
+    (ajout ? `  •  👤 **Ajouté par** : ${inviter ? inviter.tag : 'Inconnu'}` : '') + '\n' +
+    `📅 **Serveur créé il y a** : ${formatAgeFr(Date.now() - guild.createdTimestamp)}  •  🌐 **Serveurs du bot** : ${fmt(client.guilds.cache.size)}\n` +
+    `📨 **Messages (7j)** : ${fmt(stats.total)}  •  📥 **Arrivées** : ${fmt(stats.joins)}  •  📤 **Départs** : ${fmt(stats.leaves)}  •  🎙️ **Vocal** : ${dureeVocal(stats.voiceMinutes)}`;
+
+  const container = new ContainerBuilder().setAccentColor(ajout ? 0x57F287 : 0xED4245);
+  const icon = guild.iconURL({ size: 256 });
+  if (icon) {
+    container.addSectionComponents(
+      new SectionBuilder().addTextDisplayComponents(text(header)).setThumbnailAccessory(new ThumbnailBuilder().setURL(icon))
+    );
+  } else {
+    container.addTextDisplayComponents(text(header));
+  }
+  container
+    .addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(`attachment://${fileName}`)))
+    .addTextDisplayComponents(text(`-# ID ${guild.id}  •  <t:${Math.floor(Date.now() / 1000)}:t>`))
+    .addSeparatorComponents(sep());
+  if (row) container.addActionRowComponents(row);
+
+  return {
+    components: [container],
+    files: [new AttachmentBuilder(png, { name: fileName })],
+    flags: V2,
+    allowedMentions: { parse: [] },
+  };
+}
+
+function formatAgeFr(ms) {
+  const j = Math.floor(ms / 86400000);
+  if (j < 1) return 'moins d\'un jour';
+  if (j < 31) return `${j} jour${j > 1 ? 's' : ''}`;
+  if (j < 365) return `${Math.floor(j / 30)} mois`;
+  const a = Math.floor(j / 365), mo = Math.floor((j % 365) / 30);
+  return `${a} an${a > 1 ? 's' : ''}${mo ? ` ${mo} mois` : ''}`;
+}
+
+// Ouvre le panneau de stats d'un serveur (bouton « Statistique » de la notification d'ajout du bot)
+async function openGuildStats(interaction, guild, days = 7) {
+  await interaction.deferReply({ flags: V2 | MessageFlags.Ephemeral });
+  const payload = await buildView({
+    guild, client: interaction.client, scope: 'b', view: 'overview',
+    days: clampDays(days), ownerId: interaction.user.id, targetId: guild.id
+  });
+  return interaction.editReply(payload);
+}
+
 module.exports = {
+  openGuildStats,
+  buildBotNotif,
   commands: [
     { data: serverData, execute: serverExecute },
     { data: userData, execute: userExecute },
