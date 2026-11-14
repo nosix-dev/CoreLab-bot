@@ -224,6 +224,24 @@ function summarize(guildId, days, userId = null) {
   };
 }
 
+/**
+ * Séries jour par jour (pour les graphiques du dashboard web) sur les `days` derniers jours.
+ * @returns {{keys:string[], messages:number[], voice:number[], joins:number[], leaves:number[]}}
+ */
+function dailySeries(guildId, days) {
+  const g = store.guilds[guildId];
+  const keys = dayKeysBack(days);
+  const out = { keys, messages: [], voice: [], joins: [], leaves: [] };
+  for (const key of keys) {
+    const d = g?.days?.[key];
+    out.messages.push(d?.t || 0);
+    out.voice.push(Math.round(d?.v || 0));
+    out.joins.push(d?.j || 0);
+    out.leaves.push(d?.l || 0);
+  }
+  return out;
+}
+
 // ── Branchement sur le client Discord ───────────────────────────────────
 const voiceSessions = new Map(); // `${guildId}:${userId}` → timestamp de début
 
@@ -309,6 +327,7 @@ function registerActivityStatsHandler(client) {
 module.exports = {
   registerActivityStatsHandler,
   summarize,
+  dailySeries,
   localParts,
   TZ
 };

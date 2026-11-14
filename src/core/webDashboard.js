@@ -16,6 +16,7 @@ const MANAGE_GUILD = 0x20n;
 const TEXT_CHANNEL_TYPES = [0, 5];
 const CATEGORY_TYPE = 4;
 const MAX_LIST = 25;
+const previewBusy = new Map(); // userId → horodatage du dernier rendu d'aperçu (-1 = rendu en cours)
 
 /* ============================================================
    Modules affichés dans le dashboard.
@@ -742,9 +743,9 @@ async function route(req, res, { client }, url) {
   }
   if (p === '/api/logout' && req.method === 'POST') { return J(200, { ok: true }); }
 
-  const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye))?$/);
+  const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye)|\/(activity))?$/);
   if (!m) return J(404, { error: 'not_found' });
-  const [, guildId, isMeta, modId, previewKind, bgKind] = m;
+  const [, guildId, isMeta, modId, previewKind, bgKind, isActivity] = m;
   if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
   const guild = client.guilds.cache.get(guildId);
   if (!guild) return J(404, { error: 'bot_absent' });
@@ -768,6 +769,71 @@ async function route(req, res, { client }, url) {
       return J(200, { ok: true, has: true, ext });
     }
     return J(405, { error: 'method' });
+  }
+
+  /* ---------- Graphiques d'activité (messages, vocal, arrivées/départs, heures, salons, membres) ---------- */
+  if (isActivity) {
+    if (req.method !== 'GET') return J(405, { error: 'method' });
+    try {
+      const stats = require('./activityStats');
+      const wanted = Number(url.searchParams.get('days'));
+      const days = [7, 14, 30].includes(wanted) ? wanted : 7;
+      const sum = stats.summarize(guildId, days), ser = stats.dailySeries(guildId, days);
+      const topUsers = await Promise.all(sum.topUsers.slice(0, 5).map(async ([id, n]) => {
+        const mb = guild.members.cache.get(id) || await guild.members.fetch(id).catch(() => null);
+        return { name: mb ? mb.displayName : 'Ancien membre', count: n };
+      }));
+      return J(200, {
+        days, tz: stats.TZ, keys: ser.keys, messages: ser.messages, voice: ser.voice, joins: ser.joins, leaves: ser.leaves,
+        hours: sum.hours, peakHour: sum.peakHour,
+        totals: { messages: sum.total, avg: Math.round(sum.avg * 10) / 10, activeUsers: sum.activeUsers, activeDays: sum.activeDays, voiceMinutes: Math.round(sum.voiceMinutes), joins: sum.joins, leaves: sum.leaves },
+        topChannels: sum.topChannels.slice(0, 5).map(([id, n]) => ({ name: guild.channels.cache.get(id)?.name || 'salon supprimé', count: n })),
+        topUsers
+      });
+    } catch (e) {
+      console.error('[WebDashboard] activité :', e.message);
+      return J(500, { error: 'activity' });
+    }
+  }
+
+  /* ---------- Aperçu en direct : rend la carte avec les valeurs du formulaire NON enregistrées ---------- */
+  if (previewKind && req.method === 'POST') {
+    const now = Date.now(), last = previewBusy.get(sess.user.id) || 0;
+    if (last === -1 || now - last < 250) return J(429, { error: 'busy' }); // un seul rendu à la fois par utilisateur
+    previewBusy.set(sess.user.id, -1);
+    try {
+      let body;
+      try { body = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+      const mod = MODULES.find(x => x.id === `${previewKind}card`);
+      if (!mod) return J(404, { error: 'module' });
+      const allowPremium = premiumOk(sess.user.id);
+      const saved = obtenirConfigGuilde(guildId)[`${previewKind}_card`] || {};
+      const draft = { [`${previewKind}_card`]: JSON.parse(JSON.stringify(saved)) };
+      const vctx = { guild, roleProblem: () => null, executor: null, chanIds: new Set(), catIds: new Set() };
+      for (const f of mod.fields) {
+        if (!(f.key in body) || (f.premium && !allowPremium)) continue; // verrouillé : on garde la valeur enregistrée
+        const r = checkField(f, body[f.key], getPath(draft, f.key), vctx);
+        if (r.err) continue; // valeur invalide en cours de saisie : on l'ignore pour l'aperçu
+        if ((f.emptyDelete && r.value === '') || (f.type === 'bool' && f.delWhen !== undefined && r.value === f.delWhen)) delPath(draft, f.key);
+        else setPath(draft, f.key, r.value);
+      }
+      const { renderWelcomeCard } = require('./glassEmbed');
+      const u = sess.user, uid = BigInt(u.id);
+      const avatarUrl = u.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=256` : `https://cdn.discordapp.com/embed/avatars/${Number((uid >> 22n) % 6n)}.png`;
+      const buf = await renderWelcomeCard({
+        guildId, kind: previewKind, username: u.username, avatarUrl, serverName: guild.name, memberCount: guild.memberCount,
+        card: draft[`${previewKind}_card`] || {},
+        createdTs: Number((uid >> 22n) + 1420070400000n), joinedTs: Date.now() - 30 * 86400000
+      });
+      res.writeHead(200, { 'Content-Type': 'image/png', ...cors(ORIGIN) });
+      return res.end(buf);
+    } catch (e) {
+      console.error('[WebDashboard] aperçu en direct :', e.message);
+      return J(500, { error: 'preview' });
+    } finally {
+      previewBusy.set(sess.user.id, Date.now());
+      if (previewBusy.size > 500) for (const [k, v] of previewBusy) if (v !== -1 && Date.now() - v > 60000) previewBusy.delete(k);
+    }
   }
 
   if (previewKind && req.method === 'GET') {
