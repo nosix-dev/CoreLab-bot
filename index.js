@@ -1326,6 +1326,7 @@ try { require('./src/handlers/permGuard').registerPermGuard(client); } catch (e)
 require('./src/commands/quests').registerQuests(client);
 require('./src/commands/roleMenu').registerRoleMenus(client);
 require('./src/commands/rankup').registerRankup(client);
+require('./src/commands/interserveur').registerInterserveur(client);
 require('./src/commands/anime').registerAnime(client);
 registerStarboardHandlers(client);
 registerModmailHandler(client);
