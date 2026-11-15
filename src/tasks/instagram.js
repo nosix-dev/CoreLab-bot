@@ -159,11 +159,32 @@ async function fetchLatestPost(userId, username) {
   posts.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
   return posts[0];
 }
+// Sépare la légende du texte et des hashtags, et coupe proprement la légende longue
+function formaterLegende(desc) {
+  const brut = String(desc || '');
+  const hashtags = [...new Set(brut.match(/#[\p{L}\p{N}_]+/gu) || [])].slice(0, 8);
+  let texte = brut.replace(/#[\p{L}\p{N}_]+/gu, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').trim();
+  if (texte.length > 350) texte = texte.slice(0, 350).replace(/\s+\S*$/, '') + '…';
+  return {
+    texte,
+    hashtags
+  };
+}
 function buildPostEmbed(post) {
-  const titre = post.isReel ? 'Nouveau reel Instagram' : 'Nouvelle publication Instagram';
-  const embed = new EmbedBuilder().setTitle(titre).setURL(post.url).setColor(0xE1306C).setDescription(`**@${post.author}** vient de publier sur Instagram !${post.desc ? `\n\n${post.desc.slice(0, 500)}` : ''}`).setFooter({
-    text: 'Instagram • Nouvelle publication'
-  }).setTimestamp();
+  const {
+    texte,
+    hashtags
+  } = formaterLegende(post.desc);
+  const lignes = [];
+  if (texte) lignes.push(texte.split('\n').map(l => `> ${l}`).join('\n'));
+  if (hashtags.length) lignes.push(`-# ${hashtags.join('  ')}`);
+  const embed = new EmbedBuilder().setColor(0xE1306C).setAuthor({
+    name: `@${post.author} • Instagram`,
+    url: `https://www.instagram.com/${post.author}/`
+  }).setTitle(post.isReel ? '🎬 Nouveau reel' : '📸 Nouvelle publication').setURL(post.url).setFooter({
+    text: post.isReel ? 'Instagram • Reel' : 'Instagram • Publication'
+  }).setTimestamp(post.publishedAt ? new Date(post.publishedAt) : new Date());
+  if (lignes.length) embed.setDescription(lignes.join('\n\n'));
   if (post.thumbnail) embed.setImage(post.thumbnail);
   return embed;
 }
@@ -224,8 +245,9 @@ async function runCheck(client) {
         entry.lastPostId = latest.id;
         changed = true;
         persist('instagramNotifs');
-        const button = new ButtonBuilder().setLabel(latest.isReel ? '📸 Voir le reel' : '📸 Voir la publication').setURL(latest.url).setStyle(ButtonStyle.Link);
-        const row = new ActionRowBuilder().addComponents(button);
+        const button = new ButtonBuilder().setLabel(latest.isReel ? '🎬 Voir le reel' : '📸 Voir la publication').setURL(latest.url).setStyle(ButtonStyle.Link);
+        const profil = new ButtonBuilder().setLabel('👤 Profil').setURL(`https://www.instagram.com/${latest.author}/`).setStyle(ButtonStyle.Link);
+        const row = new ActionRowBuilder().addComponents(button, profil);
         await discordChannel.send(toCV2Payload({
           content: `📸 **${latest.isReel ? 'Nouveau reel' : 'Nouvelle publication'} Instagram de @${latest.author} !**`,
           embeds: [buildPostEmbed(latest)],
