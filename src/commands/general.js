@@ -40,6 +40,7 @@ const {
 } = require('../tasks/tiktok');
 const {
   resolveInstagramUsername,
+  fetchInstagramUserId,
   fetchLatestPost: fetchLatestInstagramPost
 } = require('../tasks/instagram');
 const {
@@ -641,7 +642,7 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
     content: '✅ Purge automatique retirée.',
     flags: MessageFlags.Ephemeral
   });
-}, PermissionFlagsBits.Administrator), makeCommand('notification', '⭐ Premium • Gérer les notifications YouTube, Twitch, Blog, Medal, TikTok, Instagram', data => data.addSubcommand(sub => sub.setName('ajouter').setDescription('⭐ Premium • Suivre YouTube, Twitch, un blog, Medal, TikTok ou Instagram').addStringOption(o => o.setName('plateforme').setDescription('Plateforme à suivre').setRequired(true).addChoices({
+}, PermissionFlagsBits.Administrator), makeCommand('notification', '⭐ Premium • Gérer les notifications YouTube, Twitch, Blog et Medal', data => data.addSubcommand(sub => sub.setName('ajouter').setDescription('⭐ Premium • Suivre une chaîne YouTube, Twitch, un blog ou un profil Medal').addStringOption(o => o.setName('plateforme').setDescription('Plateforme à suivre').setRequired(true).addChoices({
   name: 'YouTube Live',
   value: 'youtube-live'
 }, {
@@ -852,22 +853,26 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
       });
       const username = resolveInstagramUsername(url);
       if (!username) {
-        return interaction.editReply('❌ **URL Instagram invalide ou compte introuvable.**\n' + 'Formats acceptés : `https://www.instagram.com/pseudo`, ou directement `@pseudo`.');
+        return interaction.editReply('❌ **URL Instagram invalide.**\n' + 'Formats acceptés : `https://www.instagram.com/pseudo`, ou directement `@pseudo`.');
       }
       const bucket = getGuildBucket(interaction.guild.id, bucketKey, []);
       if (bucket.some(n => n.username === username && n.channelId === channel.id)) {
         return interaction.editReply('⚠️ Déjà suivi dans ce salon.');
       }
-      const latest = await fetchLatestInstagramPost(username);
+      const userId = await fetchInstagramUserId(username);
+      const latest = userId ? await fetchLatestInstagramPost(userId, username) : null;
       bucket.push({
         url,
         channelId: channel.id,
         username,
-        userId: latest ? latest.userId : '',
+        userId: userId || '',
         lastPostId: latest ? latest.id : ''
       });
       setGuildBucket(interaction.guild.id, bucketKey, bucket);
-      return interaction.editReply(`✅ Notifications Instagram activées pour **@${username}** dans ${channel} !` + (latest ? '' : '\n⚠️ Impossible de lire les publications pour le moment (compte privé, ou clé `RAPIDAPI_KEY` / abonnement à l\'API Instagram Looter manquant ?). Le suivi est enregistré et réessaiera tout seul.'));
+      if (!latest) {
+        return interaction.editReply(`⚠️ **Impossible de lire les publications pour le moment** (compte privé, ou clé \`RAPIDAPI_KEY\` / abonnement à l'API Instagram Looter manquant ?).\nLe suivi de **@${username}** est enregistré dans ${channel} et réessaiera tout seul.`);
+      }
+      return interaction.editReply(`✅ Notifications Instagram activées pour **@${username}** dans ${channel} !`);
     }
   }
 
