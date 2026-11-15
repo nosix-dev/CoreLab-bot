@@ -56,7 +56,7 @@ const FAMILLES = [
   },
   {
     id: 'notifs', emoji: '🔔', nom: 'Notifications', tier: 'premium',
-    items: ['`/notification` : suivre YouTube, Twitch, Blog et Medal']
+    items: ['`/notification` : suivre YouTube, Twitch, Blog, Medal, TikTok et Instagram']
   },
   {
     id: 'extras', emoji: '⭐', nom: 'Extras', tier: 'premium',

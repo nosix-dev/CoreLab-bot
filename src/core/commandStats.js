@@ -53,7 +53,7 @@ const CATEGORY_RULES = [
   { name: "Moderation", match: /^(warn|ban|kick|mute|timeout|purge|unban|unmute)/i },
   { name: "XP / Niveaux", match: /^(rank|leaderboard|xp-)/i },
   { name: "Tickets", match: /^ticket/i },
-  { name: "Notifications", match: /^(notif|youtube|medal|blog)/i },
+  { name: "Notifications", match: /^(notif|youtube|medal|blog|tiktok|instagram)/i },
   { name: "Config", match: /^config/i },
   { name: "Rappels", match: /^(rappel|planifier)/i },
   { name: "Reglement", match: /^reglement/i },

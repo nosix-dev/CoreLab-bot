@@ -68,6 +68,7 @@ const stockage = {
     notifsBlog: chargerDonnees(FICHIERS.BLOG),
     notifsMedaille: chargerDonnees(FICHIERS.MEDAILLE),
     notifsTiktok: chargerDonnees(FICHIERS.TIKTOK),
+    notifsInstagram: chargerDonnees(FICHIERS.INSTAGRAM),
     donneesXp: chargerDonnees(FICHIERS.XP),
     rappels: chargerDonnees(FICHIERS.RAPPELS, { reminders: [] }),
     evenements: chargerDonnees(FICHIERS.EVENEMENTS, { events: [] }),
@@ -117,6 +118,7 @@ stockage.ytNotifs = stockage.notifsYoutube;
 stockage.blogNotifs = stockage.notifsBlog;
 stockage.medalNotifs = stockage.notifsMedaille;
 stockage.tiktokNotifs = stockage.notifsTiktok;
+stockage.instagramNotifs = stockage.notifsInstagram;
 stockage.xpData = stockage.donneesXp;
 stockage.reminders = stockage.rappels;
 stockage.events = stockage.evenements;
@@ -148,6 +150,7 @@ function persister(cle) {
         notifsBlog: FICHIERS.BLOG,
         notifsMedaille: FICHIERS.MEDAILLE,
         notifsTiktok: FICHIERS.TIKTOK,
+        notifsInstagram: FICHIERS.INSTAGRAM,
         donneesXp: FICHIERS.XP,
         rappels: FICHIERS.RAPPELS,
         evenements: FICHIERS.EVENEMENTS,
@@ -192,6 +195,7 @@ function persister(cle) {
         blogNotifs: FICHIERS.BLOG,
         medalNotifs: FICHIERS.MEDAILLE,
         tiktokNotifs: FICHIERS.TIKTOK,
+        instagramNotifs: FICHIERS.INSTAGRAM,
         xpData: FICHIERS.XP,
         reminders: FICHIERS.RAPPELS,
         events: FICHIERS.EVENEMENTS,

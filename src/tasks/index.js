@@ -8,6 +8,7 @@ const { startScheduledMessagesTask } = require('./scheduledMessages');
 const { startMedalChecker }          = require('./medal');
 const { startTwitchPolling }         = require('./twitch');
 const { startTiktokChecker }         = require('./tiktok');
+const { startInstagramChecker }      = require('./instagram');
 const { recordAllEconomySnapshots }  = require('../commands/economy');
 const { startCryptoAlerts }         = require('../core/cryptoAlerts');
 
@@ -32,6 +33,9 @@ function startTasks(client) {
 
   // ── Notifications TikTok — toutes les 120s ──
   startTiktokChecker(client);
+
+  // ── Notifications Instagram — toutes les 10 min ──
+  startInstagramChecker(client);
 
   // ── Alertes de cours crypto — vérification chaque minute (envoi selon la fréquence choisie) ──
   startCryptoAlerts(client);

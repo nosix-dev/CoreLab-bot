@@ -1450,7 +1450,7 @@ const config = {
     cmd.addSubcommand(sub => sub.setName('comptage-stats').setDescription('Voir le compte actuel et le record du serveur'));
     cmd.addSubcommand(sub => sub.setName('comptage-reset').setDescription('Remettre le compte à 0 (le record n\'est pas touché)'));
     cmd.addSubcommandGroup(group => {
-      group.setName('notifications').setDescription('Gérer les notifications YouTube, Twitch, Blog, Medal, TikTok');
+      group.setName('notifications').setDescription('Gérer les notifications YouTube, Twitch, Blog, Medal, TikTok, Instagram');
       for (const sub of notificationCmd.data.options) group.options.push(sub);
       return group;
     });

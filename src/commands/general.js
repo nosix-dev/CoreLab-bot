@@ -39,6 +39,10 @@ const {
   fetchLatestVideo: fetchLatestTiktokVideo
 } = require('../tasks/tiktok');
 const {
+  resolveInstagramUsername,
+  fetchLatestPost: fetchLatestInstagramPost
+} = require('../tasks/instagram');
+const {
   resolveTwitchUser
 } = require('../tasks/twitch');
 const {
@@ -637,7 +641,7 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
     content: '✅ Purge automatique retirée.',
     flags: MessageFlags.Ephemeral
   });
-}, PermissionFlagsBits.Administrator), makeCommand('notification', '⭐ Premium • Gérer les notifications YouTube, Twitch, Blog et Medal', data => data.addSubcommand(sub => sub.setName('ajouter').setDescription('⭐ Premium • Suivre une chaîne YouTube, Twitch, un blog ou un profil Medal').addStringOption(o => o.setName('plateforme').setDescription('Plateforme à suivre').setRequired(true).addChoices({
+}, PermissionFlagsBits.Administrator), makeCommand('notification', '⭐ Premium • Gérer les notifications YouTube, Twitch, Blog, Medal, TikTok, Instagram', data => data.addSubcommand(sub => sub.setName('ajouter').setDescription('⭐ Premium • Suivre YouTube, Twitch, un blog, Medal, TikTok ou Instagram').addStringOption(o => o.setName('plateforme').setDescription('Plateforme à suivre').setRequired(true).addChoices({
   name: 'YouTube Live',
   value: 'youtube-live'
 }, {
@@ -655,6 +659,9 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
 }, {
   name: 'TikTok',
   value: 'tiktok'
+}, {
+  name: 'Instagram',
+  value: 'instagram'
 })).addStringOption(o => o.setName('url').setDescription('URL de la chaîne / du blog / du profil').setRequired(true)).addChannelOption(o => o.setName('salon').setDescription('Salon où poster les notifications').addChannelTypes(ChannelType.GuildText).setRequired(true))).addSubcommand(sub => sub.setName('liste').setDescription('⭐ Premium • Voir les notifications suivies').addStringOption(o => o.setName('plateforme').setDescription('Plateforme à afficher').setRequired(true).addChoices({
   name: 'YouTube Live',
   value: 'youtube-live'
@@ -673,6 +680,9 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
 }, {
   name: 'TikTok',
   value: 'tiktok'
+}, {
+  name: 'Instagram',
+  value: 'instagram'
 }))).addSubcommand(sub => sub.setName('retirer').setDescription('⭐ Premium • Retirer une notification suivie').addStringOption(o => o.setName('plateforme').setDescription('Plateforme concernée').setRequired(true).addChoices({
   name: 'YouTube Live',
   value: 'youtube-live'
@@ -691,6 +701,9 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
 }, {
   name: 'TikTok',
   value: 'tiktok'
+}, {
+  name: 'Instagram',
+  value: 'instagram'
 })).addIntegerOption(o => o.setName('numero').setDescription('Numéro (voir /setup notifications list)').setRequired(true))), async interaction => {
   const sub = interaction.options.getSubcommand();
   const platform = interaction.options.getString('plateforme');
@@ -700,7 +713,8 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
     twitch: 'twitchNotifs',
     blog: 'blogNotifs',
     medal: 'medalNotifs',
-    tiktok: 'tiktokNotifs'
+    tiktok: 'tiktokNotifs',
+    instagram: 'instagramNotifs'
   };
   const bucketKey = bucketKeys[platform];
 
@@ -711,7 +725,7 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
     // ── Quota Premium : nombre total de notifications suivies sur le serveur ──
     const premium = isPremium(interaction.user.id);
     const max = premium ? MAX_NOTIFICATIONS_PREMIUM : MAX_NOTIFICATIONS_GRATUIT;
-    const totalSuivies = ['ytNotifs', 'twitchNotifs', 'blogNotifs', 'medalNotifs', 'tiktokNotifs']
+    const totalSuivies = ['ytNotifs', 'twitchNotifs', 'blogNotifs', 'medalNotifs', 'tiktokNotifs', 'instagramNotifs']
       .reduce((sum, key) => sum + getGuildBucket(interaction.guild.id, key, []).length, 0);
     if (totalSuivies >= max) {
       return interaction.reply({
@@ -832,6 +846,28 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
       setGuildBucket(interaction.guild.id, bucketKey, bucket);
       return interaction.editReply(`✅ Notifications TikTok activées pour **@${username}** dans ${channel} !`);
     }
+    if (platform === 'instagram') {
+      await interaction.deferReply({
+        flags: MessageFlags.Ephemeral
+      });
+      const username = resolveInstagramUsername(url);
+      if (!username) {
+        return interaction.editReply('❌ **URL Instagram invalide ou compte introuvable.**\n' + 'Formats acceptés : `https://www.instagram.com/pseudo`, ou directement `@pseudo`.');
+      }
+      const bucket = getGuildBucket(interaction.guild.id, bucketKey, []);
+      if (bucket.some(n => n.username === username && n.channelId === channel.id)) {
+        return interaction.editReply('⚠️ Déjà suivi dans ce salon.');
+      }
+      const latest = await fetchLatestInstagramPost(username);
+      bucket.push({
+        url,
+        channelId: channel.id,
+        username,
+        lastPostId: latest ? latest.id : ''
+      });
+      setGuildBucket(interaction.guild.id, bucketKey, bucket);
+      return interaction.editReply(`✅ Notifications Instagram activées pour **@${username}** dans ${channel} !` + (latest ? '' : '\n⚠️ Impossible de lire les publications pour le moment (compte privé, ou clé `RAPIDAPI_KEY` / abonnement à l\'API Instagram manquant ?). Le suivi est enregistré et réessaiera tout seul.'));
+    }
   }
 
   // ---------------------------
@@ -846,7 +882,8 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
       twitch: '🟣 Twitch',
       blog: '📰 Blog',
       medal: '🎮 Medal',
-      tiktok: '🎵 TikTok'
+      tiktok: '🎵 TikTok',
+      instagram: '📸 Instagram'
     };
     const nameKeys = {
       'youtube-live': 'channelName',
@@ -855,7 +892,8 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
       twitch: 'displayName',
       blog: 'url',
       medal: 'url',
-      tiktok: 'username'
+      tiktok: 'username',
+      instagram: 'username'
     };
 
     // Filtrer par type pour YouTube
