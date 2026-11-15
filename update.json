@@ -1,0 +1,28 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.36",
+  "date": "2026-11-15",
+  "mention": false,
+  "titre": "📌 Mise a jour 5.5.36 — Notifications : Instagram (5.5.36)",
+  "couleur": "#e8510d",
+  "article": {
+    "label": "Changelog",
+    "emoji": "📜",
+    "url": "https://corelab-4cn.pages.dev/docs#p-changelog"
+  },
+  "intro": "**/settings notifications** peut maintenant suivre un compte **Instagram**, en plus de YouTube, Twitch, Blog, Medal et TikTok.",
+  "modifications": {
+    "📸 Notifications": [
+      "[+] Nouvelle plateforme **Instagram** dans **/settings notifications add** : donne un `@pseudo` ou le lien du profil et choisis le salon.",
+      "[+] Le bot annonce les nouvelles **publications** et les nouveaux **reels**, avec un bouton pour les ouvrir.",
+      "[+] **/settings notifications liste** et **/settings notifications retirer** gèrent aussi Instagram.",
+      "[~] Les suivis Instagram comptent dans la limite de notifications du serveur."
+    ]
+  },
+  "pied": "Ajoute CoreLab sur tes autres serveurs.",
+  "support": {
+    "label": "Inviter le bot",
+    "emoji": "🚀",
+    "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+  }
+}
