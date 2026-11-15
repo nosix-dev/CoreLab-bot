@@ -224,7 +224,7 @@ function buildPostEmbed(post) {
   }).setTimestamp(post.publishedAt ? new Date(post.publishedAt) : new Date());
   if (blocs.length) embed.setDescription(blocs.join('\n\n'));
   if (post.avatar) embed.setThumbnail(post.avatar);
-  if (post.thumbnail) embed.setImage(post.thumbnail);
+  // Pas de grande image verticale : carte compacte (texte à gauche, photo de profil à droite)
   return embed;
 }
 
