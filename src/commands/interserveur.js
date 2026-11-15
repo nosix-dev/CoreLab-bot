@@ -269,13 +269,14 @@ function nbServeurs() {
 
 function panel(guild, notice = null) {
   const cfg = cfgOf(guild.id, true);
+  const actif = !!(cfg.enabled && cfg.channelId); // « actif » = liaison allumée ET salon choisi
   const c = new ContainerBuilder().setAccentColor(COULEUR);
   c.addTextDisplayComponents(txt(`## 🌐 Interserveur — réseau ${RESEAU}\nRelie un salon au réseau ${RESEAU} et discute avec d'autres communautés en direct.`));
   if (notice) c.addTextDisplayComponents(txt(`> ${notice}`));
   c.addSeparatorComponents(sep());
 
   const lignes = [
-    `**État :** ${cfg.enabled ? '✅ activé' : '⛔ coupé'}`,
+    `**État :** ${actif ? '✅ activé' : (cfg.enabled ? '⚠️ en attente : choisis un salon' : '⛔ désactivé')}`,
     `**Salon relié :** ${cfg.channelId ? `<#${cfg.channelId}>` : 'aucun'}`,
     `**Serveurs connectés :** ${nbServeurs()}`
   ];
@@ -289,7 +290,7 @@ function panel(guild, notice = null) {
   c.addSeparatorComponents(sep(false));
 
   c.addActionRowComponents(new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('interserveur:t:enabled').setLabel(cfg.enabled ? 'Couper la liaison' : 'Réactiver la liaison').setEmoji(cfg.enabled ? '⛔' : '✅').setStyle(ButtonStyle.Secondary).setDisabled(!cfg.channelId)
+    new ButtonBuilder().setCustomId('interserveur:t:enabled').setLabel(actif ? 'Désactiver le réseau' : 'Activer le réseau').setEmoji(actif ? '⛔' : '✅').setStyle(actif ? ButtonStyle.Danger : ButtonStyle.Success)
   ));
   c.addActionRowComponents(new ActionRowBuilder().addComponents(
     new ChannelSelectMenuBuilder()
@@ -364,10 +365,15 @@ async function handleComponent(interaction, client) {
   const cfg = cfgOf(guild.id, true);
 
   if (id === 'interserveur:t:enabled') {
-    if (!cfg.channelId) return interaction.update(panelUpdate(guild, '❌ Choisis d\'abord un salon à relier.'));
-    cfg.enabled = !cfg.enabled;
+    const etaitActif = !!(cfg.enabled && cfg.channelId);
+    if (!etaitActif && !cfg.channelId) {
+      cfg.enabled = true; // il suffira de choisir un salon pour que le réseau démarre
+      sauver();
+      return interaction.update(panelUpdate(guild, '⚠️ Choisis d\'abord le salon à relier dans le menu ci-dessous : le réseau démarre dès qu\'il est choisi.'));
+    }
+    cfg.enabled = !etaitActif;
     sauver();
-    return interaction.update(panelUpdate(guild, cfg.enabled ? `✅ Liaison réactivée : tu es de nouveau connecté au réseau ${RESEAU}.` : '⛔ Liaison coupée : plus aucun message ne passe.'));
+    return interaction.update(panelUpdate(guild, cfg.enabled ? `✅ Réseau activé : tu es connecté au réseau ${RESEAU}.` : '⛔ Réseau désactivé : plus aucun message ne passe, dans les deux sens.'));
   }
 
   if (id === 'interserveur:chan') {
@@ -480,4 +486,15 @@ function registerInterserveur(client) {
   console.log(`✅ Interserveur initialisé (réseau ${RESEAU}).`);
 }
 
-module.exports = { commands: [interserveur], registerInterserveur, _test: { cfgOf, INVITE_RE, nettoyerNom } };
+// Accès pour le dashboard web (src/core/webDashboard.js) : mêmes données en mémoire que /interserveur setup.
+// save() remet à jour l'index des salons et oublie les webhooks en cache (le salon a pu changer).
+const dashboard = {
+  cfgOf,
+  save() {
+    for (const id of [...webhooks.keys()]) dropWebhook(id);
+    reindex();
+    return sauver();
+  }
+};
+
+module.exports = { commands: [interserveur], registerInterserveur, dashboard, _test: { cfgOf, INVITE_RE, nettoyerNom } };
