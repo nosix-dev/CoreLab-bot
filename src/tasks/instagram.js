@@ -181,7 +181,7 @@ function buildPostEmbed(post) {
   const embed = new EmbedBuilder().setColor(0xE1306C).setAuthor({
     name: `@${post.author} • Instagram`,
     url: `https://www.instagram.com/${post.author}/`
-  }).setTitle(post.isReel ? '🎬 Nouveau reel' : '📸 Nouvelle publication').setURL(post.url).setFooter({
+  }).setTitle(post.isReel ? 'Nouveau reel' : 'Nouvelle publication').setURL(post.url).setFooter({
     text: post.isReel ? 'Instagram • Reel' : 'Instagram • Publication'
   }).setTimestamp(post.publishedAt ? new Date(post.publishedAt) : new Date());
   if (lignes.length) embed.setDescription(lignes.join('\n\n'));
