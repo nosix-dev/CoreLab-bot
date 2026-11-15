@@ -14,13 +14,15 @@ const {
 const { alreadyPosted } = require('../core/alreadyPosted');
 
 // ────────────────────────────────────────────────
-// Récupération des publications Instagram via l'API RapidAPI
-// "Instagram Scraper API2" : https://rapidapi.com/social-api1-instagram/api/instagram-scraper-api2
+// Récupération des publications Instagram via l'API RapidAPI "Instagram Looter"
+// https://rapidapi.com/iq.faceok/api/instagram-looter2 (hôte instagram-looter2.p.rapidapi.com)
+//   1) GET /id?username=...        -> identifiant numérique du compte (mis en cache et gardé dans le suivi)
+//   2) GET /user-feeds?id=...      -> dernières publications
 // Utilise la même variable d'environnement RAPIDAPI_KEY que TikTok / Twitch
-// (il faut juste être abonné à cette API sur RapidAPI).
-// L'hôte peut être changé avec INSTAGRAM_RAPIDAPI_HOST si tu utilises une autre API compatible.
+// (il faut juste être abonné à cette API sur RapidAPI, le plan gratuit suffit pour démarrer).
+// L'hôte peut être changé avec INSTAGRAM_RAPIDAPI_HOST.
 // ────────────────────────────────────────────────
-const RAPIDAPI_HOST = process.env.INSTAGRAM_RAPIDAPI_HOST || 'instagram-scraper-api2.p.rapidapi.com';
+const RAPIDAPI_HOST = process.env.INSTAGRAM_RAPIDAPI_HOST || 'instagram-looter2.p.rapidapi.com';
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
 
 // Pages d'Instagram qui ne sont pas des profils
@@ -51,7 +53,7 @@ function normaliserItem(item, usernameFallback) {
   let ts = item.taken_at_timestamp ?? item.taken_at ?? item.taken_at_ts ?? null;
   ts = ts ? Number(ts) : null;
   if (ts && ts < 1e12) ts *= 1000; // secondes -> millisecondes
-  const caption = item.caption?.text ?? item.captions?.items?.[0]?.text ?? (typeof item.caption === 'string' ? item.caption : '');
+  const caption = item.caption?.text ?? item.captions?.items?.[0]?.text ?? item.edge_media_to_caption?.edges?.[0]?.node?.text ?? (typeof item.caption === 'string' ? item.caption : '');
   const isReel = item.product_type === 'clips' || item.media_type === 2 || item.is_video === true;
   return {
     id,
@@ -66,16 +68,15 @@ function normaliserItem(item, usernameFallback) {
 }
 
 // ────────────────────────────────────────────────
-// Dernière publication d'un compte (endpoint /v1/posts)
+// Appel générique RapidAPI (renvoie le JSON, ou null en cas d'erreur)
 // ────────────────────────────────────────────────
-async function fetchLatestPost(username) {
+async function rapid(path, params, label) {
   if (!RAPIDAPI_KEY) {
     console.error('[Instagram] RAPIDAPI_KEY manquante dans les variables d\'environnement.');
     return null;
   }
   try {
-    const params = new URLSearchParams({ username_or_id_or_url: username });
-    const res = await fetch(`https://${RAPIDAPI_HOST}/v1/posts?${params.toString()}`, {
+    const res = await fetch(`https://${RAPIDAPI_HOST}${path}?${new URLSearchParams(params).toString()}`, {
       headers: {
         'X-RapidAPI-Key': RAPIDAPI_KEY,
         'X-RapidAPI-Host': RAPIDAPI_HOST
@@ -85,25 +86,62 @@ async function fetchLatestPost(username) {
     if (!res.ok) {
       const corps = await res.text().catch(() => '');
       const hint = res.status === 429 ? ' (quota/limite RapidAPI atteint ?)'
-        : res.status === 401 || res.status === 403 ? ' (clé RAPIDAPI_KEY invalide ou abonnement à l\'API Instagram inactif ?)'
-        : res.status === 404 ? ' (compte introuvable ou privé ?)' : '';
-      console.error(`[Instagram] Réponse HTTP non OK (${res.status})${hint} pour @${username} :`, corps.slice(0, 200));
+        : res.status === 401 || res.status === 403 ? ' (clé RAPIDAPI_KEY invalide ou abonnement à l\'API Instagram Looter inactif ?)'
+        : res.status === 404 ? ' (compte introuvable ?)' : '';
+      console.error(`[Instagram] Réponse HTTP non OK (${res.status})${hint} pour ${label} :`, corps.slice(0, 200));
       return null;
     }
-    const json = await res.json();
-    const items = json?.data?.items;
-    if (!Array.isArray(items) || !items.length) {
-      console.warn(`[Instagram] Aucune publication dans la réponse pour @${username}`);
-      return null;
-    }
-    // Tri par date : une publication épinglée en tête ne doit pas passer pour la plus récente.
-    const posts = items.map(i => normaliserItem(i, username)).filter(Boolean)
-      .sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
-    return posts[0] || null;
+    return await res.json();
   } catch (e) {
-    console.error(`[Instagram] Erreur appel API (@${username}):`, e.message);
+    console.error(`[Instagram] Erreur appel API (${label}):`, e.message);
     return null;
   }
+}
+
+// Cherche un identifiant numérique dans les formes de réponse les plus courantes
+function pickId(j) {
+  if (!j) return null;
+  const candidats = [j.user_id, j.id, j.pk, j.data?.user_id, j.data?.id, j.data?.pk, j.user?.pk, j.user?.id, j.user?.user_id];
+  const v = candidats.find(x => x != null && /^\d+$/.test(String(x)));
+  return v ? String(v) : null;
+}
+
+const userIdCache = new Map();
+async function resolveUserId(username) {
+  if (userIdCache.has(username)) return userIdCache.get(username);
+  let id = pickId(await rapid('/id', { username }, `@${username} (/id)`));
+  if (!id) id = pickId(await rapid('/profile', { username }, `@${username} (/profile)`));
+  if (id) userIdCache.set(username, id);
+  else console.warn(`[Instagram] Identifiant introuvable pour @${username}`);
+  return id;
+}
+
+// ────────────────────────────────────────────────
+// Dernière publication d'un compte (endpoint /user-feeds).
+// userId connu (stocké dans le suivi) : évite un appel /id à chaque passage.
+// Le résultat contient aussi userId pour qu'on puisse le garder.
+// ────────────────────────────────────────────────
+async function fetchLatestPost(username, userId) {
+  const id = userId || await resolveUserId(username);
+  if (!id) return null;
+  userIdCache.set(username, id);
+  const json = await rapid('/user-feeds', { id, count: '12' }, `@${username} (/user-feeds)`);
+  if (!json) return null;
+  let items = json.items ?? json.data?.items;
+  if (!Array.isArray(items)) {
+    const edges = json.data?.user?.edge_owner_to_timeline_media?.edges;
+    if (Array.isArray(edges)) items = edges.map(e => e.node);
+  }
+  if (!Array.isArray(items) || !items.length) {
+    console.warn(`[Instagram] Aucune publication dans la réponse pour @${username} (compte privé ?)`);
+    return null;
+  }
+  // Tri par date : une publication épinglée en tête ne doit pas passer pour la plus récente.
+  const posts = items.map(i => normaliserItem(i, username)).filter(Boolean)
+    .sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+  if (!posts[0]) return null;
+  posts[0].userId = id;
+  return posts[0];
 }
 
 function buildPostEmbed(post) {
@@ -147,8 +185,12 @@ async function runCheck(client) {
           changed = true;
           if (!entry.username) continue;
         }
-        const latest = await fetchLatestPost(entry.username);
+        const latest = await fetchLatestPost(entry.username, entry.userId);
         if (!latest || !latest.id) continue;
+        if (latest.userId && entry.userId !== latest.userId) {
+          entry.userId = latest.userId;
+          changed = true;
+        }
         if (entry.lastPostId === latest.id) continue;
         const discordChannel = guild.channels.cache.get(entry.channelId);
         if (!discordChannel?.isTextBased?.()) continue;

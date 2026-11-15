@@ -863,10 +863,11 @@ makeCommand('planifier', 'Planifier un message automatique et récurrent à heur
         url,
         channelId: channel.id,
         username,
+        userId: latest ? latest.userId : '',
         lastPostId: latest ? latest.id : ''
       });
       setGuildBucket(interaction.guild.id, bucketKey, bucket);
-      return interaction.editReply(`✅ Notifications Instagram activées pour **@${username}** dans ${channel} !` + (latest ? '' : '\n⚠️ Impossible de lire les publications pour le moment (compte privé, ou clé `RAPIDAPI_KEY` / abonnement à l\'API Instagram manquant ?). Le suivi est enregistré et réessaiera tout seul.'));
+      return interaction.editReply(`✅ Notifications Instagram activées pour **@${username}** dans ${channel} !` + (latest ? '' : '\n⚠️ Impossible de lire les publications pour le moment (compte privé, ou clé `RAPIDAPI_KEY` / abonnement à l\'API Instagram Looter manquant ?). Le suivi est enregistré et réessaiera tout seul.'));
     }
   }
 
