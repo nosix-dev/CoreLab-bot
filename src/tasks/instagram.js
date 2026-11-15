@@ -125,6 +125,18 @@ function normaliserItem(brut, usernameFallback) {
     publishedAt = n > 1e14 ? Math.floor(n / 1000) : n > 1e11 ? n : n * 1000;
   }
   const auteur = item.user?.username || item.owner?.username || usernameFallback;
+  const nombre = (...vals) => {
+    for (const v of vals) {
+      const n = Number(v);
+      if (v !== undefined && v !== null && Number.isFinite(n) && n > 0) return n;
+    }
+    return null;
+  };
+  const likes = nombre(item.like_count, item.edge_media_preview_like?.count, item.edge_liked_by?.count);
+  const commentaires = nombre(item.comment_count, item.edge_media_to_comment?.count);
+  const vues = nombre(item.play_count, item.ig_play_count, item.view_count, item.video_view_count);
+  const duree = nombre(item.video_duration);
+  const avatar = item.user?.profile_pic_url || item.owner?.profile_pic_url || null;
   const url = code ? `https://www.instagram.com/${estReel ? 'reel' : 'p'}/${code}/` : `https://www.instagram.com/${auteur}/`;
   return {
     id: String(code || id),
@@ -133,7 +145,12 @@ function normaliserItem(brut, usernameFallback) {
     author: auteur,
     thumbnail: image,
     isReel: estReel,
-    publishedAt
+    publishedAt,
+    likes,
+    commentaires,
+    vues,
+    duree,
+    avatar
   };
 }
 
@@ -170,21 +187,43 @@ function formaterLegende(desc) {
     hashtags
   };
 }
+// 1234 → "1,2 k" ; 1500000 → "1,5 M"
+function compact(n) {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1).replace('.', ',').replace(',0', '')} M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1).replace('.', ',').replace(',0', '')} k`;
+  return String(n);
+}
+function formatDuree(sec) {
+  const s = Math.round(sec);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
 function buildPostEmbed(post) {
   const {
     texte,
     hashtags
   } = formaterLegende(post.desc);
-  const lignes = [];
-  if (texte) lignes.push(texte.split('\n').map(l => `> ${l}`).join('\n'));
-  if (hashtags.length) lignes.push(`-# ${hashtags.join('  ')}`);
+  const blocs = [];
+  if (texte) blocs.push(texte.split('\n').map(l => `> ${l}`).join('\n'));
+
+  // Ligne de stats (uniquement celles que l'API fournit)
+  const stats = [];
+  if (post.likes) stats.push(`❤️ **${compact(post.likes)}**`);
+  if (post.commentaires) stats.push(`💬 **${compact(post.commentaires)}**`);
+  if (post.vues) stats.push(`▶️ **${compact(post.vues)}**`);
+  if (post.duree) stats.push(`⏱️ **${formatDuree(post.duree)}**`);
+  if (stats.length) blocs.push(stats.join('   '));
+  if (hashtags.length) blocs.push(`-# ${hashtags.join('  ')}`);
+
+  // NB : pas d'emoji dans le titre / l'auteur (ils sont dans un lien markdown :
+  // le remplacement par un emoji personnalisé casserait le lien).
   const embed = new EmbedBuilder().setColor(0xE1306C).setAuthor({
     name: `@${post.author} • Instagram`,
     url: `https://www.instagram.com/${post.author}/`
   }).setTitle(post.isReel ? 'Nouveau reel' : 'Nouvelle publication').setURL(post.url).setFooter({
     text: post.isReel ? 'Instagram • Reel' : 'Instagram • Publication'
   }).setTimestamp(post.publishedAt ? new Date(post.publishedAt) : new Date());
-  if (lignes.length) embed.setDescription(lignes.join('\n\n'));
+  if (blocs.length) embed.setDescription(blocs.join('\n\n'));
+  if (post.avatar) embed.setThumbnail(post.avatar);
   if (post.thumbnail) embed.setImage(post.thumbnail);
   return embed;
 }
