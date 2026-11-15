@@ -4,6 +4,7 @@ const {
   ActionRowBuilder,
   ButtonStyle
 } = require('discord.js');
+const { actif, personnaliser } = require('../core/notifCustom');
 const fs = require('fs');
 const path = require('path');
 const {
@@ -488,6 +489,7 @@ async function runCheck(client) {
       const dupKey = `${notif.ytChannelId}_${notif.channelId}_${notif.type || 'all'}`;
       if (seen.has(dupKey)) continue;
       seen.add(dupKey);
+      if (!actif(notif)) continue; // notification mise en pause depuis le dashboard
       try {
         if (!notif.ytChannelId) continue; // ancienne entrée pas encore résolue
 
@@ -525,11 +527,11 @@ async function runCheck(client) {
                 .setStyle(ButtonStyle.Link);
               const liveRow = new ActionRowBuilder().addComponents(liveButton);
 
-              await discordCh.send({
+              await discordCh.send(personnaliser(notif, {
                 content: `🔴 **${live.author} est en LIVE !**`,
                 embeds: [liveEmbed],
                 components: [liveRow]
-              });
+              }, { auteur: live.author, titre: live.title, url: live.url, plateforme: 'YouTube' }));
             }
           }
         }
@@ -578,11 +580,11 @@ async function runCheck(client) {
               .setStyle(ButtonStyle.Link);
             const videoRow = new ActionRowBuilder().addComponents(videoButton);
 
-            await discordCh.send({
+            await discordCh.send(personnaliser(notif, {
               content: `🔔 **Nouvelle vidéo de ${latest.author} !**`,
               embeds: [embed],
               components: [videoRow]
-            });
+            }, { auteur: latest.author, titre: latest.title, url: latest.url, plateforme: 'YouTube' }));
           }
         }
       } catch (e) {

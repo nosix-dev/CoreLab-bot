@@ -4,6 +4,7 @@ const {
   ActionRowBuilder,
   ButtonStyle
 } = require('discord.js');
+const { actif, personnaliser } = require('../core/notifCustom');
 const {
   store,
   persist
@@ -149,6 +150,7 @@ async function runCheck(client) {
     for (const entry of bucket) {
       try {
         if (!entry.channelId) continue; // ancienne entrée sans salon, ignorée
+        if (!actif(entry)) continue; // pause depuis le dashboard
 
         if (!entry.username) {
           entry.username = await resolveTiktokUsername(entry.url);
@@ -187,11 +189,11 @@ async function runCheck(client) {
           .setStyle(ButtonStyle.Link);
         const row = new ActionRowBuilder().addComponents(button);
         
-        await discordChannel.send(toCV2Payload({
+        await discordChannel.send(toCV2Payload(personnaliser(entry, {
           content: `🎵 **Nouvelle vidéo TikTok de @${latest.author} !**`,
           embeds: [buildVideoEmbed(latest)],
           components: [row]
-        }));
+        }, { auteur: '@' + latest.author, titre: latest.desc || '', url: latest.url, plateforme: 'TikTok' })));
       } catch (e) {
         console.error(`[TikTok] Erreur check pour ${entry.url}:`, e.message);
       }

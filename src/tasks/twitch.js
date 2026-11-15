@@ -4,6 +4,7 @@ const {
   ActionRowBuilder,
   ButtonStyle
 } = require('discord.js');
+const { actif, personnaliser } = require('../core/notifCustom');
 const { findPostedMessage } = require('../core/alreadyPosted');
 const {
   store,
@@ -115,6 +116,7 @@ async function checkTwitchNotifications(client) {
     const entries = guildBuckets[guildId] || [];
     for (const entry of entries) {
       if (!entry.twitchName) continue;
+      if (!actif(entry)) continue; // notification mise en pause depuis le dashboard
       const user = statuses.get(entry.twitchName.toLowerCase());
       const isLive = !!user?.stream;
 
@@ -155,11 +157,11 @@ async function checkTwitchNotifications(client) {
               .setStyle(ButtonStyle.Link);
             const row = new ActionRowBuilder().addComponents(button);
             
-            await channel.send(toCV2Payload({
+            await channel.send(toCV2Payload(personnaliser(entry, {
               content: `🔴 **${displayName}** est en live sur Twitch !`,
               embeds: [embed],
               components: [row]
-            }));
+            }, { auteur: displayName, titre: user.stream.title || '', url: `https://twitch.tv/${entry.twitchName}`, plateforme: 'Twitch', viewers, abonnes: followers != null ? followers.toLocaleString('fr-FR') : '' })));
           }
         } catch (e) {
           console.error(`[Twitch] Impossible d'envoyer la notif pour ${entry.twitchName} :`, e.message);

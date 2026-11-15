@@ -30,6 +30,7 @@ const constantes = {
         MEDAILLE: 'medal_notifs.json',
         TIKTOK: 'tiktok_notifs.json',
         INSTAGRAM: 'instagram_notifs.json',
+        TWITCH: 'twitch_notifs.json',
         XP: 'xp_data.json',
         RAPPELS: 'reminders.json',
         EVENEMENTS: 'events.json',

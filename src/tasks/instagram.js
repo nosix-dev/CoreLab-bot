@@ -4,63 +4,30 @@ const {
   ActionRowBuilder,
   ButtonStyle
 } = require('discord.js');
+const { actif, personnaliser } = require('../core/notifCustom');
 const {
   store,
   persist
 } = require('../core/data');
 const {
   toCV2Payload
-} = require("../core/componentsV2");
-const {
-  alreadyPosted
-} = require('../core/alreadyPosted');
+} = require('../core/componentsV2');
+const { alreadyPosted } = require('../core/alreadyPosted');
 
 // ────────────────────────────────────────────────
 // Récupération des publications Instagram via l'API RapidAPI "Instagram Looter"
-// https://rapidapi.com/irrors-apis/api/instagram-looter2
-//   GET /id?username=...                         → ID numérique du compte
-//   GET /user-feeds?id=...&count=12&...          → publications du compte
-// Nécessite la variable d'environnement RAPIDAPI_KEY (la même que TikTok / Twitch)
-// ET un abonnement (gratuit possible) à l'API Instagram Looter sur RapidAPI.
+// https://rapidapi.com/iq.faceok/api/instagram-looter2 (hôte instagram-looter2.p.rapidapi.com)
+//   1) GET /id?username=...        -> identifiant numérique du compte (mis en cache et gardé dans le suivi)
+//   2) GET /user-feeds?id=...      -> dernières publications
+// Utilise la même variable d'environnement RAPIDAPI_KEY que TikTok / Twitch
+// (il faut juste être abonné à cette API sur RapidAPI, le plan gratuit suffit pour démarrer).
+// L'hôte peut être changé avec INSTAGRAM_RAPIDAPI_HOST.
 // ────────────────────────────────────────────────
-const RAPIDAPI_HOST = 'instagram-looter2.p.rapidapi.com';
+const RAPIDAPI_HOST = process.env.INSTAGRAM_RAPIDAPI_HOST || 'instagram-looter2.p.rapidapi.com';
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8'
-};
 
-// Fenêtre de rattrapage d'une publication manquée pendant une coupure du bot
-const CATCHUP_MS = 12 * 60 * 60 * 1000;
-
-// ────────────────────────────────────────────────
-// Appel générique de l'API (renvoie le JSON ou null en cas d'erreur)
-// ────────────────────────────────────────────────
-async function appelApi(chemin, params, etiquette) {
-  if (!RAPIDAPI_KEY) {
-    console.error('[Instagram] RAPIDAPI_KEY manquante dans les variables d\'environnement.');
-    return null;
-  }
-  try {
-    const res = await fetch(`https://${RAPIDAPI_HOST}${chemin}?${new URLSearchParams(params).toString()}`, {
-      headers: {
-        'x-rapidapi-key': RAPIDAPI_KEY,
-        'x-rapidapi-host': RAPIDAPI_HOST
-      },
-      signal: AbortSignal.timeout(20000)
-    });
-    if (!res.ok) {
-      const corps = await res.text().catch(() => '');
-      const hint = res.status === 429 ? ' (quota/limite RapidAPI atteint ?)' : res.status === 401 || res.status === 403 ? ' (clé RAPIDAPI_KEY invalide ou pas abonné à Instagram Looter ?)' : '';
-      console.error(`[Instagram] HTTP ${res.status}${hint} (${etiquette}) :`, corps.slice(0, 200));
-      return null;
-    }
-    return await res.json();
-  } catch (e) {
-    console.error(`[Instagram] Erreur appel API (${etiquette}):`, e.message);
-    return null;
-  }
-}
+// Pages d'Instagram qui ne sont pas des profils
+const RESERVED = new Set(['p', 'reel', 'reels', 'tv', 'stories', 'explore', 'accounts', 'direct', 'about']);
 
 // ────────────────────────────────────────────────
 // Résolution du pseudo Instagram (sans @) depuis une URL ou un pseudo brut
@@ -70,163 +37,128 @@ function resolveInstagramUsername(rawUrl) {
   if (!url) return null;
 
   // Pseudo brut ("@pseudo" ou "pseudo")
-  if (/^@?[a-zA-Z0-9._]{1,30}$/.test(url) && !url.includes('/')) {
+  if (/^@?[a-zA-Z0-9._]{1,30}$/.test(url) && !url.includes('/') && !/instagram|instagr\.am/i.test(url)) {
     return url.replace(/^@/, '').toLowerCase();
   }
-  const match = url.match(/instagram\.com\/(?!p\/|reel\/|reels\/|tv\/|explore\/|stories\/)([a-zA-Z0-9._]{1,30})/i);
-  if (match) return match[1].toLowerCase();
+  const match = url.match(/(?:instagram\.com|instagr\.am)\/@?([a-zA-Z0-9._]{1,30})/i);
+  if (match && !RESERVED.has(match[1].toLowerCase())) return match[1].toLowerCase();
   return null;
 }
 
-// ────────────────────────────────────────────────
-// Pseudo → ID numérique (endpoint /id)
-// ────────────────────────────────────────────────
-async function fetchInstagramUserId(username) {
-  const json = await appelApi('/id', {
-    username
-  }, `id @${username}`);
-  if (!json) return null;
-  const candidats = [json.id, json.user_id, json.pk, json.userId, json.data?.id, json.data?.user_id, json.data?.pk, json.result?.id, json.user?.id, json.user?.pk];
-  const trouve = candidats.find(v => v !== undefined && v !== null && v !== '' && /^\d+$/.test(String(v)));
-  if (!trouve) {
-    console.warn(`[Instagram] ID introuvable dans la réponse pour @${username}. Clés reçues :`, Object.keys(json).join(', '));
-    return null;
-  }
-  return String(trouve);
-}
-
-// ────────────────────────────────────────────────
-// Extraction tolérante de la liste des publications (formats possibles :
-// { items: [...] }, { data: { items: [...] } }, GraphQL edges, etc.)
-// ────────────────────────────────────────────────
-function extraireListe(json) {
-  if (!json) return [];
-  const sources = [json.items, json.data?.items, json.data?.user?.edge_owner_to_timeline_media?.edges, json.data?.edges, json.edges, json.user?.edge_owner_to_timeline_media?.edges, json.feed?.items, json.result?.items, json.data, json.posts, json.medias, json.media, Array.isArray(json) ? json : null];
-  for (const s of sources) {
-    if (Array.isArray(s) && s.length) return s;
-  }
-  return [];
-}
-function normaliserItem(brut, usernameFallback) {
-  if (!brut) return null;
-  const item = brut.node || brut; // GraphQL : { node: {...} }
+// Normalise une publication renvoyée par l'API (tolère les variantes de champs).
+function normaliserItem(item, usernameFallback) {
+  if (!item) return null;
   const code = item.code || item.shortcode;
-  const id = item.pk || item.id || code;
-  if (!id) return null;
-  const type = Number(item.media_type); // 1 photo, 2 vidéo/reel, 8 carrousel
-  const estReel = item.product_type === 'clips' || type === 2 || item.is_video === true;
-  const legende = item.caption?.text || item.edge_media_to_caption?.edges?.[0]?.node?.text || (typeof item.caption === 'string' ? item.caption : '') || '';
-  const image = item.image_versions2?.candidates?.[0]?.url || item.display_url || item.thumbnail_url || item.thumbnail_src || item.carousel_media?.[0]?.image_versions2?.candidates?.[0]?.url || null;
-  const ts = item.taken_at ?? item.taken_at_timestamp ?? item.device_timestamp;
-  let publishedAt = null;
-  if (ts) {
-    const n = Number(ts);
-    // secondes (10 chiffres), millisecondes (13) ou microsecondes (16)
-    publishedAt = n > 1e14 ? Math.floor(n / 1000) : n > 1e11 ? n : n * 1000;
-  }
-  const auteur = item.user?.username || item.owner?.username || usernameFallback;
-  const nombre = (...vals) => {
-    for (const v of vals) {
-      const n = Number(v);
-      if (v !== undefined && v !== null && Number.isFinite(n) && n > 0) return n;
-    }
-    return null;
-  };
-  const likes = nombre(item.like_count, item.edge_media_preview_like?.count, item.edge_liked_by?.count);
-  const commentaires = nombre(item.comment_count, item.edge_media_to_comment?.count);
-  const vues = nombre(item.play_count, item.ig_play_count, item.view_count, item.video_view_count);
-  const duree = nombre(item.video_duration);
-  const avatar = item.user?.profile_pic_url || item.owner?.profile_pic_url || null;
-  const url = code ? `https://www.instagram.com/${estReel ? 'reel' : 'p'}/${code}/` : `https://www.instagram.com/${auteur}/`;
+  const id = String(item.pk || item.id || code || '');
+  if (!id || !code) return null;
+  let ts = item.taken_at_timestamp ?? item.taken_at ?? item.taken_at_ts ?? null;
+  ts = ts ? Number(ts) : null;
+  if (ts && ts < 1e12) ts *= 1000; // secondes -> millisecondes
+  const caption = item.caption?.text ?? item.captions?.items?.[0]?.text ?? item.edge_media_to_caption?.edges?.[0]?.node?.text ?? (typeof item.caption === 'string' ? item.caption : '');
+  const isReel = item.product_type === 'clips' || item.media_type === 2 || item.is_video === true;
   return {
-    id: String(code || id),
-    desc: String(legende).trim(),
-    url,
-    author: auteur,
-    thumbnail: image,
-    isReel: estReel,
-    publishedAt,
-    likes,
-    commentaires,
-    vues,
-    duree,
-    avatar
+    id,
+    code,
+    caption: String(caption || '').trim(),
+    author: item.user?.username || item.owner?.username || usernameFallback,
+    url: `https://www.instagram.com/p/${code}/`,
+    isReel,
+    thumbnail: item.thumbnail_url || item.display_url || item.image_versions?.items?.[0]?.url || item.image_versions2?.candidates?.[0]?.url || null,
+    publishedAt: ts
   };
 }
 
 // ────────────────────────────────────────────────
-// Dernière publication d'un compte (par son ID numérique)
+// Appel générique RapidAPI (renvoie le JSON, ou null en cas d'erreur)
 // ────────────────────────────────────────────────
-async function fetchLatestPost(userId, username) {
-  const json = await appelApi('/user-feeds', {
-    id: userId,
-    count: '12',
-    allow_restricted_media: 'false'
-  }, `feed @${username}`);
-  if (!json) return null;
-  const liste = extraireListe(json);
-  if (!liste.length) {
-    console.warn(`[Instagram] Aucune publication lisible pour @${username}. Clés reçues :`, Object.keys(json).join(', '));
+async function rapid(path, params, label) {
+  if (!RAPIDAPI_KEY) {
+    console.error('[Instagram] RAPIDAPI_KEY manquante dans les variables d\'environnement.');
     return null;
   }
-  const posts = liste.map(i => normaliserItem(i, username)).filter(Boolean);
-  if (!posts.length) return null;
+  try {
+    const res = await fetch(`https://${RAPIDAPI_HOST}${path}?${new URLSearchParams(params).toString()}`, {
+      headers: {
+        'X-RapidAPI-Key': RAPIDAPI_KEY,
+        'X-RapidAPI-Host': RAPIDAPI_HOST
+      },
+      signal: AbortSignal.timeout(20000)
+    });
+    if (!res.ok) {
+      const corps = await res.text().catch(() => '');
+      const hint = res.status === 429 ? ' (quota/limite RapidAPI atteint ?)'
+        : res.status === 401 || res.status === 403 ? ' (clé RAPIDAPI_KEY invalide ou abonnement à l\'API Instagram Looter inactif ?)'
+        : res.status === 404 ? ' (compte introuvable ?)' : '';
+      console.error(`[Instagram] Réponse HTTP non OK (${res.status})${hint} pour ${label} :`, corps.slice(0, 200));
+      return null;
+    }
+    return await res.json();
+  } catch (e) {
+    console.error(`[Instagram] Erreur appel API (${label}):`, e.message);
+    return null;
+  }
+}
 
-  // Tri par date décroissante (ignore une publication épinglée plus ancienne en tête de grille)
-  posts.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+// Cherche un identifiant numérique dans les formes de réponse les plus courantes
+function pickId(j) {
+  if (!j) return null;
+  const candidats = [j.user_id, j.id, j.pk, j.data?.user_id, j.data?.id, j.data?.pk, j.user?.pk, j.user?.id, j.user?.user_id];
+  const v = candidats.find(x => x != null && /^\d+$/.test(String(x)));
+  return v ? String(v) : null;
+}
+
+const userIdCache = new Map();
+async function resolveUserId(username) {
+  if (userIdCache.has(username)) return userIdCache.get(username);
+  let id = pickId(await rapid('/id', { username }, `@${username} (/id)`));
+  if (!id) id = pickId(await rapid('/profile', { username }, `@${username} (/profile)`));
+  if (id) userIdCache.set(username, id);
+  else console.warn(`[Instagram] Identifiant introuvable pour @${username}`);
+  return id;
+}
+
+// ────────────────────────────────────────────────
+// Dernière publication d'un compte (endpoint /user-feeds).
+// userId connu (stocké dans le suivi) : évite un appel /id à chaque passage.
+// Le résultat contient aussi userId pour qu'on puisse le garder.
+// ────────────────────────────────────────────────
+async function fetchLatestPost(username, userId) {
+  const id = userId || await resolveUserId(username);
+  if (!id) return null;
+  userIdCache.set(username, id);
+  const json = await rapid('/user-feeds', { id, count: '12' }, `@${username} (/user-feeds)`);
+  if (!json) return null;
+  let items = json.items ?? json.data?.items;
+  if (!Array.isArray(items)) {
+    const edges = json.data?.user?.edge_owner_to_timeline_media?.edges;
+    if (Array.isArray(edges)) items = edges.map(e => e.node);
+  }
+  if (!Array.isArray(items) || !items.length) {
+    console.warn(`[Instagram] Aucune publication dans la réponse pour @${username} (compte privé ?)`);
+    return null;
+  }
+  // Tri par date : une publication épinglée en tête ne doit pas passer pour la plus récente.
+  const posts = items.map(i => normaliserItem(i, username)).filter(Boolean)
+    .sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+  if (!posts[0]) return null;
+  posts[0].userId = id;
   return posts[0];
 }
-// Sépare la légende du texte et des hashtags, et coupe proprement la légende longue
-function formaterLegende(desc) {
-  const brut = String(desc || '');
-  const hashtags = [...new Set(brut.match(/#[\p{L}\p{N}_]+/gu) || [])].slice(0, 8);
-  let texte = brut.replace(/#[\p{L}\p{N}_]+/gu, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').trim();
-  if (texte.length > 350) texte = texte.slice(0, 350).replace(/\s+\S*$/, '') + '…';
-  return {
-    texte,
-    hashtags
-  };
-}
-// 1234 → "1,2 k" ; 1500000 → "1,5 M"
-function compact(n) {
-  if (n >= 1e6) return `${(n / 1e6).toFixed(1).replace('.', ',').replace(',0', '')} M`;
-  if (n >= 1e3) return `${(n / 1e3).toFixed(1).replace('.', ',').replace(',0', '')} k`;
-  return String(n);
-}
-function formatDuree(sec) {
-  const s = Math.round(sec);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
+
 function buildPostEmbed(post) {
-  const {
-    texte,
-    hashtags
-  } = formaterLegende(post.desc);
-  const blocs = [];
-  if (texte) blocs.push(texte.split('\n').map(l => `> ${l}`).join('\n'));
-
-  // Ligne de stats (uniquement celles que l'API fournit)
-  const stats = [];
-  if (post.likes) stats.push(`❤️ **${compact(post.likes)}**`);
-  if (post.commentaires) stats.push(`💬 **${compact(post.commentaires)}**`);
-  if (post.vues) stats.push(`▶️ **${compact(post.vues)}**`);
-  if (post.duree) stats.push(`⏱️ **${formatDuree(post.duree)}**`);
-  if (stats.length) blocs.push(stats.join('   '));
-  if (hashtags.length) blocs.push(`-# ${hashtags.join('  ')}`);
-
-  // NB : pas d'emoji dans le titre / l'auteur (ils sont dans un lien markdown :
-  // le remplacement par un emoji personnalisé casserait le lien).
-  const embed = new EmbedBuilder().setColor(0xE1306C).setAuthor({
-    name: `@${post.author} • Instagram`,
-    url: `https://www.instagram.com/${post.author}/`
-  }).setTitle(post.isReel ? 'Nouveau reel' : 'Nouvelle publication').setURL(post.url).setFooter({
-    text: post.isReel ? 'Instagram • Reel' : 'Instagram • Publication'
-  }).setTimestamp(post.publishedAt ? new Date(post.publishedAt) : new Date());
-  if (blocs.length) embed.setDescription(blocs.join('\n\n'));
-  if (post.avatar) embed.setThumbnail(post.avatar);
-  // Pas de grande image verticale : carte compacte (texte à gauche, photo de profil à droite)
+  const quoi = post.isReel ? 'un nouveau reel' : 'une nouvelle publication';
+  const embed = new EmbedBuilder()
+    .setTitle(post.caption ? post.caption.slice(0, 256) : (post.isReel ? 'Nouveau reel Instagram' : 'Nouvelle publication Instagram'))
+    .setColor(0xE1306C)
+    .setDescription(`**@${post.author}** vient de publier ${quoi} sur Instagram !`)
+    .setFooter({ text: post.isReel ? 'Instagram • Nouveau reel' : 'Instagram • Nouvelle publication' })
+    .setTimestamp();
+  if (post.thumbnail) embed.setImage(post.thumbnail);
   return embed;
 }
+
+// Fenêtre de rattrapage d'une publication manquée pendant une coupure du bot
+const CATCHUP_MS = 12 * 60 * 60 * 1000;
 
 // Verrou anti-chevauchement
 let isChecking = false;
@@ -249,34 +181,33 @@ async function runCheck(client) {
     for (const entry of bucket) {
       try {
         if (!entry.channelId) continue;
+        if (!actif(entry)) continue; // pause depuis le dashboard
         if (!entry.username) {
           entry.username = resolveInstagramUsername(entry.url);
           changed = true;
           if (!entry.username) continue;
         }
-        // ID numérique pas encore connu (suivi enregistré alors que l'API était indisponible)
-        if (!entry.userId) {
-          entry.userId = await fetchInstagramUserId(entry.username);
-          if (!entry.userId) continue;
+        const latest = await fetchLatestPost(entry.username, entry.userId);
+        if (!latest || !latest.id) continue;
+        if (latest.userId && entry.userId !== latest.userId) {
+          entry.userId = latest.userId;
           changed = true;
         }
-        const latest = await fetchLatestPost(entry.userId, entry.username);
-        if (!latest || !latest.id) continue;
         if (entry.lastPostId === latest.id) continue;
         const discordChannel = guild.channels.cache.get(entry.channelId);
         if (!discordChannel?.isTextBased?.()) continue;
         if (!entry.lastPostId) {
-          // Premier check réussi : on ne spamme pas l'historique, mais on rattrape
-          // une publication récente qui n'a pas encore été postée.
-          const recente = latest.publishedAt && Date.now() - latest.publishedAt < CATCHUP_MS;
-          if (!recente || (await alreadyPosted(discordChannel, [latest.id, latest.url]))) {
+          // Premier check (ou état perdu au redéploiement) : pas de spam de l'historique,
+          // mais on rattrape une publication de moins de CATCHUP_MS qui n'a pas été postée.
+          const recente = latest.publishedAt && (Date.now() - latest.publishedAt) < CATCHUP_MS;
+          if (!recente || await alreadyPosted(discordChannel, [latest.code, latest.url])) {
             entry.lastPostId = latest.id;
             changed = true;
             continue;
           }
         }
-        // Déjà postée dans le salon (état JSON perdu au redéploiement)
-        if (await alreadyPosted(discordChannel, [latest.id, latest.url])) {
+        // Déjà postée dans le salon (état JSON perdu au redéploiement) : marquée envoyée sans reposter
+        if (await alreadyPosted(discordChannel, [latest.code, latest.url])) {
           entry.lastPostId = latest.id;
           changed = true;
           continue;
@@ -284,14 +215,18 @@ async function runCheck(client) {
         entry.lastPostId = latest.id;
         changed = true;
         persist('instagramNotifs');
-        const button = new ButtonBuilder().setLabel(latest.isReel ? '🎬 Voir le reel' : '📸 Voir la publication').setURL(latest.url).setStyle(ButtonStyle.Link);
-        const profil = new ButtonBuilder().setLabel('👤 Profil').setURL(`https://www.instagram.com/${latest.author}/`).setStyle(ButtonStyle.Link);
-        const row = new ActionRowBuilder().addComponents(button, profil);
-        await discordChannel.send(toCV2Payload({
-          content: `📸 **${latest.isReel ? 'Nouveau reel' : 'Nouvelle publication'} Instagram de @${latest.author} !**`,
+
+        const button = new ButtonBuilder()
+          .setLabel(latest.isReel ? '📸 Voir le reel' : '📸 Voir la publication')
+          .setURL(latest.url)
+          .setStyle(ButtonStyle.Link);
+        const row = new ActionRowBuilder().addComponents(button);
+
+        await discordChannel.send(toCV2Payload(personnaliser(entry, {
+          content: `📸 **Nouveau contenu Instagram de @${latest.author} !**`,
           embeds: [buildPostEmbed(latest)],
           components: [row]
-        }));
+        }, { auteur: '@' + latest.author, titre: latest.caption || '', url: latest.url, plateforme: 'Instagram' })));
       } catch (e) {
         console.error(`[Instagram] Erreur check pour ${entry.url}:`, e.message);
       }
@@ -302,8 +237,7 @@ async function runCheck(client) {
     }
   }
 }
-
-// Intervalle par défaut : 10 min (les plans gratuits RapidAPI ont un quota limité).
+// Intervalle par défaut : 10 min (chaque compte suivi = 1 requête RapidAPI à chaque passage).
 function startInstagramChecker(client, intervalMs = Number(process.env.INSTAGRAM_INTERVAL_MS) || 600000) {
   if (intervalStarted) {
     console.warn('[Instagram] startInstagramChecker() déjà appelé, appel ignoré.');
@@ -316,12 +250,11 @@ function startInstagramChecker(client, intervalMs = Number(process.env.INSTAGRAM
   }, intervalMs);
   setTimeout(() => {
     checkInstagramNotifications(client).catch(e => console.error('[Instagram] Erreur check initial:', e.message));
-  }, 35000);
+  }, 40000);
 }
 module.exports = {
   startInstagramChecker,
   checkInstagramNotifications,
   resolveInstagramUsername,
-  fetchInstagramUserId,
   fetchLatestPost
 };

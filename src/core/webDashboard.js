@@ -743,6 +743,25 @@ async function route(req, res, { client }, url) {
   }
   if (p === '/api/logout' && req.method === 'POST') { return J(200, { ok: true }); }
 
+  /* ---------- Notifications (YouTube, Twitch, TikTok, Instagram, Medal, Blog) ---------- */
+  const nm = p.match(/^\/api\/guilds\/(\d+)\/notifs$/);
+  if (nm) {
+    if (!sess.guilds.some(g => g.id === nm[1])) return J(403, { error: 'forbidden' });
+    const nGuild = client.guilds.cache.get(nm[1]);
+    if (!nGuild) return J(404, { error: 'bot_absent' });
+    let nBody = {};
+    if (req.method === 'POST') { try { nBody = await readBody(req); } catch { return J(400, { error: 'invalid' }); } }
+    else if (req.method !== 'GET') return J(405, { error: 'method' });
+    try {
+      const r = await require('./dashboardNotifs').handle({ guild: nGuild, method: req.method, body: nBody, premium: premiumOk(sess.user.id) });
+      if (req.method === 'POST' && r.code === 200) console.log(`[WebDashboard] ${sess.user.username} a modifié les notifications (${nBody.action}) sur ${nGuild.name}`);
+      return J(r.code, r.body);
+    } catch (e) {
+      console.error('[WebDashboard] notifications :', e.message);
+      return J(500, { error: 'notifs' });
+    }
+  }
+
   const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye)|\/(activity))?$/);
   if (!m) return J(404, { error: 'not_found' });
   const [, guildId, isMeta, modId, previewKind, bgKind, isActivity] = m;
