@@ -55,6 +55,26 @@ module.exports = (client, app) => {
     hist.last = t; save();
   }, TICK).unref();
 
+  // ── Compteurs persistants (messages, commandes utilisées, scams bloqués…) ──
+  // Fichier modifiable via STATS_FILE (disque persistant recommandé, comme UPTIME_FILE).
+  // Dans ton anti-scam, ajoute : client.stats.inc('scams_blocked');
+  const CNT_FILE = process.env.STATS_FILE || path.join(__dirname, 'counters.json');
+  let counters = {}, dirty = false;
+  try { counters = JSON.parse(fs.readFileSync(CNT_FILE, 'utf8')) || {}; } catch {}
+  client.stats = {
+    inc: (k, n = 1) => { counters[k] = (counters[k] || 0) + n; dirty = true; },
+    get: (k) => counters[k] || 0,
+  };
+  client.on('messageCreate', (m) => { if (!m.author?.bot && m.guild) client.stats.inc('messages'); });
+  client.on('interactionCreate', (i) => { if (i.isChatInputCommand?.()) client.stats.inc('commands_run'); });
+  setInterval(() => {
+    if (!dirty) return; dirty = false;
+    try {
+      fs.writeFileSync(CNT_FILE + '.tmp', JSON.stringify(counters));
+      fs.renameSync(CNT_FILE + '.tmp', CNT_FILE);
+    } catch (e) { console.error('[status-api] sauvegarde compteurs :', e.message); }
+  }, 30 * 1000).unref();
+
   const build = () => {
     let storage = { used: 0, total: 0 };
     try {
@@ -72,6 +92,7 @@ module.exports = (client, app) => {
       cpu: { percent: Math.min(100, +cpu.toFixed(1)), cores: os.cpus().length, model: os.cpus()[0]?.model || '' },
       memory: { used: os.totalmem() - os.freemem(), total: os.totalmem() },
       storage,
+      counters,
       history: days().map((k) => ({ d: k, u: hist.days[k].u, t: hist.days[k].t })),
     };
   };
