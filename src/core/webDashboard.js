@@ -404,6 +404,7 @@ const MODULES = [
     desc: 'L’assistant IA CoreLab. Le salon et la catégorie se créent avec /config-ia.',
     fields: [
       B('ia_enabled', 'Activer l’assistant IA', false, { hint: 'Sans salon IA enregistré (/config-ia), l’assistant ne répondra pas.' }),
+      B('ia_mention_enabled', 'Répondre quand on écrit « corelab »', true, { hint: 'Si un membre écrit le mot « corelab » dans n’importe quel salon, CoreLab lui répond comme ChatGPT. Fonctionne sans /config-ia.' }),
       CH('ia_channel_id', 'Salon de l’assistant', { dep: 'ia_enabled' }),
       CAT('ia_category_id', 'Catégorie de l’assistant', { dep: 'ia_enabled' })
     ]

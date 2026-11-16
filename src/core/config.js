@@ -191,6 +191,7 @@ function obtenirConfigGuilde(idGuilde) {
     if (config.starboard_notice_message_id === undefined) config.starboard_notice_message_id = null;
     if (config.starboard_notice_channel_id === undefined) config.starboard_notice_channel_id = null;
     if (config.ia_enabled === undefined) config.ia_enabled = false;
+    if (config.ia_mention_enabled === undefined) config.ia_mention_enabled = true;
     if (config.ia_category_id === undefined) config.ia_category_id = null;
     if (config.ia_channel_id === undefined) config.ia_channel_id = null;
     if (config.ia_message_id === undefined) config.ia_message_id = null;

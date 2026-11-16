@@ -1,7 +1,7 @@
 'use strict';
 
 // ─────────────────────────────────────────────────────────────────────────
-// Interserveur (/interserveur) : relie un salon au réseau Chell et discute
+// Interserveur (/interserveur) : relie un salon au réseau CoreLab et discute
 // avec d'autres communautés en direct.
 //   /interserveur setup   → panneau de configuration (réservé « Gérer le serveur ») :
 //                           choisir le salon relié, activer / couper la liaison,
@@ -41,7 +41,7 @@ const {
 const { chargerDonnees, sauvegarderDonnees } = require('../core/data');
 
 const FICHIER = 'interserveur.json';
-const RESEAU = 'Chell'; // nom du réseau affiché partout
+const RESEAU = 'CoreLab'; // nom du réseau affiché partout
 const COULEUR = 0xE8510D; // barre d'accent orange CoreLab
 const WEBHOOK_NAME = 'CoreLab Interserveur';
 const MSG_MIN_INTERVAL_MS = 2000; // anti-spam : 1 message relayé toutes les 2 s par membre
