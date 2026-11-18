@@ -763,6 +763,23 @@ async function route(req, res, { client }, url) {
     }
   }
 
+  /* ---------- Journal d'audit : évènements négatifs (messages supprimés, sanctions, départs…) ---------- */
+  const au = p.match(/^\/api\/guilds\/(\d+)\/audit$/);
+  if (au) {
+    if (req.method !== 'GET') return J(405, { error: 'method' });
+    if (!sess.guilds.some(g => g.id === au[1])) return J(403, { error: 'forbidden' });
+    if (!client.guilds.cache.get(au[1])) return J(404, { error: 'bot_absent' });
+    try {
+      return J(200, require('./auditJournal').pourDashboard(au[1], {
+        type: url.searchParams.get('type') || '', q: url.searchParams.get('q') || '',
+        before: url.searchParams.get('before'), limit: url.searchParams.get('limit')
+      }));
+    } catch (e) {
+      console.error('[WebDashboard] audit :', e.message);
+      return J(500, { error: 'audit' });
+    }
+  }
+
   /* ---------- Absences du staff (mêmes données que la commande /absence) ---------- */
   const am = p.match(/^\/api\/guilds\/(\d+)\/absences(?:\/([\w-]+))?(?:\/(approve|refuse))?$/);
   if (am) {

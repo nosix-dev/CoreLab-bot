@@ -234,6 +234,69 @@ function enregistrerCommande(interaction, cmd) {
   }
 }
 
+// ── Évènements négatifs pour le dashboard (messages supprimés, sanctions, départs…) ──
+// action (libellé) → catégorie du dashboard
+const NEGATIFS = {
+  'Message supprimé': 'messages', 'Messages supprimés en masse': 'messages',
+  'Message bloqué par AutoMod': 'messages', 'Message signalé par AutoMod': 'messages',
+  'Membre expulsé': 'moderation', 'Membre banni': 'moderation', 'Membre mis en timeout': 'moderation',
+  'Avertissement': 'moderation', 'Mute': 'moderation', 'Membre réduit au silence par AutoMod': 'moderation',
+  'Membres inactifs expulsés': 'moderation',
+  'Membre parti': 'members', 'Bot ajouté': 'members',
+  'Salon supprimé': 'channels', 'Fil supprimé': 'channels', 'Permission de salon retirée': 'channels',
+  'Rôle supprimé': 'roles',
+  'Membre déconnecté du vocal': 'voice',
+  'Webhook supprimé': 'server', 'Invitation supprimée': 'server', 'Emoji supprimé': 'server', 'Sticker supprimé': 'server',
+  'Intégration supprimée': 'server', 'Règle AutoMod supprimée': 'server', 'Événement supprimé': 'server',
+};
+
+// Ajoute un évènement hors journal Discord (message supprimé avec contenu, départ, avertissement…).
+function ajouterEvenement(guildId, entree) {
+  try {
+    ajouter(guildId, {
+      type: entree.type || 'membres', action: entree.action,
+      actorId: entree.actorId || null, actorTag: entree.actorTag || null,
+      targetId: entree.targetId || null, targetType: entree.targetType || null,
+      targetLabel: coupe(entree.targetLabel || '', 100) || null,
+      details: coupe(entree.details || '', 300) || null, reason: coupe(entree.reason || '', 200) || null,
+    });
+  } catch (e) { console.error('[Audit] évènement non enregistré :', e.message); }
+}
+
+function categorieNegative(e) {
+  if (e.action === 'Membre modifié' && /communication_disabled_until/.test(e.details || '') && !/→ ∅/.test(e.details || '')) {
+    return { cat: 'moderation', titre: 'Membre mis en timeout' };
+  }
+  const cat = NEGATIFS[e.action];
+  return cat ? { cat, titre: e.action } : null;
+}
+
+// Page de résultats au format attendu par le dashboard : { entries, next }
+function pourDashboard(guildId, { type, q, before, limit = 50 } = {}) {
+  const recherche = String(q || '').trim().toLowerCase();
+  const avant = Number(before) || Infinity;
+  const max = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  const tout = [];
+  for (const e of bucket(guildId).entries) {
+    const n = categorieNegative(e);
+    if (!n || e.id >= avant) continue;
+    if (type && n.cat !== type) continue;
+    if (recherche && ![n.titre, e.actorTag, e.targetLabel, e.details, e.reason].some(v => String(v || '').toLowerCase().includes(recherche))) continue;
+    tout.push({ e, n });
+  }
+  tout.sort((a, b) => (b.e.ts - a.e.ts) || (b.e.id - a.e.id));
+  const page = tout.slice(0, max);
+  return {
+    entries: page.map(({ e, n }) => ({
+      id: e.id, ts: new Date(e.ts).toISOString(), category: n.cat, title: n.titre,
+      actor: e.actorTag ? { id: e.actorId, name: e.actorTag } : null,
+      target: e.targetLabel || e.targetId ? { id: e.targetId, name: e.targetLabel || e.targetId } : null,
+      details: [e.details, e.reason ? `Raison : ${e.reason}` : ''].filter(Boolean).join(' · '),
+    })),
+    next: tout.length > max ? page[page.length - 1].e.id : null,
+  };
+}
+
 function installer(client) {
   client.on('guildAuditLogEntryCreate', (entry, guild) => {
     try { enregistrerEntreeDiscord(entry, guild); } catch (e) { console.error('[Audit] entrée ignorée :', e.message); }
@@ -355,6 +418,6 @@ function exporter(guildId, filtres, format) {
 }
 
 module.exports = {
-  TYPES, PREFIX_PAGE, installer, enregistrerCommande, enregistrerEntreeDiscord,
+  TYPES, PREFIX_PAGE, installer, ajouterEvenement, pourDashboard, enregistrerCommande, enregistrerEntreeDiscord,
   acteurRecent, lister, construirePage, handleAuditButton, estAutorise, statistiques, exporter, fmtDate,
 };

@@ -55,6 +55,15 @@ async function journaliserInfraction(guilde, donnees) {
     text: `${donnees.target.tag} — ${LIBELLES[donnees.type] ?? donnees.type} par ${donnees.moderator.tag}${donnees.reason ? ` — ${donnees.reason}` : ''}`,
     server: guilde.name
   });
+  // Journal du dashboard : avertissements et mutes (les bans / expulsions / timeouts viennent du journal Discord)
+  if (donnees.type === 'warn' || donnees.type === 'mute') {
+    require('./auditJournal').ajouterEvenement(guilde.id, {
+      type: 'membres', action: donnees.type === 'warn' ? 'Avertissement' : 'Mute',
+      actorId: donnees.moderator?.id, actorTag: donnees.moderator?.tag || donnees.moderator?.username,
+      targetId: donnees.target?.id, targetType: 'User', targetLabel: donnees.target?.tag || donnees.target?.username,
+      details: donnees.duration ? `Durée : ${donnees.duration}` : '', reason: donnees.reason || ''
+    });
+  }
   const config = obtenirConfigGuilde(guilde.id);
   // Destinations : salon des sanctions (s'il est configuré) + salon de logs de protection
   // (« 🛡️・logs-protection » par défaut), sans doublon si c'est le même salon.
