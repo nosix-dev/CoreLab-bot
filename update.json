@@ -1,0 +1,35 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.38",
+  "date": "2026-11-18",
+  "mention": false,
+  "titre": "📌 Mise a jour 5.5.38 — Transcripts sur le dashboard et commande /absence (5.5.38)",
+  "couleur": "#e8510d",
+  "article": {
+    "label": "Changelog",
+    "emoji": "📜",
+    "url": "https://corelab-4cn.pages.dev/docs#p-changelog"
+  },
+  "intro": "Les transcripts de tickets sont désormais **uniquement sur le dashboard** : le bot n'envoie plus le fichier en message privé. Nouvelle commande **/absence** pour gérer les absences du staff.",
+  "modifications": {
+    "🗓️ Absences": [
+      "[+] Nouvelle commande **/absence** pour gérer les absences du staff : **déclarer**, **annuler**, **équipe**, **mes-absences**, **prolonger** et **retour**.",
+      "[+] Chaque demande est envoyée dans un salon avec les boutons **Approuver / Refuser**, réservés aux membres qui ont « Gérer le serveur » ou « Administrateur ».",
+      "[+] **/absence configurer** (admin) : choix du salon des demandes et du rôle du staff.",
+      "[+] Les absences sont aussi visibles et gérables dans la page **Absences du staff** du dashboard."
+    ],
+    "🎫 Tickets": [
+      "[+] Chaque ticket fermé est **archivé** par le bot et apparaît dans la page **Transcripts** du dashboard (nom, ouvert par, fermé par, date, nombre de messages).",
+      "[+] Bouton **Ouvrir** : affiche la conversation complète dans un nouvel onglet, via un lien sécurisé qui expire au bout d'1 heure.",
+      "[-] Le bot n'envoie plus le transcript en MP à la personne qui a ouvert le ticket.",
+      "[~] Le MP « Ton ticket est fermé » avec la note 1★ à 5★ est conservé.",
+      "[~] Seuls les tickets fermés **à partir de cette version** apparaissent dans la page ; les 200 derniers de chaque serveur sont conservés."
+    ]
+  },
+  "pied": "Ajoute CoreLab sur tes autres serveurs.",
+  "support": {
+    "label": "Inviter le bot",
+    "emoji": "🚀",
+    "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+  }
+}
