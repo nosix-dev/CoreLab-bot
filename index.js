@@ -668,6 +668,9 @@ client.on('interactionCreate', async interaction => {
     if (id.startsWith('discon:')) {
       return require('./src/commands/discon').routeDisconInteraction(interaction).catch(e => console.error('[DISCON] interaction :', e.message));
     }
+    if (id.startsWith('absence:')) {
+      return require('./src/commands/absence').routeAbsenceInteraction(interaction).catch(e => console.error('[Absence] interaction :', e.message));
+    }
     if (id.startsWith('secaudit:')) {
       return require('./src/commands/audit').routeSecAuditInteraction(interaction).catch(e => console.error('[Audit] sécurité :', e.message));
     }

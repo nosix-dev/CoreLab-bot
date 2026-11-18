@@ -678,7 +678,7 @@ async function route(req, res, { client }, url) {
   const cors = origin => ({
     'Access-Control-Allow-Origin': origin, 'Vary': 'Origin',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-    'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS', 'Cache-Control': 'no-store'
+    'Access-Control-Allow-Methods': 'GET, PUT, POST, DELETE, OPTIONS', 'Cache-Control': 'no-store'
   });
   if (!SECRET || !REDIRECT || !SITE) {
     res.writeHead(503, { 'Content-Type': 'application/json', ...cors('*') });
@@ -760,6 +760,49 @@ async function route(req, res, { client }, url) {
     } catch (e) {
       console.error('[WebDashboard] notifications :', e.message);
       return J(500, { error: 'notifs' });
+    }
+  }
+
+  /* ---------- Absences du staff (mêmes données que la commande /absence) ---------- */
+  const am = p.match(/^\/api\/guilds\/(\d+)\/absences(?:\/([\w-]+))?$/);
+  if (am) {
+    if (!sess.guilds.some(g => g.id === am[1])) return J(403, { error: 'forbidden' });
+    const aGuild = client.guilds.cache.get(am[1]);
+    if (!aGuild) return J(404, { error: 'bot_absent' });
+    const abs = require('../commands/absence');
+    try {
+      if (req.method === 'GET' && !am[2]) return J(200, { absences: abs.listerPourDashboard(aGuild) });
+      if (req.method === 'DELETE' && am[2]) {
+        const r = abs.annulerDepuisDashboard(client, aGuild, am[2]);
+        if (r.error) return J(404, { error: r.error });
+        console.log(`[WebDashboard] ${sess.user.username} a supprimé une absence sur ${aGuild.name}`);
+        return J(200, { ok: true });
+      }
+      if (req.method === 'POST' && !am[2]) {
+        let b;
+        try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+        const q = String(b.member || '').trim().slice(0, 60);
+        if (!q) return J(400, { error: 'invalid', reason: 'Membre manquant.' });
+        let mb = null;
+        if (/^\d{17,20}$/.test(q)) mb = aGuild.members.cache.get(q) || await aGuild.members.fetch(q).catch(() => null);
+        else {
+          const low = q.toLowerCase().replace(/^@/, '');
+          mb = aGuild.members.cache.find(x => x.displayName.toLowerCase() === low || x.user.username.toLowerCase() === low)
+            || (await aGuild.members.search({ query: low, limit: 1 }).catch(() => null))?.first() || null;
+        }
+        if (!mb || mb.user.bot) return J(404, { error: 'member_not_found', reason: 'Membre introuvable sur ce serveur.' });
+        const r = abs.ajouterDepuisDashboard(aGuild, { userId: mb.id, from: b.from, to: b.to, reason: String(b.reason || '').trim(), decidedBy: sess.user.id });
+        if (r.error) {
+          const msg = { invalid_date: 'Dates invalides.', end_before_start: 'La fin doit être après le début.', too_long: 'Une absence ne peut pas dépasser 1 an.', overlap: 'Ce membre a déjà une absence sur cette période.' }[r.error] || 'Erreur.';
+          return J(400, { error: r.error, reason: msg });
+        }
+        console.log(`[WebDashboard] ${sess.user.username} a ajouté une absence (${mb.user.username}) sur ${aGuild.name}`);
+        return J(200, { ok: true });
+      }
+      return J(405, { error: 'method' });
+    } catch (e) {
+      console.error('[WebDashboard] absences :', e.message);
+      return J(500, { error: 'absences' });
     }
   }
 

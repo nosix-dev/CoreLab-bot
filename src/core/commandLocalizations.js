@@ -369,7 +369,15 @@ const ENGLISH_DESCRIPTIONS = {
   'Jarvis rejoint ton salon vocal et écoute': 'Jarvis joins your voice channel and listens',
   'Jarvis quitte le salon vocal': 'Jarvis leaves the voice channel',
   'Choisir les rôles à supprimer': 'Choose the roles to delete',
-  'Configurer les salons de statistiques du serveur (membres, en ligne, boosts...)': 'Set up server statistics channels (members, online, boosts...)'
+  'Configurer les salons de statistiques du serveur (membres, en ligne, boosts...)': 'Set up server statistics channels (members, online, boosts...)',
+  '🗓️ Absences du staff : déclarer, prolonger, annuler, équipe': '🗓️ Staff absences: declare, extend, cancel, team',
+  'Déclare une absence (ouvre le formulaire).': 'Declare an absence (opens the form).',
+  'Annule une demande en attente ou une absence approuvée pas encore commencée.': 'Cancel a pending request or an approved absence that has not started yet.',
+  'Qui est absent aujourd’hui et bientôt (14 jours).': 'Who is away today and soon (14 days).',
+  'Tes absences en attente, en cours et à venir.': 'Your pending, ongoing and upcoming absences.',
+  'Demande de prolonger ton absence en cours.': 'Request to extend your ongoing absence.',
+  'Signale ton retour avant la date prévue.': 'Report your return before the planned date.',
+  'Admin • Salon des demandes et rôle du staff': 'Admin • Requests channel and staff role'
 };
 
 function normalizeText(value) {
@@ -405,7 +413,9 @@ const PATH_NAME_OVERRIDES = {
   'roles-reaction/retirer': 'remove',
   'social/ami/retirer': 'remove',
   'rp/permis/retirer': 'remove',
-  'reputation/donner': 'give'
+  'reputation/donner': 'give',
+  // /absence : on garde les noms français (déclarer, équipe, retour…) ; « annuler » deviendrait « cancel » sinon
+  'absence/annuler': 'annuler'
 };
 
 function englishName(pathParts) {
