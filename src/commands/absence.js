@@ -541,20 +541,50 @@ async function routeAbsenceInteraction(interaction) {
 }
 
 // ── API pour le dashboard web (src/core/webDashboard.js) ────────────
-// Liste lisible des absences non annulées/refusées des 30 derniers jours et à venir.
+// Liste de toutes les absences (tous statuts) des 90 derniers jours et à venir : c'est ce que
+// le dashboard affiche, donc chaque /absence déclarer y apparaît dès qu'elle est enregistrée.
 function listerPourDashboard(guild) {
   const now = Date.now();
+  const nom = id => (id ? (guild.members.cache.get(id)?.displayName || guild.client.users.cache.get(id)?.username || id) : null);
   return serveur(guild.id).items
-    .filter(a => (a.status === 'pending' || a.status === 'approved') && a.end >= now - 30 * 24 * 3600 * 1000)
-    .sort((x, y) => x.start - y.start)
-    .map(a => ({
-      id: a.id,
-      member: guild.members.cache.get(a.userId)?.displayName || a.userId,
-      from: new Date(a.start + decalageParis(a.start)).toISOString().slice(0, 10),
-      to: new Date(a.end + decalageParis(a.end)).toISOString().slice(0, 10),
-      reason: a.reason || '',
-      status: phase(a, now)
-    }));
+    .filter(a => a.end >= now - 90 * 24 * 3600 * 1000 || a.status === 'pending')
+    .sort((x, y) => y.createdAt - x.createdAt)
+    .map(a => {
+      const u = guild.members.cache.get(a.userId)?.user || guild.client.users.cache.get(a.userId);
+      return {
+        id: a.id,
+        userId: a.userId,
+        member: nom(a.userId) || a.userId,
+        avatar: u ? u.displayAvatarURL({ size: 64 }) : null,
+        from: new Date(a.start + decalageParis(a.start)).toISOString().slice(0, 10),
+        to: new Date(a.end + decalageParis(a.end)).toISOString().slice(0, 10),
+        start: a.start,
+        end: a.end,
+        duration: dureeHumaine(a.end - a.start),
+        reason: a.reason || '',
+        info: a.info || '',
+        createdAt: a.createdAt,
+        decidedBy: nom(a.decidedBy),
+        returnedAt: a.returnedAt || null,
+        extension: a.extension ? { end: a.extension.end, reason: a.extension.reason || '' } : null,
+        source: a.messageId ? 'discord' : 'dashboard',
+        status: phase(a, now)
+      };
+    });
+}
+
+// Approuve ou refuse une demande en attente depuis le dashboard (même effet que les boutons Discord).
+async function decideDepuisDashboard(client, guild, id, accepter, decidedBy) {
+  const a = serveur(guild.id).items.find(x => x.id === id);
+  if (!a || a.status !== 'pending') return { error: 'not_found' };
+  a.status = accepter ? 'approved' : 'refused';
+  a.decidedBy = decidedBy || null;
+  sauver();
+  await majMessage(client, guild.id, a);
+  mp(client, a.userId, accepter
+    ? `✅ Ton absence du ${tsF(a.start)} au ${tsF(a.end)} sur **${guild.name}** a été **approuvée**.`
+    : `❌ Ta demande d’absence du ${tsF(a.start)} au ${tsF(a.end)} sur **${guild.name}** a été **refusée**. Contacte un responsable si besoin.`);
+  return { ok: true };
 }
 
 // Ajoute une absence déjà approuvée (saisie depuis le dashboard par un responsable).
@@ -592,5 +622,5 @@ function annulerDepuisDashboard(client, guild, id) {
 module.exports = {
   data, execute, autocomplete, routeAbsenceInteraction,
   serveur, sauver, phase, lireDateParis,
-  listerPourDashboard, ajouterDepuisDashboard, annulerDepuisDashboard
+  listerPourDashboard, ajouterDepuisDashboard, annulerDepuisDashboard, decideDepuisDashboard
 };

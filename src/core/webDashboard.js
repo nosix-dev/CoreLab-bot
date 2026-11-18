@@ -764,7 +764,7 @@ async function route(req, res, { client }, url) {
   }
 
   /* ---------- Absences du staff (mêmes données que la commande /absence) ---------- */
-  const am = p.match(/^\/api\/guilds\/(\d+)\/absences(?:\/([\w-]+))?$/);
+  const am = p.match(/^\/api\/guilds\/(\d+)\/absences(?:\/([\w-]+))?(?:\/(approve|refuse))?$/);
   if (am) {
     if (!sess.guilds.some(g => g.id === am[1])) return J(403, { error: 'forbidden' });
     const aGuild = client.guilds.cache.get(am[1]);
@@ -772,10 +772,16 @@ async function route(req, res, { client }, url) {
     const abs = require('../commands/absence');
     try {
       if (req.method === 'GET' && !am[2]) return J(200, { absences: abs.listerPourDashboard(aGuild) });
-      if (req.method === 'DELETE' && am[2]) {
+      if (req.method === 'DELETE' && am[2] && !am[3]) {
         const r = abs.annulerDepuisDashboard(client, aGuild, am[2]);
         if (r.error) return J(404, { error: r.error });
         console.log(`[WebDashboard] ${sess.user.username} a supprimé une absence sur ${aGuild.name}`);
+        return J(200, { ok: true });
+      }
+      if (req.method === 'POST' && am[2] && am[3]) {
+        const r = await abs.decideDepuisDashboard(client, aGuild, am[2], am[3] === 'approve', sess.user.id);
+        if (r.error) return J(404, { error: r.error });
+        console.log(`[WebDashboard] ${sess.user.username} a ${am[3] === 'approve' ? 'approuvé' : 'refusé'} une absence sur ${aGuild.name}`);
         return J(200, { ok: true });
       }
       if (req.method === 'POST' && !am[2]) {
