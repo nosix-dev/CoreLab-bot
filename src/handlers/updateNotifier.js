@@ -190,6 +190,8 @@ const parseColor = (v, def) => {
  *  pied      : petite ligne de bas de message (markdown, [liens](url) ok)
  *  support   : { label, emoji?, url } -> bouton à droite du pied
  *  boutons   : [{ label, emoji?, url }] -> ligne de boutons en bas (si tu n'utilises pas `support`)
+ *  image     : URL / chemin de bannière ; absent = bannière générée automatiquement ; false = aucune
+ *  banner    : { ligne1, ligne2, commandes: ["/cmd"] } -> texte de la bannière automatique (facultatif)
  *  note      : second encadré (accent jaune) sous le message principal
  *  couleur / couleurNote : "#RRGGBB" (barre colorée à gauche)
  *  mention   : false pour couper le @everyone
@@ -223,6 +225,15 @@ function buildMessages(data, client, hash) {
   // `image` : URL https ou chemin relatif au projet (ex. "assets/update_banner.png") → grande bannière en bas
   let bannerUrl = null;
   let bannerFile = null;
+  // Aucune `image` fournie : bannière générée automatiquement (mettre "image": false pour la désactiver)
+  if (!data.image && data.image !== false) {
+    try {
+      bannerFile = new AttachmentBuilder(require('../core/updateBanner').generateUpdateBanner({ ...data, version }), { name: 'update-banner.png' });
+      bannerUrl = 'attachment://update-banner.png';
+    } catch (e) {
+      console.warn('[Update] Bannière automatique impossible :', e.message);
+    }
+  }
   if (data.image) {
     const img = String(data.image);
     if (/^https?:\/\//i.test(img)) bannerUrl = img;
