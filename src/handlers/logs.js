@@ -256,6 +256,16 @@ function registerLogHandlers(client) {
             const actor = await getAuditActor(message.guild, AuditLogEvent.MessageDelete, message.author?.id);
             const authorInconnu = !message.author;
             const supprimePar = actor && actor.id !== message.author?.id ? actorName(actor) : null;
+            try {
+                require('../core/auditJournal').ajouterEvenement(message.guild.id, {
+                    type: 'messages', action: 'Message supprimé',
+                    actorId: actor && actor.id !== message.author?.id ? actor.id : null,
+                    actorTag: actor && actor.id !== message.author?.id ? (actor.tag || actor.username) : null,
+                    targetId: message.author?.id, targetType: 'User', targetLabel: message.author?.tag || message.author?.username || 'Auteur inconnu',
+                    channelId: message.channel?.id, channelName: message.channel?.name || null, messageId: message.id,
+                    content: message.cleanContent || message.content || (message.attachments?.size ? `[${message.attachments.size} pièce(s) jointe(s)]` : ''),
+                });
+            } catch { /* journal indisponible */ }
 
             const quotes = [{ label: 'Contenu', text: message.cleanContent || message.content || '(vide)', maxLines: 5 }];
             if (message.attachments?.size) {
@@ -292,6 +302,10 @@ function registerLogHandlers(client) {
             if (!first?.guild) return;
             const guild = first.guild;
             const channel = first.channel;
+            require('../core/auditJournal').ajouterEvenement(guild.id, {
+                type: 'messages', action: 'Messages supprimés en masse', channelId: channel.id, channelName: channel.name,
+                details: `${messages.size} messages`,
+            });
 
             const authors = [...new Set(messages.filter(m => !m.author?.bot).map(m => m.author?.displayName ?? m.author?.username).filter(Boolean))];
             const preview = messages
@@ -381,6 +395,15 @@ function registerLogHandlers(client) {
         try {
             if (member.id === member.client.user.id) return; // le bot lui-même
             if (member.user.bot) return;
+
+            // Un départ qui est en fait une expulsion est déjà enregistré par le journal Discord
+            require('../core/auditJournal').acteurRecent(member.guild, AuditLogEvent.MemberKick, member.id, 1200).then(k => {
+                if (k) return;
+                require('../core/auditJournal').ajouterEvenement(member.guild.id, {
+                    type: 'membres', action: 'Membre parti', targetId: member.id, targetType: 'User', targetLabel: member.user.tag,
+                    details: member.joinedTimestamp ? `Sur le serveur depuis le ${new Date(member.joinedTimestamp).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}` : '',
+                });
+            }).catch(() => { });
 
             const joinedTs = member.joinedTimestamp;
             const roles = member.roles?.cache

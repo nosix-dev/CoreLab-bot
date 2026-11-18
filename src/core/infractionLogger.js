@@ -61,7 +61,7 @@ async function journaliserInfraction(guilde, donnees) {
       type: 'membres', action: donnees.type === 'warn' ? 'Avertissement' : 'Mute',
       actorId: donnees.moderator?.id, actorTag: donnees.moderator?.tag || donnees.moderator?.username,
       targetId: donnees.target?.id, targetType: 'User', targetLabel: donnees.target?.tag || donnees.target?.username,
-      details: donnees.duration ? `Durée : ${donnees.duration}` : '', reason: donnees.reason || ''
+      details: donnees.duration ? `Durée : ${donnees.duration}` : '', reason: donnees.reason || '', source: 'bot'
     });
   }
   const config = obtenirConfigGuilde(guilde.id);

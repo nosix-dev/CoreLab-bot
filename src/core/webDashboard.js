@@ -772,7 +772,9 @@ async function route(req, res, { client }, url) {
     try {
       return J(200, require('./auditJournal').pourDashboard(au[1], {
         type: url.searchParams.get('type') || '', q: url.searchParams.get('q') || '',
-        before: url.searchParams.get('before'), limit: url.searchParams.get('limit')
+        before: url.searchParams.get('before'), limit: url.searchParams.get('limit'),
+        actor: url.searchParams.get('actor') || '', action: url.searchParams.get('action') || '',
+        from: url.searchParams.get('from') || '', to: url.searchParams.get('to') || ''
       }));
     } catch (e) {
       console.error('[WebDashboard] audit :', e.message);
@@ -790,7 +792,7 @@ async function route(req, res, { client }, url) {
     try {
       if (req.method === 'GET' && !am[2]) return J(200, { absences: abs.listerPourDashboard(aGuild) });
       if (req.method === 'DELETE' && am[2] && !am[3]) {
-        const r = abs.annulerDepuisDashboard(client, aGuild, am[2]);
+        const r = abs.annulerDepuisDashboard(client, aGuild, am[2], sess.user.id);
         if (r.error) return J(404, { error: r.error });
         console.log(`[WebDashboard] ${sess.user.username} a supprimé une absence sur ${aGuild.name}`);
         return J(200, { ok: true });

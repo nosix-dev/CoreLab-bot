@@ -260,6 +260,20 @@ async function majMessage(client, guildId, a) {
 
 const mp = (client, userId, contenu) => client.users.fetch(userId).then(u => u.send(contenu)).catch(() => { });
 
+// Journal d'audit du dashboard (onglet « Journal d'audit »)
+function journaliser(guild, titre, a, acteurId, acteurTag) {
+  try {
+    const membre = guild.members?.cache.get(a.userId)?.user || guild.client.users.cache.get(a.userId);
+    require('../core/auditJournal').ajouterEvenement(guild.id, {
+      type: 'commandes', action: titre, source: 'bot',
+      actorId: acteurId || null,
+      actorTag: acteurTag || (acteurId ? (guild.members?.cache.get(acteurId)?.user.tag || guild.client.users.cache.get(acteurId)?.tag || null) : null),
+      targetId: a.userId, targetType: 'User', targetLabel: membre?.tag || membre?.username || a.userId,
+      details: `${courtParis(a.start)} → ${courtParis(a.end)}`, reason: a.reason || ''
+    });
+  } catch { /* journal indisponible */ }
+}
+
 // MP de décision : embed « Approuvée / Refusée / Annulée » (+ bouton pour annuler sa demande).
 function payloadMP(guildId, guildName, a, etat, parId) {
   const titres = { approved: '✅ Approuvée', refused: '❌ Refusée', cancelled: '🚫 Annulée' };
@@ -276,6 +290,7 @@ function payloadMP(guildId, guildName, a, etat, parId) {
   return { embeds: [e], components };
 }
 async function mpDecision(client, guild, a, etat, parUserId) {
+  journaliser(guild, { approved: 'Absence approuvée', refused: 'Absence refusée', cancelled: 'Absence annulée' }[etat], a, parUserId);
   const par = parUserId ? { nom: guild.members.cache.get(parUserId)?.displayName || client.users.cache.get(parUserId)?.username || '' } : null;
   const u = await client.users.fetch(a.userId).catch(() => null);
   if (u) u.send(payloadMP(guild.id, guild.name, a, etat, par && par.nom ? par : null)).catch(() => { });
@@ -297,6 +312,7 @@ async function annulerDepuisMP(interaction) {
   a.extension = null;
   sauver();
   const guild = interaction.client.guilds.cache.get(guildId);
+  if (guild) journaliser(guild, 'Absence annulée', a, interaction.user.id, interaction.user.tag);
   majMessage(interaction.client, guildId, a);
   const p = payloadMP(guildId, guild ? guild.name : 'le serveur', a, 'cancelled', { nom: interaction.user.username });
   return interaction.update(p);
@@ -492,6 +508,7 @@ async function soumettreDeclaration(interaction) {
   };
   // Pas de message public dans un salon : la demande est visible et traitée depuis le dashboard.
   srv.items.push(a);
+  journaliser(interaction.guild, 'Absence déclarée', a, interaction.user.id, interaction.user.tag);
   sauver();
   return interaction.reply({
     flags: MessageFlags.Ephemeral,
@@ -645,14 +662,14 @@ function ajouterDepuisDashboard(guild, { userId, from, to, reason, decidedBy }) 
 }
 
 // Annule une absence (n'importe quelle phase) depuis le dashboard.
-function annulerDepuisDashboard(client, guild, id) {
+function annulerDepuisDashboard(client, guild, id, parId) {
   const a = serveur(guild.id).items.find(x => x.id === id);
   if (!a || a.status === 'cancelled') return { error: 'not_found' };
   a.status = 'cancelled';
   a.extension = null;
   sauver();
   majMessage(client, guild.id, a);
-  mpDecision(client, guild, a, 'cancelled', null);
+  mpDecision(client, guild, a, 'cancelled', parId || null);
   return { ok: true };
 }
 

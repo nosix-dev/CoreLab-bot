@@ -195,6 +195,7 @@ function enregistrerEntreeDiscord(entry, guild) {
     targetLabel: coupe(cible?.tag ?? cible?.username ?? cible?.name ?? '', 100) || null,
     details: coupe(resumeChangements(entry.changes), 300) || null,
     reason: coupe(entry.reason || '', 200) || null,
+    source: 'discord', discordId: entry.id || null,
   });
 }
 
@@ -246,6 +247,7 @@ const NEGATIFS = {
   'Salon supprimé': 'channels', 'Fil supprimé': 'channels', 'Permission de salon retirée': 'channels',
   'Rôle supprimé': 'roles',
   'Membre déconnecté du vocal': 'voice',
+  'Absence déclarée': 'staff', 'Absence approuvée': 'staff', 'Absence refusée': 'staff', 'Absence annulée': 'staff',
   'Webhook supprimé': 'server', 'Invitation supprimée': 'server', 'Emoji supprimé': 'server', 'Sticker supprimé': 'server',
   'Intégration supprimée': 'server', 'Règle AutoMod supprimée': 'server', 'Événement supprimé': 'server',
 };
@@ -259,6 +261,9 @@ function ajouterEvenement(guildId, entree) {
       targetId: entree.targetId || null, targetType: entree.targetType || null,
       targetLabel: coupe(entree.targetLabel || '', 100) || null,
       details: coupe(entree.details || '', 300) || null, reason: coupe(entree.reason || '', 200) || null,
+      channelId: entree.channelId || null, channelName: entree.channelName || null,
+      content: entree.content ? coupe(entree.content, 1500) : null, messageId: entree.messageId || null,
+      source: entree.source || 'discord',
     });
   } catch (e) { console.error('[Audit] évènement non enregistré :', e.message); }
 }
@@ -271,17 +276,64 @@ function categorieNegative(e) {
   return cat ? { cat, titre: e.action } : null;
 }
 
-// Page de résultats au format attendu par le dashboard : { entries, next }
-function pourDashboard(guildId, { type, q, before, limit = 50 } = {}) {
+const CODES = {
+  'Message supprimé': 'message.delete', 'Messages supprimés en masse': 'message.bulk_delete', 'Message bloqué par AutoMod': 'automod.block_message',
+  'Message signalé par AutoMod': 'automod.flag_message', 'Membre expulsé': 'member.kick', 'Membre banni': 'member.ban',
+  'Membre mis en timeout': 'member.timeout', 'Avertissement': 'member.warn', 'Mute': 'member.mute', 'Membre parti': 'member.leave',
+  'Bot ajouté': 'bot.add', 'Salon supprimé': 'channel.delete', 'Fil supprimé': 'thread.delete', 'Rôle supprimé': 'role.delete',
+  'Membre déconnecté du vocal': 'voice.disconnect', 'Absence déclarée': 'absence.declare', 'Absence approuvée': 'absence.approve',
+  'Absence refusée': 'absence.refuse', 'Absence annulée': 'absence.cancel',
+};
+
+function descriptionDe(titre, e) {
+  const cible = e.targetLabel || null, acteur = e.actorTag || null;
+  const par = acteur ? [' par ', { b: acteur }] : [];
+  const salon = e.channelName ? [' dans ', { ch: e.channelName }] : [];
+  switch (titre) {
+    case 'Message supprimé': return ['Message de ', { b: cible || 'Quelqu’un' }, ' supprimé', ...salon, ...par];
+    case 'Messages supprimés en masse': return [{ b: e.details || 'Plusieurs messages' }, ' supprimés', ...salon];
+    case 'Membre expulsé': return [{ b: cible || 'Un membre' }, ' a été expulsé', ...par];
+    case 'Membre banni': return [{ b: cible || 'Un membre' }, ' a été banni', ...par];
+    case 'Membre mis en timeout': return [{ b: cible || 'Un membre' }, ' a été mis en timeout', ...par];
+    case 'Avertissement': return [{ b: cible || 'Un membre' }, ' a reçu un avertissement', ...par];
+    case 'Mute': return [{ b: cible || 'Un membre' }, ' a été rendu muet', ...par];
+    case 'Membre parti': return [{ b: cible || 'Un membre' }, ' a quitté le serveur'];
+    case 'Absence déclarée': return ['Absence déclarée', ...par];
+    case 'Absence approuvée': return ['Absence de ', { b: cible || 'un membre' }, ' approuvée', ...par];
+    case 'Absence refusée': return ['Absence de ', { b: cible || 'un membre' }, ' refusée', ...par];
+    case 'Absence annulée': return ['Absence annulée', ...par];
+    default: return [titre, ...(cible ? [' : ', { b: cible }] : []), ...par];
+  }
+}
+
+function debutJourParis(dateStr) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ''))) return null;
+  const utc = Date.parse(`${dateStr}T00:00:00Z`);
+  const f = new Intl.DateTimeFormat('en-US', { timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const p = {};
+  for (const x of f.formatToParts(new Date(utc))) p[x.type] = x.value;
+  const decalage = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - utc;
+  return utc - decalage;
+}
+
+// Page de résultats au format attendu par le dashboard : { entries, next, actions }
+function pourDashboard(guildId, { type, q, before, limit = 50, actor, action, from, to } = {}) {
   const recherche = String(q || '').trim().toLowerCase();
+  const auteur = String(actor || '').trim().toLowerCase().replace(/^@/, '');
   const avant = Number(before) || Infinity;
   const max = Math.min(Math.max(Number(limit) || 50, 1), 100);
+  const debut = debutJourParis(from);
+  const fin = debutJourParis(to) !== null ? debutJourParis(to) + 86400000 : null;
   const tout = [];
   for (const e of bucket(guildId).entries) {
     const n = categorieNegative(e);
     if (!n || e.id >= avant) continue;
     if (type && n.cat !== type) continue;
-    if (recherche && ![n.titre, e.actorTag, e.targetLabel, e.details, e.reason].some(v => String(v || '').toLowerCase().includes(recherche))) continue;
+    if (action && n.titre !== action) continue;
+    if (debut !== null && e.ts < debut) continue;
+    if (fin !== null && e.ts >= fin) continue;
+    if (auteur && ![e.actorTag, e.actorId, e.targetLabel, e.targetId].some(v => String(v || '').toLowerCase().includes(auteur))) continue;
+    if (recherche && ![n.titre, e.actorTag, e.targetLabel, e.channelName, e.content, e.details, e.reason].some(v => String(v || '').toLowerCase().includes(recherche))) continue;
     tout.push({ e, n });
   }
   tout.sort((a, b) => (b.e.ts - a.e.ts) || (b.e.id - a.e.id));
@@ -289,11 +341,17 @@ function pourDashboard(guildId, { type, q, before, limit = 50 } = {}) {
   return {
     entries: page.map(({ e, n }) => ({
       id: e.id, ts: new Date(e.ts).toISOString(), category: n.cat, title: n.titre,
-      actor: e.actorTag ? { id: e.actorId, name: e.actorTag } : null,
+      code: CODES[n.titre] || n.titre,
+      source: e.source === 'bot' ? 'Bot' : 'Discord',
+      description: descriptionDe(n.titre, e),
+      actor: e.actorTag || e.actorId ? { id: e.actorId, name: e.actorTag || e.actorId } : null,
       target: e.targetLabel || e.targetId ? { id: e.targetId, name: e.targetLabel || e.targetId } : null,
-      details: [e.details, e.reason ? `Raison : ${e.reason}` : ''].filter(Boolean).join(' · '),
+      channel: e.channelName ? { id: e.channelId, name: e.channelName } : null,
+      content: e.content || '', messageId: e.messageId || null,
+      reason: e.reason || '', details: n.titre === 'Messages supprimés en masse' ? '' : (e.details || ''),
     })),
     next: tout.length > max ? page[page.length - 1].e.id : null,
+    actions: [...new Set([...Object.keys(NEGATIFS), 'Membre mis en timeout'])].sort((a, b) => a.localeCompare(b, 'fr')),
   };
 }
 
