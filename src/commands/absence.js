@@ -448,16 +448,13 @@ async function soumettreDeclaration(interaction) {
     reason: motif, info: infos, status: 'pending', createdAt: now,
     channelId: null, messageId: null, decidedBy: null, returnedAt: null, extension: null
   };
+  // Pas de message public dans un salon : la demande est visible et traitée depuis le dashboard.
   srv.items.push(a);
-  if (!(await envoyerDemande(interaction, srv, a))) {
-    srv.items.pop();
-    return repondre(interaction, '❌ Je n’ai pas pu envoyer la demande : le salon des absences est introuvable ou inaccessible. Préviens un responsable (`/absence configurer`).');
-  }
   sauver();
   return interaction.reply({
     flags: MessageFlags.Ephemeral,
     embeds: [new EmbedBuilder().setColor(COULEUR).setTitle('✅ Demande envoyée')
-      .setDescription(`Ta demande d’absence a été transmise aux responsables.\n${tsF(debut)} → ${tsF(fin)} (${dureeHumaine(fin - debut)})`)
+      .setDescription(`Ta demande d’absence a été enregistrée et apparaît dans le dashboard.\n${tsF(debut)} → ${tsF(fin)} (${dureeHumaine(fin - debut)})`)
       .setFooter({ text: 'Tu seras prévenu en MP de la décision.' })]
   });
 }
