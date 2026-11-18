@@ -747,9 +747,17 @@ const TILE_S = 72;
 
 function generateTileBandCard(spec) {
   const baseTh = THEMES[spec.theme] || THEMES.green;
-  const th = (!spec.theme || spec.theme === 'green') ? { ...baseTh, ...ANTHRACITE_ACCENT } : baseTh;
-  const pal = PAL.anthracite;
+  let th = (!spec.theme || spec.theme === 'green') ? { ...baseTh, ...ANTHRACITE_ACCENT } : baseTh;
+  // spec.custom : couleurs choisies par le serveur (carte de bienvenue / au revoir), toutes facultatives
+  const cu = spec.custom || {};
+  let pal = PAL.anthracite;
+  if (cu.accent) th = { ...th, accent: cu.accent };
+  if (cu.bg) pal = { ...pal, bg: cu.bg, box: mixHex(cu.bg, '#ffffff', 0.06), line: mixHex(cu.bg, '#ffffff', 0.1), border: mixHex(cu.bg, '#ffffff', 0.12) };
+  if (cu.textColor) pal = { ...pal, text: cu.textColor, muted: mixHex(cu.textColor, pal.bg, 0.4), dim: mixHex(cu.textColor, pal.bg, 0.55) };
+  if (cu.pillBg) pal = { ...pal, box: cu.pillBg };
+  const palQuote = cu.subColor ? { ...pal, text: cu.subColor } : pal;
   const ink = th.accent;
+  const ringCol = cu.ringColor || rgba(th.accent, 0.45);
   const px = 48;
   // spec.photo (image déjà chargée) : carré à droite ; le contenu se resserre à gauche
   const PHOTO_S = 190;
@@ -780,7 +788,7 @@ function generateTileBandCard(spec) {
     ctx.fillStyle = rgba(th.accent, 0.16);
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = rgba(th.accent, 0.45);
+    ctx.strokeStyle = ringCol;
     ctx.stroke();
     if (icon) drawRich(ctx, icon, px + TILE_S / 2, ty + TILE_S / 2 + 13, FONT_BOLD, 38, { align: 'center' });
 
@@ -788,10 +796,10 @@ function generateTileBandCard(spec) {
     const tx = px + TILE_S + 22;
     const timeW = spec.time ? 110 : 0;
     const tSize = fitSize(ctx, title, FONT_BOLD, 25, W - px - tx - timeW, 16);
-    drawRich(ctx, title, tx, spec.sub ? 54 : 66, FONT_BOLD, tSize, { color: pal.text });
+    drawRich(ctx, title, tx, spec.sub ? 54 : 66, FONT_BOLD, tSize, { color: cu.titleColor || pal.text });
     if (spec.sub) {
       const sub = cut(spec.sub, 60);
-      drawRich(ctx, sub, tx, 86, FONT, fitSize(ctx, sub, FONT, 20, W - px - tx - timeW, 15), { color: pal.muted });
+      drawRich(ctx, sub, tx, 86, FONT, fitSize(ctx, sub, FONT, 20, W - px - tx - timeW, 15), { color: cu.nameColor || pal.muted });
     }
     if (spec.time) drawRich(ctx, clean(spec.time), W - px, 54, FONT, S.time, { color: pal.dim, align: 'right' });
 
@@ -855,7 +863,7 @@ function generateTileBandCard(spec) {
       ctx.fill();
       y += 28;
     }
-    return drawQuotesPills(ctx, th, pal, ink, spec, px, y, inner, px + inner);
+    return drawQuotesPills(ctx, th, palQuote, ink, spec, px, y, inner, px + inner);
   };
 
   // Passe 1 : mesure de la hauteur
@@ -886,7 +894,7 @@ function generateTileBandCard(spec) {
     ctx.restore();
     roundRect(ctx, sx, sy, PHOTO_S, PHOTO_S, 18);
     ctx.lineWidth = 2;
-    ctx.strokeStyle = rgba(th.accent, 0.55);
+    ctx.strokeStyle = cu.ringColor || rgba(th.accent, 0.55);
     ctx.stroke();
   }
   footerStyled(ctx, pal, spec, H, px, false);

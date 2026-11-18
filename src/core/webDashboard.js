@@ -74,8 +74,8 @@ function cardModule(kind) {
     HX('nameColor', 'Couleur du pseudo', { section: 'Couleurs détaillées' }),
     HX('titleColor', 'Couleur du titre'),
     HX('subColor', 'Couleur du sous-titre'),
-    HX('pillBg', 'Fond des pastilles', { hint: 'Pastilles de stats et cadre de l’avatar. Désactivé = défaut.' }),
-    HX('ringColor', 'Contour de l’avatar'),
+    HX('pillBg', 'Fond des pastilles', { hint: 'Fond du cadre du sous-titre (et des pastilles avec une image de fond). Désactivé = défaut.' }),
+    HX('ringColor', 'Contour de l’icône (et de l’avatar)'),
 
     B(k + 'hideAvatar', 'Masquer l’avatar du membre', false, { premium: true, delWhen: false, section: 'Avatar' }),
     SL('avatarShape', 'Forme', O(['defaut', 'Rond'], ['arrondi', 'Carré arrondi'], ['carre', 'Carré'])),
@@ -94,7 +94,7 @@ function cardModule(kind) {
   );
   return {
     id: `${kind}card`, name: bye ? '🎨 Carte d’au revoir' : '🎨 Carte de bienvenue', group: 'Membres', toggle: null, preview: kind,
-    desc: `Apparence de l’image envoyée ${bye ? 'quand un membre part' : 'quand un membre arrive'} (personnalisation Premium). Sans image de fond, le bot garde son style uniforme et seuls le titre et le sous-titre sont pris en compte : ajoutez une image de fond pour activer les autres réglages.`,
+    desc: `Apparence de l’image envoyée ${bye ? 'quand un membre part' : 'quand un membre arrive'} (personnalisation Premium). Les textes, pastilles, pied de carte et couleurs s’appliquent directement. L’avatar, la mise en page et les réglages du fond ne s’activent qu’avec une image de fond.`,
     fields
   };
 }

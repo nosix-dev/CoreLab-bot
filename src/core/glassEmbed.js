@@ -666,19 +666,31 @@ async function renderWelcomeCard(o) {
   const customized = !!findCardBackground(o.guildId, kind);
   if (ccw.isCompact(o.guildId) && !customized) {
     const txt = t => (typeof t === 'string' && t.trim() && t.trim() !== '-' ? applyCardPlaceholders(t.trim(), o) : null);
-    const day = ts => new Date(ts).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
+    const isHidden = t => typeof t === 'string' && t.trim() === '-';
+    const day = ts => new Date(ts).toLocaleDateString('fr-FR', card.dateFormat === 'texte'
+      ? { timeZone: 'Europe/Paris', day: 'numeric', month: 'short', year: 'numeric' }
+      : { timeZone: 'Europe/Paris' });
     const blocks = [];
-    if (Number.isFinite(o.memberCount)) blocks.push({ label: kind === 'goodbye' ? 'Membres restants' : 'Membre n°', value: String(o.memberCount) });
-    if (o.createdTs) blocks.push({ label: 'Compte créé', value: day(o.createdTs) });
-    if (o.joinedTs) blocks.push({ label: kind === 'goodbye' ? 'Était arrivé le' : 'Arrivé le', value: day(o.joinedTs) });
+    if (Number.isFinite(o.memberCount) && !isHidden(card.pillMember)) blocks.push({ label: txt(card.pillMember) || (kind === 'goodbye' ? 'Membres restants' : 'Membre n°'), value: String(o.memberCount) });
+    if (o.createdTs && !isHidden(card.pillCreated)) blocks.push({ label: txt(card.pillCreated) || 'Compte créé', value: day(o.createdTs) });
+    if (o.joinedTs && !isHidden(card.pillJoined)) blocks.push({ label: txt(card.pillJoined) || (kind === 'goodbye' ? 'Était arrivé le' : 'Arrivé le'), value: day(o.joinedTs) });
+    // pastille libre (texte au choix)
+    const extra = txt(card.customPillValue);
+    if (extra) blocks.push({ label: isHidden(card.customPillLabel) ? '' : (txt(card.customPillLabel) || ''), value: extra });
     const heading = txt(card.title) || (kind === 'goodbye' ? 'AU REVOIR' : 'BIENVENUE');
+    const footerText = isHidden(card.footer) ? undefined : (txt(card.footer) || (o.serverName ? String(o.serverName) : undefined));
+    const custom = {};
+    for (const k of ['accent', 'bg', 'textColor', 'titleColor', 'nameColor', 'subColor', 'pillBg', 'ringColor']) {
+      const v = validHex(card[k]); if (v) custom[k] = v;
+    }
     return ccw.renderCompact({
       guildId: o.guildId, theme: kind === 'goodbye' ? 'orange' : 'green',
       title: `${kind === 'goodbye' ? '👋' : '🎉'} ${heading}`,
       sub: String(o.username || 'Membre'),
       blocks,
       quotes: (txt(card.subtitle) || (o.subtitle && applyCardPlaceholders(o.subtitle, o))) ? [{ label: '', text: txt(card.subtitle) || applyCardPlaceholders(o.subtitle, o), maxLines: 3 }] : [],
-      footerLeft: o.serverName ? String(o.serverName) : undefined
+      footerLeft: footerText,
+      custom
     });
   }
   const baseTheme = getTheme(o.guildId);
