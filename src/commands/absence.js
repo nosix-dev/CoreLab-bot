@@ -260,6 +260,48 @@ async function majMessage(client, guildId, a) {
 
 const mp = (client, userId, contenu) => client.users.fetch(userId).then(u => u.send(contenu)).catch(() => { });
 
+// MP de décision : embed « Approuvée / Refusée / Annulée » (+ bouton pour annuler sa demande).
+function payloadMP(guildId, guildName, a, etat, parId) {
+  const titres = { approved: '✅ Approuvée', refused: '❌ Refusée', cancelled: '🚫 Annulée' };
+  const verbes = { approved: 'Approuvée', refused: 'Refusée', cancelled: 'Annulée' };
+  const couleur = { approved: VERT, refused: ROUGE, cancelled: GRIS }[etat];
+  const motif = a.reason ? `, ${a.reason}` : '';
+  const e = new EmbedBuilder().setColor(couleur)
+    .setTitle(`${titres[etat]} · ${guildName}`)
+    .setDescription(`Ton absence du **${tsD(a.start)}** → **${tsD(a.end)}** (${dureeHumaine(a.end - a.start)}${motif}) sur **${guildName}**.`)
+    .setFooter({ text: `${verbes[etat]}${parId ? ' par ' + parId.nom : ''} · ${new Intl.DateTimeFormat('fr-FR', { timeZone: TZ, dateStyle: 'full', timeStyle: 'short' }).format(new Date())}` });
+  const components = etat === 'approved' && !a.returnedAt && Date.now() < a.start
+    ? [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`absence:mycancel:${guildId}:${a.id}`).setLabel('Annuler ma demande').setStyle(ButtonStyle.Secondary))]
+    : [];
+  return { embeds: [e], components };
+}
+async function mpDecision(client, guild, a, etat, parUserId) {
+  const par = parUserId ? { nom: guild.members.cache.get(parUserId)?.displayName || client.users.cache.get(parUserId)?.username || '' } : null;
+  const u = await client.users.fetch(a.userId).catch(() => null);
+  if (u) u.send(payloadMP(guild.id, guild.name, a, etat, par && par.nom ? par : null)).catch(() => { });
+}
+
+// Bouton « Annuler ma demande » dans le MP.
+async function annulerDepuisMP(interaction) {
+  const [, , guildId, id] = interaction.customId.split(':');
+  const srv = serveur(guildId);
+  const a = srv.items.find(x => x.id === id);
+  if (!a || a.userId !== interaction.user.id) {
+    return interaction.reply({ content: 'ℹ️ Cette demande n’existe plus.', flags: MessageFlags.Ephemeral });
+  }
+  if (!annulable(a)) {
+    await interaction.update({ components: [] }).catch(() => { });
+    return interaction.followUp({ content: 'ℹ️ Cette absence a déjà commencé ou été annulée, elle ne peut plus être annulée ici.', flags: MessageFlags.Ephemeral });
+  }
+  a.status = 'cancelled';
+  a.extension = null;
+  sauver();
+  const guild = interaction.client.guilds.cache.get(guildId);
+  majMessage(interaction.client, guildId, a);
+  const p = payloadMP(guildId, guild ? guild.name : 'le serveur', a, 'cancelled', { nom: interaction.user.username });
+  return interaction.update(p);
+}
+
 // ── Exécution des sous-commandes ────────────────────────────────────
 async function execute(interaction) {
   if (!interaction.guild) return repondre(interaction, '❌ Cette commande fonctionne uniquement dans un serveur.');
@@ -500,9 +542,7 @@ async function traiterBouton(interaction) {
     a.decidedBy = interaction.user.id;
     sauver();
     await interaction.update({ embeds: [embedDemande(a, user)], components: [], allowedMentions: { parse: [] } });
-    mp(interaction.client, a.userId, a.status === 'approved'
-      ? `✅ Ton absence du ${tsF(a.start)} au ${tsF(a.end)} sur **${interaction.guild.name}** a été **approuvée**.`
-      : `❌ Ta demande d’absence du ${tsF(a.start)} au ${tsF(a.end)} sur **${interaction.guild.name}** a été **refusée**. Contacte un responsable si besoin.`);
+    mpDecision(interaction.client, interaction.guild, a, a.status, interaction.user.id);
     return;
   }
 
@@ -527,6 +567,7 @@ async function routeAbsenceInteraction(interaction) {
       if (id === 'absence:declare') return await soumettreDeclaration(interaction);
       if (id.startsWith('absence:extend:')) return await soumettreProlongation(interaction, id.split(':')[2]);
     }
+    if (interaction.isButton() && id.startsWith('absence:mycancel:')) return await annulerDepuisMP(interaction);
     if (interaction.isButton() && /^absence:(ok|no|xok|xno):/.test(id)) return await traiterBouton(interaction);
   } catch (e) {
     console.error('[Absence] interaction :', e);
@@ -578,9 +619,7 @@ async function decideDepuisDashboard(client, guild, id, accepter, decidedBy) {
   a.decidedBy = decidedBy || null;
   sauver();
   await majMessage(client, guild.id, a);
-  mp(client, a.userId, accepter
-    ? `✅ Ton absence du ${tsF(a.start)} au ${tsF(a.end)} sur **${guild.name}** a été **approuvée**.`
-    : `❌ Ta demande d’absence du ${tsF(a.start)} au ${tsF(a.end)} sur **${guild.name}** a été **refusée**. Contacte un responsable si besoin.`);
+  mpDecision(client, guild, a, a.status, decidedBy);
   return { ok: true };
 }
 
@@ -613,6 +652,7 @@ function annulerDepuisDashboard(client, guild, id) {
   a.extension = null;
   sauver();
   majMessage(client, guild.id, a);
+  mpDecision(client, guild, a, 'cancelled', null);
   return { ok: true };
 }
 
