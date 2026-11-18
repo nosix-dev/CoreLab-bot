@@ -325,28 +325,34 @@ async function sendTicketClosedLog({ channel, closer, cfg }) {
   const meta = cfg?.ticket_meta?.[channel.id] || {};
   const openerId = meta.openerId || guessOpenerId(channel, messages);
   const identifiant = meta.n ?? '—';
-  const nomFichier = `transcript-${meta.n ?? channel.name}.html`.replace(/[^\w.\-]/g, '_');
   const raison = meta.reason || channel.topic?.split('|')[1]?.trim() || '—';
   const ouvertLe = Math.floor((meta.openedAt || channel.createdTimestamp) / 1000);
 
-  const fichier = () => new AttachmentBuilder(Buffer.from(html, 'utf-8'), { name: nomFichier });
-  let envoye = false;
+  // Le transcript n'est plus envoyé en MP : il est archivé et consultable uniquement sur le dashboard (page « Transcripts »)
+  try {
+    require('./transcriptArchive').archiver({
+      guildId: guild.id,
+      nom: channel.name,
+      numero: meta.n ?? null,
+      ouvertPar: meta.openerTag || null,
+      fermePar: closer?.tag || closer?.username || null,
+      count: messages.length,
+      html
+    });
+  } catch (e) {
+    console.error('[Ticket] Archive du transcript impossible :', e.message);
+  }
 
-  // MP à la personne qui a ouvert le ticket
+  // MP « Ton ticket est fermé » avec les boutons de note 1★ → 5★ (sans fichier de transcription)
+  let envoye = false;
   if (openerId) {
     try {
       const opener = await channel.client.users.fetch(openerId);
-      // 1) message « Ton ticket est fermé » avec les boutons de note 1★ → 5★ ; 2) fichier de transcription juste après
       await opener.send(require('./ticketRating').buildClosedTicketMessage({ guild, closer, numero: identifiant, raison, ouvertLe, openerId }));
-      await opener.send({
-        content: `📄 Voici la transcription de ton ticket **${channel.name}** sur **${guild.name}**.\nTélécharge le fichier puis ouvre-le dans ton navigateur.`,
-        files: [fichier()],
-        allowedMentions: { parse: [] },
-      });
       envoye = true;
     } catch (e) {
       // MP fermés ou bot bloqué : on ignore
-      console.warn(`[Ticket] MP de transcription impossible pour ${openerId} :`, e.message);
+      console.warn(`[Ticket] MP de fermeture impossible pour ${openerId} :`, e.message);
     }
   }
   return envoye;

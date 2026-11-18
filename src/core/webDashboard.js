@@ -734,6 +734,23 @@ async function route(req, res, { client }, url) {
     }
   }
 
+  /* ---------- Transcript de ticket (lien signé temporaire, ouvert dans un nouvel onglet) ---------- */
+  const trm = p.match(/^\/transcript\/(\d+)\/([\w.-]+\.html)$/);
+  if (trm) {
+    if (req.method !== 'GET') return J(405, { error: 'method' });
+    const ta = require('./transcriptArchive');
+    if (!ta.verifier(trm[1], trm[2], url.searchParams.get('exp'), url.searchParams.get('sig'), SECRET)) return J(403, { error: 'link_expired' });
+    const f = ta.cheminFichier(trm[1], trm[2]);
+    if (!f) return J(404, { error: 'not_found' });
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+    });
+    return res.end(require('fs').readFileSync(f));
+  }
+
   /* ---------- Session ---------- */
   const tok = (req.headers.authorization || '').replace('Bearer ', '');
   const sess = lireSession(tok, SECRET);
@@ -772,6 +789,27 @@ async function route(req, res, { client }, url) {
     const ext = aum[2].split('.').pop();
     res.writeHead(200, { 'Content-Type': { png: 'image/png', jpg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' }[ext], 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff', ...cors(ORIGIN) });
     return res.end(require('fs').readFileSync(f));
+  }
+
+  /* ---------- Transcripts des tickets fermés ---------- */
+  const trl = p.match(/^\/api\/guilds\/(\d+)\/transcripts$/);
+  if (trl) {
+    if (req.method !== 'GET') return J(405, { error: 'method' });
+    if (!sess.guilds.some(g => g.id === trl[1])) return J(403, { error: 'forbidden' });
+    if (!client.guilds.cache.get(trl[1])) return J(404, { error: 'bot_absent' });
+    try {
+      const ta = require('./transcriptArchive');
+      const base = new URL(REDIRECT).origin;
+      return J(200, {
+        transcripts: ta.lister(trl[1]).map(t => {
+          const s = ta.signer(trl[1], t.file, SECRET);
+          return { id: t.id, name: t.name, user: t.user, closedBy: t.closedBy, ts: t.ts, messages: t.messages, url: `${base}/panel/transcript/${trl[1]}/${t.file}?exp=${s.exp}&sig=${s.sig}` };
+        })
+      });
+    } catch (e) {
+      console.error('[WebDashboard] transcripts :', e.message);
+      return J(500, { error: 'transcripts' });
+    }
   }
 
   /* ---------- Journal d'audit : évènements négatifs (messages supprimés, sanctions, départs…) ---------- */
