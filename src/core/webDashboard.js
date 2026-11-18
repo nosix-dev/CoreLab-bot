@@ -763,6 +763,17 @@ async function route(req, res, { client }, url) {
     }
   }
 
+  const aum = p.match(/^\/api\/guilds\/(\d+)\/audit-media\/([\w-]+\.(?:png|jpg|gif|webp))$/);
+  if (aum) {
+    if (req.method !== 'GET') return J(405, { error: 'method' });
+    if (!sess.guilds.some(g => g.id === aum[1])) return J(403, { error: 'forbidden' });
+    const f = require('./auditJournal').cheminMedia(aum[1], aum[2]);
+    if (!f) return J(404, { error: 'not_found' });
+    const ext = aum[2].split('.').pop();
+    res.writeHead(200, { 'Content-Type': { png: 'image/png', jpg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' }[ext], 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff', ...cors(ORIGIN) });
+    return res.end(require('fs').readFileSync(f));
+  }
+
   /* ---------- Journal d'audit : évènements négatifs (messages supprimés, sanctions, départs…) ---------- */
   const au = p.match(/^\/api\/guilds\/(\d+)\/audit$/);
   if (au) {

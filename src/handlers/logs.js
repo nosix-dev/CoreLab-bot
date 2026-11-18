@@ -257,12 +257,15 @@ function registerLogHandlers(client) {
             const authorInconnu = !message.author;
             const supprimePar = actor && actor.id !== message.author?.id ? actorName(actor) : null;
             try {
-                require('../core/auditJournal').ajouterEvenement(message.guild.id, {
+                const journal = require('../core/auditJournal');
+                const pieces = message.attachments?.size ? await journal.sauverPieces(message.guild.id, message) : [];
+                journal.ajouterEvenement(message.guild.id, {
                     type: 'messages', action: 'Message supprimé',
                     actorId: actor && actor.id !== message.author?.id ? actor.id : null,
                     actorTag: actor && actor.id !== message.author?.id ? (actor.tag || actor.username) : null,
                     targetId: message.author?.id, targetType: 'User', targetLabel: message.author?.tag || message.author?.username || 'Auteur inconnu',
                     channelId: message.channel?.id, channelName: message.channel?.name || null, messageId: message.id,
+                    sentAt: message.createdTimestamp || null, replyTo: message.reference?.messageId || null, attachments: pieces,
                     content: message.cleanContent || message.content || (message.attachments?.size ? `[${message.attachments.size} pièce(s) jointe(s)]` : ''),
                 });
             } catch { /* journal indisponible */ }

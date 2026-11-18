@@ -18,9 +18,15 @@ const {
   PermissionFlagsBits,
   MessageFlags,
 } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 const { chargerDonnees, sauvegarderDonnees } = require('./data');
+const { dossierPersistant } = require('./persistentPath');
 
 const FICHIER = 'audit_journal.json';
+const DOSSIER_MEDIA = dossierPersistant('audit_media');
+const MAX_IMAGE_OCTETS = 8 * 1024 * 1024;
+const EXT_IMAGES = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' };
 const RETENTION_JOURS = 90;
 const MAX_PAR_SERVEUR = 5000;
 const PAR_PAGE = 10;
@@ -70,6 +76,47 @@ function planifierSauvegarde() {
   timerSauvegarde.unref?.();
 }
 
+function supprimerMedias(entrees) {
+  for (const e of entrees) {
+    for (const a of e.attachments || []) {
+      if (a.file) { try { fs.unlinkSync(path.join(DOSSIER_MEDIA, path.basename(a.file))); } catch { /* déjà supprimé */ } }
+    }
+  }
+}
+
+// Télécharge les images d'un message qui vient d'être supprimé (avant que Discord ne retire le fichier).
+async function sauverPieces(guildId, message) {
+  const liste = [];
+  for (const a of [...(message.attachments?.values?.() || [])].slice(0, 10)) {
+    const type = String(a.contentType || '').split(';')[0].toLowerCase();
+    const info = { name: coupe(a.name || 'fichier', 120), type: type || null, size: a.size || 0, url: a.url || null, file: null };
+    const ext = EXT_IMAGES[type];
+    if (ext && a.url && (a.size || 0) <= MAX_IMAGE_OCTETS) {
+      try {
+        const rep = await fetch(a.url, { signal: AbortSignal.timeout(8000) });
+        if (rep.ok) {
+          const buf = Buffer.from(await rep.arrayBuffer());
+          if (buf.length <= MAX_IMAGE_OCTETS) {
+            const nom = `${guildId}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}.${ext}`;
+            fs.writeFileSync(path.join(DOSSIER_MEDIA, nom), buf);
+            info.file = nom;
+          }
+        }
+      } catch { /* image non récupérable : on garde juste le lien */ }
+    }
+    liste.push(info);
+  }
+  return liste;
+}
+
+// Chemin d'une image conservée (null si le nom est invalide ou n'appartient pas au serveur)
+function cheminMedia(guildId, nom) {
+  const n = path.basename(String(nom || ''));
+  if (!new RegExp(`^${guildId}_[a-z0-9]+\\.(png|jpg|gif|webp)$`).test(n)) return null;
+  const f = path.join(DOSSIER_MEDIA, n);
+  return fs.existsSync(f) ? f : null;
+}
+
 function bucket(guildId) {
   const g = String(guildId);
   if (!donnees[g]) donnees[g] = { seq: 0, entries: [] };
@@ -80,7 +127,7 @@ function ajouter(guildId, entree) {
   const b = bucket(guildId);
   b.seq += 1;
   b.entries.push({ id: b.seq, ts: Date.now(), ...entree });
-  if (b.entries.length > MAX_PAR_SERVEUR) b.entries.splice(0, b.entries.length - MAX_PAR_SERVEUR);
+  if (b.entries.length > MAX_PAR_SERVEUR) supprimerMedias(b.entries.splice(0, b.entries.length - MAX_PAR_SERVEUR));
   planifierSauvegarde();
 }
 
@@ -89,6 +136,7 @@ function purger() {
   let change = false;
   for (const b of Object.values(donnees)) {
     const avant = b.entries.length;
+    supprimerMedias(b.entries.filter(e => e.ts < limite));
     b.entries = b.entries.filter(e => e.ts >= limite);
     if (b.entries.length !== avant) change = true;
   }
@@ -264,6 +312,8 @@ function ajouterEvenement(guildId, entree) {
       channelId: entree.channelId || null, channelName: entree.channelName || null,
       content: entree.content ? coupe(entree.content, 1500) : null, messageId: entree.messageId || null,
       source: entree.source || 'discord',
+      sentAt: entree.sentAt || null, replyTo: entree.replyTo || null,
+      attachments: Array.isArray(entree.attachments) && entree.attachments.length ? entree.attachments : null,
     });
   } catch (e) { console.error('[Audit] évènement non enregistré :', e.message); }
 }
@@ -347,7 +397,8 @@ function pourDashboard(guildId, { type, q, before, limit = 50, actor, action, fr
       actor: e.actorTag || e.actorId ? { id: e.actorId, name: e.actorTag || e.actorId } : null,
       target: e.targetLabel || e.targetId ? { id: e.targetId, name: e.targetLabel || e.targetId } : null,
       channel: e.channelName ? { id: e.channelId, name: e.channelName } : null,
-      content: e.content || '', messageId: e.messageId || null,
+      content: e.content || '', messageId: e.messageId || null, sentAt: e.sentAt || null, replyTo: e.replyTo || null,
+      attachments: (e.attachments || []).map(a => ({ name: a.name, type: a.type, size: a.size, url: a.url, media: a.file || null })),
       reason: e.reason || '', details: n.titre === 'Messages supprimés en masse' ? '' : (e.details || ''),
     })),
     next: tout.length > max ? page[page.length - 1].e.id : null,
@@ -476,6 +527,6 @@ function exporter(guildId, filtres, format) {
 }
 
 module.exports = {
-  TYPES, PREFIX_PAGE, installer, ajouterEvenement, pourDashboard, enregistrerCommande, enregistrerEntreeDiscord,
+  TYPES, PREFIX_PAGE, installer, ajouterEvenement, pourDashboard, sauverPieces, cheminMedia, enregistrerCommande, enregistrerEntreeDiscord,
   acteurRecent, lister, construirePage, handleAuditButton, estAutorise, statistiques, exporter, fmtDate,
 };
