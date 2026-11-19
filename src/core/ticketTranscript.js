@@ -323,24 +323,54 @@ async function sendTicketClosedLog({ channel, closer, cfg }) {
   const guild = channel.guild;
   const { html, messages } = await generateTranscriptHtml(channel);
   const meta = cfg?.ticket_meta?.[channel.id] || {};
+  const panel = meta.panelId ? cfg?.ticket_panels?.[meta.panelId] : null;
   const openerId = meta.openerId || guessOpenerId(channel, messages);
   const identifiant = meta.n ?? '—';
   const raison = meta.reason || channel.topic?.split('|')[1]?.trim() || '—';
   const ouvertLe = Math.floor((meta.openedAt || channel.createdTimestamp) / 1000);
 
-  // Le transcript n'est plus envoyé en MP : il est archivé et consultable uniquement sur le dashboard (page « Transcripts »)
-  try {
-    require('./transcriptArchive').archiver({
-      guildId: guild.id,
-      nom: channel.name,
-      numero: meta.n ?? null,
-      ouvertPar: meta.openerTag || null,
-      fermePar: closer?.tag || closer?.username || null,
-      count: messages.length,
-      html
-    });
-  } catch (e) {
-    console.error('[Ticket] Archive du transcript impossible :', e.message);
+  if (panel?.transcriptsEnabled !== false) {
+    try {
+      require('./transcriptArchive').archiver({
+        guildId: guild.id,
+        nom: channel.name,
+        numero: meta.n ?? null,
+        ouvertPar: meta.openerTag || null,
+        fermePar: closer?.tag || closer?.username || null,
+        count: messages.length,
+        html
+      });
+    } catch (e) {
+      console.error('[Ticket] Archive du transcript impossible :', e.message);
+    }
+  }
+
+  const logChannelId = panel?.logChannelId || cfg?.ticket_channel_id;
+  if (logChannelId) {
+    try {
+      const logChannel = guild.channels.cache.get(logChannelId) || await guild.channels.fetch(logChannelId);
+      if (!logChannel?.isTextBased()) {
+        console.error(`[Ticket] Salon de logs invalide : ${logChannelId}`);
+      } else {
+        const embed = new EmbedBuilder()
+          .setColor(0xE8510D)
+          .setTitle('🔒 Ticket fermé')
+          .addFields(
+            { name: 'Ticket', value: `#${channel.name}`, inline: true },
+            { name: 'Motif', value: String(raison).slice(0, 1024), inline: true },
+            { name: 'Fermé par', value: closer?.tag || closer?.username || 'Inconnu', inline: true },
+            { name: 'Ouvert le', value: `<t:${ouvertLe}:F>`, inline: true },
+            { name: 'Messages', value: String(messages.length), inline: true }
+          )
+          .setTimestamp();
+        const files = panel?.transcriptsEnabled === false
+          ? []
+          : [new AttachmentBuilder(Buffer.from(html, 'utf8'), { name: `transcript-${identifiant}.html` })];
+        await logChannel.send({ embeds: [embed], files, allowedMentions: { parse: [] } });
+      }
+    } catch (e) {
+      console.error('[Ticket] Envoi du log impossible :', e.message);
+    }
   }
 
   // MP « Ton ticket est fermé » avec les boutons de note 1★ → 5★ (sans fichier de transcription)

@@ -3,6 +3,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  StringSelectMenuBuilder,
   ChannelSelectMenuBuilder,
   ChannelType,
   ModalBuilder,
@@ -488,6 +489,57 @@ async function buildTicketPublishPayload(cfg, panelChannelId, guild, bannerPath 
   return { embeds: [embed], files, components: rows.slice(0, 5) };
 }
 
+function buildDashboardTicketPublishPayload(panel, guild) {
+  const description = [panel.description, panel.statusLine].filter(Boolean).join("\n\n");
+  const color = hexToInt(panel.color);
+  const embed = new EmbedBuilder()
+    .setTitle(panel.title)
+    .setDescription(description || null)
+    .setColor(color === null ? 0xE8510D : color);
+  const iconUrl = guild?.iconURL({ extension: 'png', size: 256, forceStatic: true });
+  if (iconUrl) embed.setThumbnail(iconUrl);
+  if (panel.footerText) embed.setFooter({ text: panel.footerText });
+  const components = [];
+  if (panel.layout === "select") {
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId(`ticket_panel_select:${panel.id}`)
+      .setPlaceholder("Choisir le motif du ticket")
+      .addOptions(panel.reasons.slice(0, 25).map(reason => ({
+        label: reason.label.slice(0, 100),
+        value: reason.value,
+        description: (reason.description || "Ouvrir un ticket").slice(0, 100),
+        emoji: sanitizeEmoji(reason.emoji) || undefined
+      })));
+    components.push(new ActionRowBuilder().addComponents(menu));
+  } else if (panel.layout === "button") {
+    const reason = panel.reasons[0];
+    const button = new ButtonBuilder()
+      .setCustomId(`ticket_panel_open:${panel.id}:${reason.value}`)
+      .setLabel(panel.buttonLabel || reason.label)
+      .setStyle(reasonButtonStyle(reason.color, 0));
+    const emoji = sanitizeEmoji(panel.buttonEmoji);
+    if (emoji) button.setEmoji(emoji);
+    components.push(new ActionRowBuilder().addComponents(button));
+  } else {
+    let row = new ActionRowBuilder();
+    panel.reasons.slice(0, 25).forEach((reason, index) => {
+      if (index && index % 5 === 0) {
+        components.push(row);
+        row = new ActionRowBuilder();
+      }
+      const button = new ButtonBuilder()
+        .setCustomId(`ticket_panel_open:${panel.id}:${reason.value}`)
+        .setLabel(reason.label.slice(0, 80))
+        .setStyle(reasonButtonStyle(reason.color, index));
+      const emoji = sanitizeEmoji(reason.emoji);
+      if (emoji) button.setEmoji(emoji);
+      row.addComponents(button);
+    });
+    if (row.components.length) components.push(row);
+  }
+  return { embeds: [embed], components, allowedMentions: { parse: [] } };
+}
+
 // Panneau de gestion d'un formulaire (questions + image + publication).
 // Utilisé aussi bien pour les formulaires liés à un ticket que pour les
 // formulaires autonomes (/form) — les boutons Image/Publier ne
@@ -534,7 +586,9 @@ function buildTicketActionRow(claimEnabled, claimedBy = null) {
 // ────────────────────────────────────────────────
 async function createTicketChannel(interaction, reasonLabel, reasonValue, answers, cfg, guild, user, panelChannelId) {
   const chKey = String(panelChannelId);
-  const categoryId = cfg.ticket_categories?.[chKey];
+  const panel = cfg.ticket_panels?.[chKey];
+  const panelReason = panel?.reasons?.find(reason => reason.value === reasonValue);
+  const categoryId = panelReason?.categoryId || panel?.categoryId || cfg.ticket_categories?.[chKey];
   if (!categoryId) {
     return interaction.followUp({
       content: '❌ Catégorie de référence non configurée pour ce panneau.',
@@ -548,11 +602,18 @@ async function createTicketChannel(interaction, reasonLabel, reasonValue, answer
       flags: MessageFlags.Ephemeral
     });
   }
+  const missingStaffRole = (panel?.staffRoleIds || []).find(roleId => !guild.roles.cache.has(roleId));
+  if (missingStaffRole) {
+    return interaction.followUp({
+      content: '❌ Un rôle de l’équipe configuré pour ce panneau n’existe plus. Mets le panneau à jour dans le dashboard.',
+      flags: MessageFlags.Ephemeral
+    });
+  }
   const channel = await guild.channels.create({
     name: `ticket-${user.username.toLowerCase()}-${reasonValue}`.slice(0, 100),
     type: ChannelType.GuildText,
     parent: category.id,
-    topic: `Ticket de ${user.tag} | ${reasonLabel}`,
+    topic: `Ticket de ${user.tag} | ${reasonLabel}${panel ? ` | Panneau: ${chKey}` : ''}`,
     permissionOverwrites: [{
       id: guild.roles.everyone.id,
       deny: ['ViewChannel']
@@ -562,7 +623,7 @@ async function createTicketChannel(interaction, reasonLabel, reasonValue, answer
     }, {
       id: guild.members.me.id,
       allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-    }],
+    }, ...(panel?.staffRoleIds || []).map(roleId => ({ id: roleId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] }))],
     reason: `Ticket créé par ${user.tag}`
   });
   if (!cfg.ticket_counts) cfg.ticket_counts = {};
@@ -577,10 +638,11 @@ async function createTicketChannel(interaction, reasonLabel, reasonValue, answer
     openerId: user.id,
     openerTag: user.tag,
     reason: reasonLabel,
+    panelId: panel ? chKey : undefined,
     openedAt: Date.now()
   };
   persist('config');
-  const appearance = cfg.ticket_appearance?.[chKey] || {};
+  const appearance = panel || cfg.ticket_appearance?.[chKey] || {};
   const remplacerVariables = texte => (texte || '').replace(/\{membre\}/g, user.toString()).replace(/\{raison\}/g, reasonLabel);
   const titreOuverture = appearance.openTitle ? remplacerVariables(appearance.openTitle) : `🎫 Ticket – ${reasonLabel}`;
   const messageOuverture = appearance.openDescription ? remplacerVariables(appearance.openDescription) : `Merci ${user} !\n\n📋 **Récapitulatif de tes réponses :**`;
@@ -592,7 +654,7 @@ async function createTicketChannel(interaction, reasonLabel, reasonValue, answer
       inline: false
     });
   }
-  const claimEnabled = !!cfg.ticket_claim_enabled?.[chKey];
+  const claimEnabled = panel ? panel.claimEnabled === true : !!cfg.ticket_claim_enabled?.[chKey];
   await channel.send(toCV2Payload({
     content: `${user}`,
     embeds: [recap],
@@ -631,6 +693,7 @@ module.exports = {
   buildTicketConfigRows,
   buildTicketConfigPayload,
   buildTicketPublishPayload,
+  buildDashboardTicketPublishPayload,
   buildTicketReasonButtons,
   buildCloseButtonRow,
   buildTicketActionRow,

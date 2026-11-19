@@ -29,6 +29,7 @@ const {
 const {
   getGuildConfig
 } = require('../core/config');
+const { canOpenPanel, canClaimPanel } = require('../core/ticketPanels');
 const {
   store,
   persist
@@ -128,8 +129,50 @@ async function sauvegarderImageTicketLocalement(guildId, channelId, attachment, 
   fs.writeFileSync(cheminFichier, buffer);
   return nomFichier;
 }
+
+async function openDashboardTicket(interaction, panelId, reasonValue) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  const panel = cfg.ticket_panels?.[panelId];
+  const reason = panel?.reasons?.find(item => item.value === reasonValue);
+  if (!panel || !reason) {
+    return interaction.reply({ content: '❌ Ce panneau ou ce motif n’est plus disponible.', flags: MessageFlags.Ephemeral });
+  }
+  if (!canOpenPanel(panel, interaction.member)) {
+    return interaction.reply({ content: '❌ Tu n’as pas le rôle requis pour ouvrir ce ticket.', flags: MessageFlags.Ephemeral });
+  }
+  const existing = interaction.guild.channels.cache.find(channel =>
+    channel.topic
+      && channel.topic.includes(`Ticket de ${interaction.user.tag}`)
+      && channel.topic.includes(`Panneau: ${panelId}`)
+  );
+  if (existing) {
+    return interaction.reply({ content: `❌ Tu as déjà un ticket ouvert : ${existing}`, flags: MessageFlags.Ephemeral });
+  }
+  const gid = String(interaction.guild.id);
+  const fields = store.ticketForms?.[gid]?.[`${panelId}_${reasonValue}`] || [];
+  if (fields.length) {
+    const key = pendingKey(interaction.user.id, panelId, reasonValue);
+    pendingForms.set(key, {
+      reasonLabel: reason.label,
+      reasonValue,
+      panelChannelId: panelId,
+      allFields: fields,
+      answers: {},
+      page: 1
+    });
+    return interaction.showModal(buildFormModal(reason.label, fields, 1));
+  }
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  return createTicketChannel(interaction, reason.label, reasonValue, {}, cfg, interaction.guild, interaction.user, panelId);
+}
+
 async function handleTicketComponent(interaction) {
   const id = interaction.customId;
+
+  if (id.startsWith('ticket_panel_open:')) {
+    const [, panelId, reasonValue] = id.split(':');
+    return openDashboardTicket(interaction, panelId, reasonValue);
+  }
 
   // ── Ajouter une raison ──────────────────────────────
   if (id === 'ticket_add_reason') {
@@ -400,7 +443,12 @@ async function handleTicketComponent(interaction) {
     const rest = id.replace('ticket_reason_', '');
     const [panelChannelId, reasonValue] = rest.split(/_(.+)/).filter((_, i) => i !== 1).length === 2 ? [rest.split('_')[0], rest.split('_').slice(1).join('_')] : rest.split('_');
     const cfg = getGuildConfig(interaction.guild.id);
-    const reasons = cfg.ticket_reasons?.[String(panelChannelId)] || [];
+    const panelId = String(panelChannelId);
+    const panel = cfg.ticket_panels?.[panelId];
+    if (panel && !canOpenPanel(panel, interaction.member)) {
+      return interaction.reply({ content: '❌ Tu n’as pas le rôle requis pour ouvrir ce ticket.', flags: MessageFlags.Ephemeral });
+    }
+    const reasons = cfg.ticket_reasons?.[panelId] || [];
     const reason = reasons.find(r => r.value === reasonValue);
     if (!reason) {
       return interaction.reply({
@@ -518,7 +566,10 @@ async function handleTicketComponent(interaction) {
   // ── Prendre en charge le ticket (⭐ Premium — bouton Claim) ──
   if (id === 'ticket_claim_btn') {
     const member = interaction.member;
-    const isStaff = member.permissions.has('ManageGuild') || member.permissions.has('ManageChannels');
+    const config = getGuildConfig(interaction.guild.id);
+    const panelId = config.ticket_meta?.[interaction.channel.id]?.panelId;
+    const panelRoles = config.ticket_panels?.[panelId]?.staffRoleIds || [];
+    const isStaff = canClaimPanel(member, { staffRoleIds: panelRoles });
     if (!isStaff) {
       return interaction.reply({
         content: '❌ Seul le staff peut prendre en charge un ticket.',
@@ -1234,6 +1285,9 @@ async function routeTicketInteraction(interaction) {
     }
     if (interaction.isStringSelectMenu() && interaction.customId.startsWith('ticket_form_edit_select_')) {
       return handleFormEditSelect(interaction);
+    }
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('ticket_panel_select:')) {
+      return openDashboardTicket(interaction, interaction.customId.split(':')[1], interaction.values[0]);
     }
     if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_edit_reason_select') {
       return handleTicketReasonEditSelect(interaction);

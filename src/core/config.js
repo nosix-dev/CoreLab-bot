@@ -24,6 +24,7 @@ function obtenirConfigGuilde(idGuilde) {
             welcome_dm_enabled: true,
             welcome_dm_message: 'Bienvenue sur le serveur, profite bien !',
             ticket_reasons: {},
+            ticket_panels: {},
             antispam: false,
             antieveryone: false,
             anti_phishing: false,
@@ -121,6 +122,7 @@ function obtenirConfigGuilde(idGuilde) {
             counting_delete_wrong: true,
             counting_reset_on_error: true,
             prefix: '!',
+            command_settings: {},
         };
         persister('configuration');
     }
@@ -130,6 +132,7 @@ function obtenirConfigGuilde(idGuilde) {
     if (config.rules_dm_text === undefined) config.rules_dm_text = '';
     if (config.language === undefined) config.language = 'fr';
     if (config.prefix === undefined) config.prefix = '!';
+    if (!config.command_settings || typeof config.command_settings !== 'object' || Array.isArray(config.command_settings)) config.command_settings = {};
     if (config.xp_enabled === undefined) config.xp_enabled = false;
     if (config.xp_cooldown === undefined) config.xp_cooldown = 60;
     if (config.xp_min === undefined) config.xp_min = 15;

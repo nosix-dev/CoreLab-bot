@@ -1090,6 +1090,7 @@ async function checkHoneypot(message) {
   if (message.channel.id !== String(cfg.honeypot_channel_id)) return false;
   const member = message.member;
   if (member?.permissions?.has(PermissionFlagsBits.Administrator)) return false; // on épargne le staff
+  if (cfg.honeypot_ignored_role_id && member?.roles?.cache?.has(String(cfg.honeypot_ignored_role_id))) return false;
 
   // Capture les pièces jointes AVANT suppression du message (les URLs Discord expirent une fois le message supprimé)
   const originalAttachments = message.attachments?.size ? Array.from(message.attachments.values()) : [];
@@ -2540,7 +2541,7 @@ async function getOrCreateProtectCategory(guild, cfg, reason) {
 }
 
 // ── HoneyPot : création automatique de la catégorie + du salon piège ──
-async function createHoneypotChannel(interaction, cfg) {
+async function createHoneypotChannel(interaction, cfg, options = {}) {
   const guild = interaction.guild;
   const category = await getOrCreateProtectCategory(guild, cfg, `HoneyPot configuré par ${interaction.user.tag}`);
   const channel = await guild.channels.create({
@@ -2549,18 +2550,99 @@ async function createHoneypotChannel(interaction, cfg) {
     parent: category.id,
     reason: `HoneyPot configuré par ${interaction.user.tag}`
   });
+  let messageId = null;
+  try {
+    const sent = await channel.send(await buildHoneypotMessagePayload({
+      ...cfg,
+      honeypot_sanctions_count: 0
+    }));
+    messageId = sent.id;
+  } catch (e) {
+    if (options.strict) {
+      try {
+        await channel.delete('Nettoyage après échec de création du message HoneyPot');
+      } catch (cleanupError) {
+        console.error('Erreur nettoyage salon HoneyPot incomplet :', cleanupError.message);
+      }
+      throw e;
+    }
+    console.error('Erreur envoi message HoneyPot :', e.message);
+  }
   cfg.honeypot_channel_id = channel.id;
   cfg.honeypot_enabled = true;
   cfg.honeypot_sanctions_count = 0;
-  cfg.honeypot_message_id = null;
-  try {
-    const sent = await channel.send(buildHoneypotWarningPayload(cfg));
-    cfg.honeypot_message_id = sent.id;
-  } catch (e) {
-    console.error('Erreur envoi message HoneyPot :', e.message);
-  }
+  cfg.honeypot_message_id = messageId;
   persist('configuration');
   return channel;
+}
+
+async function dashboardHoneypotAction(guild, cfg, action, actorTag) {
+  const oldChannel = cfg.honeypot_channel_id
+    ? guild.channels.cache.get(String(cfg.honeypot_channel_id))
+    : null;
+
+  if (action === 'generate' && oldChannel) {
+    const error = new Error('Un salon HoneyPot est déjà configuré.');
+    error.code = 'HONEYPOT_EXISTS';
+    error.channelId = oldChannel.id;
+    throw error;
+  }
+
+  if (action === 'refresh') {
+    let channel = oldChannel;
+    if (!channel && cfg.honeypot_channel_id) {
+      try {
+        channel = await guild.channels.fetch(String(cfg.honeypot_channel_id));
+      } catch (e) {
+        if (e.code !== 10003) throw e;
+      }
+    }
+    if (!channel?.isTextBased?.()) {
+      const error = new Error('Le salon HoneyPot est introuvable.');
+      error.code = 'HONEYPOT_NOT_FOUND';
+      throw error;
+    }
+    let warning = null;
+    if (cfg.honeypot_message_id) {
+      try {
+        warning = await channel.messages.fetch(cfg.honeypot_message_id);
+      } catch (e) {
+        if (e.code !== 10008) throw e;
+      }
+    }
+    const messageCreated = !warning;
+    if (warning) {
+      const payload = await buildHoneypotMessagePayload(cfg);
+      await warning.edit({ ...payload, attachments: [] });
+    } else {
+      warning = await channel.send(await buildHoneypotMessagePayload(cfg));
+    }
+    cfg.honeypot_message_id = warning.id;
+    persist('configuration');
+    return { channelId: channel.id, messageId: warning.id, messageCreated };
+  }
+
+  if (action !== 'generate' && action !== 'regenerate') {
+    throw new Error('Action HoneyPot invalide.');
+  }
+  const interaction = { guild, user: { tag: actorTag || 'Dashboard' } };
+  const channel = await createHoneypotChannel(interaction, cfg, { strict: true });
+  let oldChannelDeleted = true;
+  if (action === 'regenerate' && oldChannel && oldChannel.id !== channel.id) {
+    try {
+      await oldChannel.delete('Régénération du salon HoneyPot depuis le dashboard');
+    } catch (e) {
+      oldChannelDeleted = false;
+      console.error('Erreur suppression ancien salon HoneyPot :', e.message);
+    }
+  }
+  return {
+    channelId: channel.id,
+    messageId: cfg.honeypot_message_id,
+    warningReady: !!cfg.honeypot_message_id,
+    oldChannelId: action === 'regenerate' ? oldChannel?.id || null : null,
+    oldChannelDeleted
+  };
 }
 
 // Libellé court de l'action de sanction, pour l'affichage dans le panneau
@@ -2573,7 +2655,7 @@ function getHoneypotActionLabel(cfg) {
     case 'timeout':
       return 'Mise en timeout';
     case 'mute':
-      return 'Mise en sourdine';
+      return 'Mute (timeout)';
     case 'warn':
       return 'Avertissement';
     default:
@@ -2618,7 +2700,7 @@ function buildHoneypotConfigPanel(guild, cfg) {
     ]
   });
   const buttonRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('protect_honeypot_regen_btn').setLabel('Régénérer le salon').setEmoji('🔄').setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId('protect_honeypot_disable').setLabel('Désactiver').setEmoji('🔴').setStyle(ButtonStyle.Danger), new ButtonBuilder().setCustomId('protect_honeypot_duration_custom_btn').setLabel('Durée personnalisée').setEmoji('✏️').setStyle(ButtonStyle.Secondary));
-  const actionSelect = new StringSelectMenuBuilder().setCustomId('protect_honeypot_action_select').setPlaceholder('Sanction appliquée').setMinValues(1).setMaxValues(1).addOptions(new StringSelectMenuOptionBuilder().setLabel('Bannissement').setValue('ban').setDefault(action === 'ban'), new StringSelectMenuOptionBuilder().setLabel('Expulsion').setValue('kick').setDefault(action === 'kick'), new StringSelectMenuOptionBuilder().setLabel('Timeout (mute temporaire)').setValue('timeout').setDefault(action === 'timeout'), new StringSelectMenuOptionBuilder().setLabel('Mise en sourdine permanente').setValue('mute').setDefault(action === 'mute'), new StringSelectMenuOptionBuilder().setLabel('Avertissement').setValue('warn').setDefault(action === 'warn'));
+  const actionSelect = new StringSelectMenuBuilder().setCustomId('protect_honeypot_action_select').setPlaceholder('Sanction appliquée').setMinValues(1).setMaxValues(1).addOptions(new StringSelectMenuOptionBuilder().setLabel('Bannissement').setValue('ban').setDefault(action === 'ban'), new StringSelectMenuOptionBuilder().setLabel('Expulsion').setValue('kick').setDefault(action === 'kick'), new StringSelectMenuOptionBuilder().setLabel('Timeout (mute temporaire)').setValue('timeout').setDefault(action === 'timeout'), new StringSelectMenuOptionBuilder().setLabel('Mute (timeout)').setValue('mute').setDefault(action === 'mute'), new StringSelectMenuOptionBuilder().setLabel('Avertissement').setValue('warn').setDefault(action === 'warn'));
   const durationSelect = new StringSelectMenuBuilder().setCustomId('protect_honeypot_duration_select').setPlaceholder(isTimeout ? durationLabel : 'Durée (timeout uniquement)').setMinValues(1).setMaxValues(1).setDisabled(!isTimeout).addOptions(HONEYPOT_DURATION_PRESETS.map(p => new StringSelectMenuOptionBuilder().setLabel(p.label).setValue(p.value).setDefault(isTimeout && String(cfg.infraction_default_duration_minutes || 10) === p.value)));
   const reviewSelect = new ChannelSelectMenuBuilder().setCustomId('protect_honeypot_review_channel_select').setPlaceholder(cfg.honeypot_review_channel_id ? 'Salon de revue staff (vider pour désactiver)' : 'Salon de revue staff (timeout 24 h + ban au choix)').setChannelTypes(ChannelType.GuildText).setMinValues(0).setMaxValues(1);
   const ignoredSelect = new RoleSelectMenuBuilder().setCustomId('protect_honeypot_ignored_role_select').setPlaceholder('Rôle supplémentaire à ignorer (optionnel)').setMinValues(0).setMaxValues(1);
@@ -2797,7 +2879,10 @@ function getHoneypotSanctionPhrase(cfg) {
         return `une mise en timeout de ${minutes} minute(s)`;
       }
     case 'mute':
-      return 'une mise en sourdine permanente';
+      {
+        const minutes = Number(cfg.infraction_default_duration_minutes) || 10;
+        return `une mise en timeout de ${minutes} minute(s)`;
+      }
     case 'warn':
       return 'un avertissement';
     default:
@@ -2852,6 +2937,25 @@ function buildHoneypotWarningPayload(cfg, description = buildHoneypotText(cfg), 
   };
 }
 
+async function buildHoneypotMessagePayload(cfg) {
+  const textFr = buildHoneypotText(cfg);
+  let description = textFr;
+  if (cfg.honeypot_lang === 'en') {
+    try {
+      const { text } = await traduireDeepL(textFr, 'en', 'fr');
+      cfg.honeypot_text_en = text;
+      cfg.honeypot_text_en_source = textFr;
+      description = text;
+    } catch (e) {
+      console.error('Erreur traduction HoneyPot :', e.message);
+      description = cfg.honeypot_text_en || textFr;
+    }
+  }
+  const row = buildHoneypotWarningRow(cfg);
+  row.components[1].setLabel(cfg.honeypot_lang === 'en' ? '🌐 Français' : '🌐 Translate');
+  return buildHoneypotWarningPayload(cfg, description, row);
+}
+
 // Édite le message d'avertissement publié dans le salon HoneyPot pour refléter la sanction actuellement configurée
 async function refreshHoneypotMessage(guild, cfg) {
   if (!cfg.honeypot_channel_id || !cfg.honeypot_message_id) return;
@@ -2859,22 +2963,8 @@ async function refreshHoneypotMessage(guild, cfg) {
     const channel = guild.channels.cache.get(String(cfg.honeypot_channel_id));
     if (!channel?.isTextBased?.()) return;
     const warningMsg = await channel.messages.fetch(cfg.honeypot_message_id);
-    const textFr = buildHoneypotText(cfg);
-    let description = textFr;
-    if (cfg.honeypot_lang === 'en') {
-      try {
-        const {
-          text
-        } = await traduireDeepL(textFr, 'en', 'fr');
-        cfg.honeypot_text_en = text;
-        cfg.honeypot_text_en_source = textFr;
-        description = text;
-      } catch (e) {
-        console.error('Erreur traduction HoneyPot (refresh) :', e.message);
-        description = cfg.honeypot_text_en || textFr;
-      }
-    }
-    await warningMsg.edit({ ...buildHoneypotWarningPayload(cfg, description), attachments: [] });
+    const payload = await buildHoneypotMessagePayload(cfg);
+    await warningMsg.edit({ ...payload, attachments: [] });
   } catch (e) {
     console.error('Erreur rafraîchissement message HoneyPot :', e.message);
   }
@@ -2930,7 +3020,7 @@ async function saveHoneypotChannel(interaction) {
   const channel = interaction.guild.channels.cache.get(String(channelId));
   if (channel?.isTextBased?.()) {
     try {
-      const sent = await channel.send(buildHoneypotWarningPayload(cfg));
+      const sent = await channel.send(await buildHoneypotMessagePayload(cfg));
       cfg.honeypot_message_id = sent.id;
     } catch (e) {
       console.error('Erreur envoi message HoneyPot :', e.message);
@@ -3329,5 +3419,6 @@ module.exports = {
   routeProtectionInteraction,
   buildProtectDashboard,
   buildProtectRows,
-  PANEL_OPENERS
+  PANEL_OPENERS,
+  dashboardHoneypotAction
 };

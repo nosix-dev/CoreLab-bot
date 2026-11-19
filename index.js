@@ -595,6 +595,12 @@ client.on('interactionCreate', async interaction => {
     const cmd = client.commands.get(interaction.commandName);
     if (!cmd) return;
     try {
+      if (!require('./src/core/commandCustomization').isEnabled(interaction)) {
+        return await interaction.reply({
+          content: '❌ Cette commande est désactivée sur ce serveur.',
+          flags: MessageFlags.Ephemeral
+        });
+      }
       const allowed = await checkSlashPermissions(interaction);
       if (!allowed) return;
       const isPremiumCommand = cmd.data?.description?.includes('Premium');
@@ -1222,6 +1228,9 @@ client.on('messageCreate', async message => {
   const name = message.content.slice(usedPrefix.length).trim().split(/\s+/)[0].toLowerCase();
   const handler = client.prefixCommands?.[name];
   if (!handler) return;
+  if (!require('./src/core/commandCustomization').isPrefixEnabled(message.guild.id, name)) {
+    return message.reply('❌ Cette commande est désactivée sur ce serveur.');
+  }
   if (maintenance.bloquerPrefixe(message)) return;
   // broadcast réservé au propriétaire du bot uniquement
   if (name === 'broadcast' && message.author.id !== BOT_OWNER_ID) return;

@@ -40,6 +40,13 @@ const ROS = (key, label, x) => ({ key, label, type: 'roles', def: [], assign: tr
 const O = (...pairs) => pairs.map(([v, l]) => ({ v, l }));
 
 const ACTIONS = O(['kick', 'Expulser'], ['ban', 'Bannir'], ['timeout', 'Mettre en sourdine (timeout)']);
+const HONEYPOT_ACTIONS = O(
+  ['ban', 'Bannir'],
+  ['kick', 'Expulser'],
+  ['timeout', 'Timeout temporaire'],
+  ['mute', 'Mute (timeout)'],
+  ['warn', 'Avertissement']
+);
 const LANGS = O(['fr', 'Français'], ['en', 'English'], ['es', 'Español'], ['de', 'Deutsch'], ['it', 'Italiano'], ['pt', 'Português'], ['nl', 'Nederlands'], ['pl', 'Polski'], ['ru', 'Русский'], ['tr', 'Türkçe'], ['ar', 'العربية'], ['ja', '日本語'], ['ko', '한국어'], ['zh-CN', '中文 (简体)']);
 
 
@@ -330,14 +337,15 @@ const MODULES = [
   },
   {
     id: 'honeypot', name: '🍯 HoneyPot', group: 'Protection', toggle: 'honeypot_enabled',
-    desc: 'Un salon piège pour attraper les bots et les comptes piratés.',
+    desc: 'Génère le salon piège et son avertissement, puis configure les sanctions, le salon de revue, le rôle ignoré et les logs.',
     fields: [
-      B('honeypot_enabled', 'Activer le HoneyPot', false, { hint: 'Le message du salon piège se crée avec /protect.' }),
+      B('honeypot_enabled', 'Activer le HoneyPot', false),
       CH('honeypot_channel_id', 'Salon piège', { dep: 'honeypot_enabled' }),
-      CH('honeypot_review_channel_id', 'Salon de vérification des sanctions', { dep: 'honeypot_enabled' }),
+      CH('honeypot_review_channel_id', 'Salon de revue du staff', { dep: 'honeypot_enabled', hint: 'Si défini, le membre reçoit un timeout de 24 h et le staff choisit ensuite de le bannir ou non.' }),
+      { key: 'honeypot_ignored_role_id', label: 'Rôle ignoré par le HoneyPot', type: 'role', def: '', dep: 'honeypot_enabled' },
       CH('infraction_channel_id', 'Salon des infractions', { section: 'Sanctions par défaut' }),
-      S('infraction_default_action', 'Action par défaut', 'timeout', ACTIONS),
-      N('infraction_default_duration_minutes', 'Durée par défaut (minutes)', 1440, 1, 40320),
+      S('infraction_default_action', 'Action par défaut', 'timeout', HONEYPOT_ACTIONS, { hint: 'Utilisée par le HoneyPot si aucun salon de revue staff n’est configuré.' }),
+      N('infraction_default_duration_minutes', 'Durée par défaut (minutes)', 1440, 1, 40320, { hint: 'Utilisée uniquement si l’action par défaut est « Timeout ».' }),
       T('infraction_default_reason', 'Raison par défaut', 500, { emptyDelete: true, hint: 'Vide = aucune raison pré-remplie.' }),
       S('honeypot_lang', 'Langue du message du salon piège', 'fr', O(['fr', 'Français'], ['en', 'English']), { section: 'HoneyPot' })
     ]
@@ -376,7 +384,7 @@ const MODULES = [
   },
   {
     id: 'tickets', name: '🎫 Tickets', group: 'Serveur', toggle: null,
-    desc: 'Salons du système de tickets. Les catégories, raisons et l’apparence de chaque panel se gèrent avec /ticket.',
+    desc: 'Crée et personnalise les panneaux de tickets : message, motifs, accès, questions, équipe, transcriptions et logs.',
     fields: [
       CH('ticket_channel_id', 'Salon des logs de tickets'),
       CH('ticket_panel_channel_id', 'Salon du panel de tickets')
@@ -831,6 +839,204 @@ async function route(req, res, { client }, url) {
     }
   }
 
+  /* ---------- Activation des commandes slash et à préfixe ---------- */
+  const cm = p.match(/^\/api\/guilds\/(\d+)\/commands$/);
+  if (cm) {
+    if (!sess.guilds.some(g => g.id === cm[1])) return J(403, { error: 'forbidden' });
+    const cGuild = client.guilds.cache.get(cm[1]);
+    if (!cGuild) return J(404, { error: 'bot_absent' });
+    const customization = require('./commandCustomization');
+    try {
+      if (req.method === 'GET') {
+        return J(200, { commands: customization.listCommands(client, cm[1]) });
+      }
+      if (req.method === 'PUT') {
+        let body;
+        try { body = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+        const reason = customization.validateSettings(client, body.settings);
+        if (reason) return J(400, { error: 'invalid', reason });
+        customization.saveSettings(cm[1], body.settings);
+        console.log(`[WebDashboard] ${sess.user.username} a personnalisé les commandes sur ${cGuild.name}`);
+        return J(200, { ok: true, commands: customization.listCommands(client, cm[1]) });
+      }
+      return J(405, { error: 'method' });
+    } catch (e) {
+      console.error('[WebDashboard] personnalisation commandes :', e.message);
+      return J(500, { error: 'commands', reason: e.message });
+    }
+  }
+
+  const tp = p.match(/^\/api\/guilds\/(\d+)\/ticket-panels(?:\/([a-f0-9]{16}|\d{17,20})(?:\/(publish))?)?$/i);
+  if (tp) {
+    const [, guildId, panelId, action] = tp;
+    if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return J(404, { error: 'bot_absent' });
+    const cfg = obtenirConfigGuilde(guildId);
+    const { defaultPanel, createPanelId, normalizePanel } = require('./ticketPanels');
+    const { store, persist } = require('./data');
+    if (!cfg.ticket_panels || typeof cfg.ticket_panels !== 'object' || Array.isArray(cfg.ticket_panels)) cfg.ticket_panels = {};
+    if (!store.ticketForms[guildId]) store.ticketForms[guildId] = {};
+    const savePanel = (panel, preserveQuestions = false) => {
+      cfg.ticket_panels[panel.id] = panel;
+      if (!cfg.ticket_reasons) cfg.ticket_reasons = {};
+      if (!cfg.ticket_categories) cfg.ticket_categories = {};
+      if (!cfg.ticket_appearance) cfg.ticket_appearance = {};
+      if (!cfg.ticket_claim_enabled) cfg.ticket_claim_enabled = {};
+      cfg.ticket_reasons[panel.id] = panel.reasons;
+      cfg.ticket_categories[panel.id] = panel.categoryId || null;
+      cfg.ticket_appearance[panel.id] = {
+        title: panel.title,
+        description: panel.description,
+        color: parseInt(panel.color.slice(1), 16),
+        footerText: panel.footerText,
+        statusLine: panel.statusLine,
+        openTitle: panel.openTitle || undefined,
+        openDescription: panel.openDescription || undefined
+      };
+      cfg.ticket_claim_enabled[panel.id] = panel.claimEnabled;
+      if (!preserveQuestions) {
+        const formPrefix = `${panel.id}_`;
+        for (const key of Object.keys(store.ticketForms[guildId])) {
+          if (key.startsWith(formPrefix)) delete store.ticketForms[guildId][key];
+        }
+        if (panel.questions.length) {
+          for (const reason of panel.reasons) {
+            store.ticketForms[guildId][`${panel.id}_${reason.value}`] = panel.questions.map(question => ({ ...question }));
+          }
+        }
+      }
+      persist('configuration');
+      persist('ticketForms');
+    };
+    const legacyPanel = id => {
+      const reasons = cfg.ticket_reasons?.[id];
+      if (!/^\d{17,20}$/.test(id) || !Array.isArray(reasons) || !reasons.length) return null;
+      const appearance = cfg.ticket_appearance?.[id] || {};
+      const forms = store.ticketForms[guildId];
+      const reasonForms = reasons.map(reason => forms[`${id}_${reason.value}`] || []);
+      const questionsVary = reasonForms.some(form => JSON.stringify(form) !== JSON.stringify(reasonForms[0]));
+      const color = Number.isInteger(appearance.color) ? `#${appearance.color.toString(16).padStart(6, '0')}` : '#e8510d';
+      return {
+        ...defaultPanel(id),
+        id,
+        legacy: true,
+        questionsVary,
+        name: guild.channels.cache.get(id)?.name || `Panneau ${id.slice(-4)}`,
+        channelId: id,
+        categoryId: cfg.ticket_categories?.[id] || '',
+        layout: reasons.length === 1 ? 'button' : 'buttons',
+        title: appearance.title || 'Centre d’aide',
+        description: appearance.description || 'Une question, un souci ? L’équipe te répond ici.',
+        color,
+        footerText: appearance.footerText || '',
+        statusLine: appearance.statusLine || '',
+        openTitle: appearance.openTitle || '',
+        openDescription: appearance.openDescription || '',
+        claimEnabled: !!cfg.ticket_claim_enabled?.[id],
+        logChannelId: cfg.ticket_channel_id || '',
+        reasons: reasons.map(reason => ({ ...reason })),
+        questions: questionsVary ? [] : reasonForms[0]
+      };
+    };
+    try {
+      if (!panelId && req.method === 'GET') {
+        const panels = Object.values(cfg.ticket_panels);
+        const storedIds = new Set(panels.map(panel => panel.id));
+        for (const id of Object.keys(cfg.ticket_reasons || {})) {
+          if (!storedIds.has(id)) {
+            const legacy = legacyPanel(id);
+            if (legacy) panels.push(legacy);
+          }
+        }
+        return J(200, { panels });
+      }
+      if (!panelId && req.method === 'POST') {
+        const legacyCount = Object.keys(cfg.ticket_reasons || {}).filter(id =>
+          !cfg.ticket_panels[id] && !!legacyPanel(id)
+        ).length;
+        if (Object.keys(cfg.ticket_panels).length + legacyCount >= 20) return J(400, { error: 'invalid', reason: '20 panneaux maximum.' });
+        let body;
+        try { body = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+        if (!body || typeof body !== 'object' || Array.isArray(body) || !body.panel) return J(400, { error: 'invalid' });
+        const id = createPanelId();
+        const result = normalizePanel({ ...body.panel, id }, defaultPanel(id), guild);
+        if (result.error) return J(400, { error: 'invalid', reason: result.error });
+        savePanel(result.panel);
+        return J(201, { panel: result.panel });
+      }
+      const panel = cfg.ticket_panels[panelId] || legacyPanel(panelId);
+      if (!panel) return J(404, { error: 'panel_not_found' });
+      if (action === 'publish' && req.method === 'POST') {
+        const { panel: ready, error } = normalizePanel(panel, panel, guild, true);
+        if (error) return J(400, { error: 'invalid', reason: error });
+        const channel = guild.channels.cache.get(ready.channelId);
+        const messagePayload = require('../handlers/ticket').buildDashboardTicketPublishPayload(ready, guild);
+        let message = null;
+        if (ready.publishedMessageId && ready.publishedChannelId === channel.id) {
+          try { message = await channel.messages.fetch(ready.publishedMessageId); }
+          catch (e) { if (e.code !== 10008) throw e; }
+        }
+        if (!message && ready.legacy) {
+          const recent = await channel.messages.fetch({ limit: 100 });
+          message = recent.find(item => item.components.some(row =>
+            row.components.some(component => component.customId?.startsWith(`ticket_reason_${panelId}_`))
+          )) || null;
+        }
+        if (message) await message.edit(messagePayload);
+        else message = await channel.send(messagePayload);
+        ready.publishedChannelId = channel.id;
+        ready.publishedMessageId = message.id;
+        cfg.ticket_panels[panelId] = ready;
+        persist('configuration');
+        return J(200, { panel: ready });
+      }
+      if (action) return J(405, { error: 'method' });
+      if (req.method === 'PUT') {
+        let body;
+        try { body = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+        if (!body || typeof body !== 'object' || Array.isArray(body) || !body.panel) return J(400, { error: 'invalid' });
+        const result = normalizePanel({ ...body.panel, id: panelId }, panel, guild);
+        if (result.error) return J(400, { error: 'invalid', reason: result.error });
+        if (result.panel.channelId !== panel.channelId) {
+          result.panel.publishedMessageId = null;
+          result.panel.publishedChannelId = null;
+        }
+        if (!body.preserveQuestions) result.panel.questionsVary = false;
+        savePanel(result.panel, body.preserveQuestions === true && panel.legacy === true);
+        return J(200, { panel: result.panel });
+      }
+      if (req.method === 'DELETE') {
+        if (panel.legacy && !panel.publishedMessageId) return J(400, { error: 'invalid', reason: 'Publie d’abord ce panneau pour pouvoir le supprimer.' });
+        if (panel.publishedMessageId && panel.publishedChannelId) {
+          const channel = guild.channels.cache.get(panel.publishedChannelId);
+          if (channel?.isTextBased()) {
+            let message = null;
+            try { message = await channel.messages.fetch(panel.publishedMessageId); }
+            catch (e) { if (e.code !== 10008) throw e; }
+            if (message) await message.delete();
+          }
+        }
+        delete cfg.ticket_panels[panelId];
+        const formPrefix = `${panelId}_`;
+        for (const key of Object.keys(store.ticketForms[guildId])) {
+          if (key.startsWith(formPrefix)) delete store.ticketForms[guildId][key];
+        }
+        delete cfg.ticket_reasons?.[panelId];
+        delete cfg.ticket_categories?.[panelId];
+        delete cfg.ticket_appearance?.[panelId];
+        delete cfg.ticket_claim_enabled?.[panelId];
+        persist('configuration');
+        persist('ticketForms');
+        return J(200, { ok: true });
+      }
+      return J(405, { error: 'method' });
+    } catch (e) {
+      console.error('[WebDashboard] panneaux de tickets :', e.message);
+      return J(500, { error: 'ticket_panels', reason: e.message });
+    }
+  }
+
   /* ---------- Absences du staff (mêmes données que la commande /absence) ---------- */
   const am = p.match(/^\/api\/guilds\/(\d+)\/absences(?:\/([\w-]+))?(?:\/(approve|refuse))?$/);
   if (am) {
@@ -880,12 +1086,32 @@ async function route(req, res, { client }, url) {
     }
   }
 
-  const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye)|\/(activity))?$/);
+  const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye)|\/(activity)|\/honeypot\/(generate|regenerate|refresh))?$/);
   if (!m) return J(404, { error: 'not_found' });
-  const [, guildId, isMeta, modId, previewKind, bgKind, isActivity] = m;
+  const [, guildId, isMeta, modId, previewKind, bgKind, isActivity, hpAction] = m;
   if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
   const guild = client.guilds.cache.get(guildId);
   if (!guild) return J(404, { error: 'bot_absent' });
+
+  if (hpAction) {
+    if (req.method !== 'POST') return J(405, { error: 'method' });
+    const member = await guild.members.fetch(sess.user.id).catch(() => null);
+    if (!member || (!member.permissions.has(ADMIN) && !member.permissions.has(MANAGE_GUILD))) {
+      return J(403, { error: 'forbidden' });
+    }
+    try {
+      const cfg = obtenirConfigGuilde(guildId);
+      const result = await require('../handlers/protection').dashboardHoneypotAction(
+        guild, cfg, hpAction, sess.user.username
+      );
+      return J(200, { ok: true, ...result });
+    } catch (e) {
+      if (e.code === 'HONEYPOT_EXISTS') return J(409, { error: 'already_exists', channelId: e.channelId });
+      if (e.code === 'HONEYPOT_NOT_FOUND') return J(404, { error: 'honeypot_not_found' });
+      console.error('[WebDashboard] HoneyPot :', e.message);
+      return J(500, { error: 'honeypot', reason: e.message });
+    }
+  }
 
   /* ---------- Image de fond des cartes (même dossier que le bouton « 🖼️ Image de fond » du bot) ---------- */
   if (bgKind) {
