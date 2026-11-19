@@ -38,6 +38,7 @@ const {
   toCV2Payload
 } = require("../core/componentsV2");
 const DOSSIER_IMAGES_FORMULAIRE = dossierPersistant('src/data/form_images', 'form_images');
+const DOSSIER_IMAGES_TICKET = dossierPersistant('src/data/ticket_images', 'ticket_images');
 async function sauvegarderImageFormulaireLocalement(guildId, slug, attachment) {
   if (!fs.existsSync(DOSSIER_IMAGES_FORMULAIRE)) fs.mkdirSync(DOSSIER_IMAGES_FORMULAIRE, {
     recursive: true
@@ -492,10 +493,23 @@ async function buildTicketPublishPayload(cfg, panelChannelId, guild, bannerPath 
 function buildDashboardTicketPublishPayload(panel, guild) {
   const description = [panel.description, panel.statusLine].filter(Boolean).join("\n\n");
   const color = hexToInt(panel.color);
+  const files = [];
   const embed = new EmbedBuilder()
     .setTitle(panel.title)
     .setDescription(description || null)
     .setColor(color === null ? 0xE8510D : color);
+  const imageFile = String(panel.bannerImageFile || '');
+  const imageExt = path.extname(imageFile).toLowerCase();
+  if (guild?.id && imageFile === path.basename(imageFile)
+    && imageFile.startsWith(`${guild.id}_${panel.id}.`)
+    && ['.png', '.jpg', '.gif', '.webp'].includes(imageExt)) {
+    const imagePath = path.join(DOSSIER_IMAGES_TICKET, imageFile);
+    if (fs.existsSync(imagePath)) {
+      const attachmentName = `ticket-panel${imageExt}`;
+      files.push(new AttachmentBuilder(imagePath, { name: attachmentName }));
+      embed.setImage(`attachment://${attachmentName}`);
+    }
+  }
   const iconUrl = guild?.iconURL({ extension: 'png', size: 256, forceStatic: true });
   if (iconUrl) embed.setThumbnail(iconUrl);
   if (panel.footerText) embed.setFooter({ text: panel.footerText });
@@ -537,7 +551,7 @@ function buildDashboardTicketPublishPayload(panel, guild) {
     });
     if (row.components.length) components.push(row);
   }
-  return { embeds: [embed], components, allowedMentions: { parse: [] } };
+  return { embeds: [embed], ...(files.length ? { files } : {}), components, allowedMentions: { parse: [] } };
 }
 
 // Panneau de gestion d'un formulaire (questions + image + publication).

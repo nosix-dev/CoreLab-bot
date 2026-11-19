@@ -8,7 +8,10 @@
 // (bot_config.json via obtenirConfigGuilde, et rankup.json pour le Rankup).
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { obtenirConfigGuilde, persister } = require('./config');
+const { dossierPersistant } = require('./persistentPath');
 
 const DISCORD = 'https://discord.com/api/v10';
 const ADMIN = 0x8n;
@@ -17,6 +20,7 @@ const TEXT_CHANNEL_TYPES = [0, 5];
 const CATEGORY_TYPE = 4;
 const MAX_LIST = 25;
 const previewBusy = new Map(); // userId → horodatage du dernier rendu d'aperçu (-1 = rendu en cours)
+const TICKET_IMAGE_DIR = dossierPersistant('src/data/ticket_images', 'ticket_images');
 
 /* ============================================================
    Modules affichés dans le dashboard.
@@ -866,7 +870,7 @@ async function route(req, res, { client }, url) {
     }
   }
 
-  const tp = p.match(/^\/api\/guilds\/(\d+)\/ticket-panels(?:\/([a-f0-9]{16}|\d{17,20})(?:\/(publish))?)?$/i);
+  const tp = p.match(/^\/api\/guilds\/(\d+)\/ticket-panels(?:\/([a-f0-9]{16}|\d{17,20})(?:\/(publish|image))?)?$/i);
   if (tp) {
     const [, guildId, panelId, action] = tp;
     if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
@@ -892,7 +896,8 @@ async function route(req, res, { client }, url) {
         footerText: panel.footerText,
         statusLine: panel.statusLine,
         openTitle: panel.openTitle || undefined,
-        openDescription: panel.openDescription || undefined
+        openDescription: panel.openDescription || undefined,
+        bannerImageFile: panel.bannerImageFile || undefined
       };
       cfg.ticket_claim_enabled[panel.id] = panel.claimEnabled;
       if (!preserveQuestions) {
@@ -933,6 +938,7 @@ async function route(req, res, { client }, url) {
         statusLine: appearance.statusLine || '',
         openTitle: appearance.openTitle || '',
         openDescription: appearance.openDescription || '',
+        bannerImageFile: appearance.bannerImageFile || null,
         claimEnabled: !!cfg.ticket_claim_enabled?.[id],
         logChannelId: cfg.ticket_channel_id || '',
         reasons: reasons.map(reason => ({ ...reason })),
@@ -967,6 +973,68 @@ async function route(req, res, { client }, url) {
       }
       const panel = cfg.ticket_panels[panelId] || legacyPanel(panelId);
       if (!panel) return J(404, { error: 'panel_not_found' });
+      if (action === 'image') {
+        const storedImage = () => cfg.ticket_panels[panelId]?.bannerImageFile
+          || cfg.ticket_appearance?.[panelId]?.bannerImageFile
+          || null;
+        const imagePrefix = `${guildId}_${panelId}.`;
+        const removeImages = keepFilename => {
+          if (!fs.existsSync(TICKET_IMAGE_DIR)) return;
+          for (const file of fs.readdirSync(TICKET_IMAGE_DIR)) {
+            if (file !== keepFilename && file.startsWith(imagePrefix) && /\.(png|jpg|gif|webp)$/i.test(file)) {
+              fs.unlinkSync(path.join(TICKET_IMAGE_DIR, file));
+            }
+          }
+        };
+        if (req.method === 'GET') {
+          const filename = storedImage();
+          if (!filename || path.basename(filename) !== filename || !filename.startsWith(imagePrefix)) {
+            return J(404, { error: 'image_not_found' });
+          }
+          const imagePath = path.join(TICKET_IMAGE_DIR, filename);
+          if (!fs.existsSync(imagePath)) return J(404, { error: 'image_not_found' });
+          const ext = path.extname(filename).toLowerCase();
+          const contentType = ({ '.png': 'image/png', '.jpg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' })[ext];
+          if (!contentType) return J(404, { error: 'image_not_found' });
+          res.writeHead(200, {
+            'Content-Type': contentType,
+            'Cache-Control': 'private, no-store',
+            'X-Content-Type-Options': 'nosniff',
+            ...cors(ORIGIN)
+          });
+          return res.end(fs.readFileSync(imagePath));
+        }
+        if (req.method === 'DELETE') {
+          removeImages();
+          if (cfg.ticket_panels[panelId]) delete cfg.ticket_panels[panelId].bannerImageFile;
+          if (cfg.ticket_appearance?.[panelId]) delete cfg.ticket_appearance[panelId].bannerImageFile;
+          persist('configuration');
+          return J(200, { ok: true, has: false });
+        }
+        if (req.method === 'POST') {
+          let buf;
+          try { buf = await readRaw(req, 8 * 1024 * 1024); } catch (e) {
+            if (e.message === 'trop gros') return J(413, { error: 'too_big' });
+            throw e;
+          }
+          const ext = sniffImage(buf);
+          if (!ext) return J(400, { error: 'invalid_image' });
+          fs.mkdirSync(TICKET_IMAGE_DIR, { recursive: true });
+          const filename = `${guildId}_${panelId}.${ext}`;
+          fs.writeFileSync(path.join(TICKET_IMAGE_DIR, filename), buf);
+          removeImages(filename);
+          if (!cfg.ticket_appearance) cfg.ticket_appearance = {};
+          cfg.ticket_appearance[panelId] = {
+            ...cfg.ticket_appearance[panelId],
+            bannerImageFile: filename
+          };
+          if (!cfg.ticket_panels[panelId]) cfg.ticket_panels[panelId] = panel;
+          cfg.ticket_panels[panelId].bannerImageFile = filename;
+          persist('configuration');
+          return J(200, { ok: true, has: true, filename, ext });
+        }
+        return J(405, { error: 'method' });
+      }
       if (action === 'publish' && req.method === 'POST') {
         const { panel: ready, error } = normalizePanel(panel, panel, guild, true);
         if (error) return J(400, { error: 'invalid', reason: error });
@@ -1018,6 +1086,12 @@ async function route(req, res, { client }, url) {
           }
         }
         delete cfg.ticket_panels[panelId];
+        const imageFilename = panel.bannerImageFile || cfg.ticket_appearance?.[panelId]?.bannerImageFile;
+        if (imageFilename && path.basename(imageFilename) === imageFilename
+          && imageFilename.startsWith(`${guildId}_${panelId}.`)
+          && /\.(png|jpg|gif|webp)$/i.test(imageFilename)) {
+          try { fs.unlinkSync(path.join(TICKET_IMAGE_DIR, imageFilename)); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+        }
         const formPrefix = `${panelId}_`;
         for (const key of Object.keys(store.ticketForms[guildId])) {
           if (key.startsWith(formPrefix)) delete store.ticketForms[guildId][key];
