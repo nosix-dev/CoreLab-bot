@@ -1217,7 +1217,17 @@ client.on('messageCreate', async message => {
   const arBucket = store.autoresponses && store.autoresponses[message.guild.id] || [];
   if (arBucket.length && cfgGuild?.autoresponse_enabled !== false) {
     const contentLower = message.content.toLowerCase();
-    const match = arBucket.find(ar => ar && ar.keyword && contentLower.includes(ar.keyword.toLowerCase()));
+    const memberRoleIds = new Set(message.member?.roles?.cache?.keys?.() || []);
+    const match = arBucket.find(ar => {
+      if (!ar || ar.enabled === false || !ar.keyword) return false;
+      if (Array.isArray(ar.channelIds) && ar.channelIds.length && !ar.channelIds.includes(message.channel.id)) return false;
+      if (Array.isArray(ar.roleIds) && ar.roleIds.length
+        && !ar.roleIds.some(roleId => memberRoleIds.has(String(roleId)))) return false;
+      const keyword = String(ar.keyword).toLowerCase();
+      return ar.mode === 'exact'
+        ? contentLower.trim() === keyword
+        : contentLower.includes(keyword);
+    });
     if (match) {
       try {
         await message.reply(match.response);

@@ -408,7 +408,7 @@ const MODULES = [
   },
   {
     id: 'autoresponses', name: '💬 Réponses automatiques', group: 'Serveur', toggle: 'autoresponse_enabled',
-    desc: 'Active ou coupe les réponses automatiques. Les réponses se créent avec /config-panel.',
+    desc: 'Choisis les mots ou phrases déclencheurs, la réponse envoyée, les salons autorisés et les rôles concernés.',
     fields: [
       B('autoresponse_enabled', 'Activer les réponses automatiques', true)
     ]
@@ -870,6 +870,99 @@ async function route(req, res, { client }, url) {
       console.error('[WebDashboard] personnalisation commandes :', e.message);
       return J(500, { error: 'commands', reason: e.message });
     }
+  }
+
+  const art = p.match(/^\/api\/guilds\/(\d+)\/autoresponses\/toggle$/);
+  if (art) {
+    const guildId = art[1];
+    if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
+    if (!client.guilds.cache.get(guildId)) return J(404, { error: 'bot_absent' });
+    if (req.method !== 'POST') return J(405, { error: 'method' });
+    const cfg = obtenirConfigGuilde(guildId);
+    cfg.autoresponse_enabled = cfg.autoresponse_enabled === false ? true : false;
+    persister('configuration');
+    return J(200, { enabled: cfg.autoresponse_enabled });
+  }
+
+  const ar = p.match(/^\/api\/guilds\/(\d+)\/autoresponses(?:\/(\d+))?$/);
+  if (ar) {
+    const [, guildId, responseIndex] = ar;
+    if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return J(404, { error: 'bot_absent' });
+    const cfg = obtenirConfigGuilde(guildId);
+    const { store, persist } = require('./data');
+    if (!store.autoresponses) store.autoresponses = {};
+    if (!Array.isArray(store.autoresponses[guildId])) store.autoresponses[guildId] = [];
+    const bucket = store.autoresponses[guildId];
+
+    const normalize = body => {
+      const keyword = typeof body.keyword === 'string' ? body.keyword.trim() : '';
+      const response = typeof body.response === 'string' ? body.response.trim() : '';
+      const mode = body.mode === 'exact' ? 'exact' : 'contains';
+      const enabled = body.enabled !== false;
+      const channelIds = Array.isArray(body.channelIds)
+        ? [...new Set(body.channelIds.map(String).slice(0, 50))]
+        : [];
+      const roleIds = Array.isArray(body.roleIds)
+        ? [...new Set(body.roleIds.map(String).slice(0, 50))]
+        : [];
+      if (!keyword || keyword.length > 100) return { error: 'Le mot-clé est obligatoire et doit contenir au maximum 100 caractères.' };
+      if (!response || response.length > 1000) return { error: 'La réponse est obligatoire et doit contenir au maximum 1 000 caractères.' };
+      const validChannels = new Set(guild.channels.cache.filter(c => TEXT_CHANNEL_TYPES.includes(c.type)).map(c => c.id));
+      const validRoles = new Set(guild.roles.cache.filter(r => r.id !== guild.id).map(r => r.id));
+      if (channelIds.some(id => !validChannels.has(id))) return { error: 'Un salon sélectionné n’existe plus.' };
+      if (roleIds.some(id => !validRoles.has(id))) return { error: 'Un rôle sélectionné n’existe plus.' };
+      return { value: { keyword, response, mode, enabled, channelIds, roleIds } };
+    };
+
+    if (req.method === 'GET') {
+      return J(200, {
+        enabled: cfg.autoresponse_enabled !== false,
+        responses: bucket.map((item, index) => ({
+          index,
+          keyword: String(item.keyword || ''),
+          response: String(item.response || ''),
+          mode: item.mode === 'exact' ? 'exact' : 'contains',
+          enabled: item.enabled !== false,
+          channelIds: Array.isArray(item.channelIds) ? item.channelIds.map(String) : [],
+          roleIds: Array.isArray(item.roleIds) ? item.roleIds.map(String) : []
+        }))
+      });
+    }
+
+    if (req.method === 'POST' || req.method === 'PUT') {
+      let body;
+      try { body = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+      const normalized = normalize(body);
+      if (normalized.error) return J(400, { error: 'invalid', reason: normalized.error });
+
+      if (req.method === 'POST') {
+        if (bucket.some(item => String(item.keyword).toLowerCase() === normalized.value.keyword.toLowerCase())) {
+          return J(400, { error: 'invalid', reason: 'Ce mot-clé existe déjà.' });
+        }
+        bucket.push(normalized.value);
+      } else {
+        const index = Number(responseIndex);
+        if (!Number.isInteger(index) || index < 0 || index >= bucket.length) return J(404, { error: 'not_found' });
+        const existing = bucket[index];
+        if (bucket.some((item, i) => i !== index && String(item.keyword).toLowerCase() === normalized.value.keyword.toLowerCase())) {
+          return J(400, { error: 'invalid', reason: 'Ce mot-clé existe déjà.' });
+        }
+        bucket[index] = { ...existing, ...normalized.value };
+      }
+      persist('autoresponses');
+      return J(200, { ok: true, enabled: cfg.autoresponse_enabled !== false, responses: bucket });
+    }
+
+    if (req.method === 'DELETE') {
+      const index = Number(responseIndex);
+      if (!Number.isInteger(index) || index < 0 || index >= bucket.length) return J(404, { error: 'not_found' });
+      bucket.splice(index, 1);
+      persist('autoresponses');
+      return J(200, { ok: true, responses: bucket });
+    }
+    return J(405, { error: 'method' });
   }
 
   const tp = p.match(/^\/api\/guilds\/(\d+)\/ticket-panels(?:\/([a-f0-9]{16}|\d{17,20})(?:\/(publish|image))?)?$/i);
