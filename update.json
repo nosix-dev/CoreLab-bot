@@ -1,0 +1,45 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.39",
+  "date": "2026-11-19",
+  "titre": "💎 CoreLab — Mascotte Diamant",
+  "intro": "CoreLab accueille désormais une nouvelle mascotte internationale : votre **diamant** vous suit sur tous les serveurs.",
+  "mention": false,
+  "modifications": {
+    "💎 Jeu Diamant": [
+      "[+] **/diamant mascotte creer** : crée votre diamant avec son prénom et son tempérament parmi **Vif, Calme, Sauvage ou Curieux**.",
+      "[+] **/diamant mascotte nourrir** : nourrit votre mascotte avec des éclats de carbone pour gagner de l'XP.",
+      "[+] **/diamant mascotte polir** : améliore son humeur et reçoit gratuitement des gemmes.",
+      "[+] Votre diamant peut scintiller pour obtenir jusqu'à **4 fois plus d'XP** et faire apparaître une facette dorée.",
+      "[+] Le module comprend cinq stades : **Éclat, Cristal, Gemme, Joyau et Diamant pur**.",
+      "[+] **/diamant recompenses daily** : récompense quotidienne gratuite avec série, bonus de gemmes et jokers.",
+      "[+] **/diamant recompenses classement** : consulte le classement des mascottes.",
+      "[+] Les gemmes sont gagnées sans achat grâce aux messages et au temps passé en vocal.",
+      "[i] Les gains sont protégés par des cooldowns, des plafonds journaliers et l'antispam."
+    ],
+    "🖼️ Affichage Discord": [
+      "[+] La mascotte est maintenant visible dans la carte **/niveau**.",
+      "[+] **/rankup progress** affiche aussi votre diamant, son stade, son niveau et son humeur.",
+      "[+] Chaque stade possède son propre visuel SVG diamant, sans flamme ni feu."
+    ],
+    "🌐 Site & classement": [
+      "[+] Nouvelle page publique **Diamant** sur le site.",
+      "[+] Connexion **Discord obligatoire** pour afficher les noms, avatars, positions et progressions.",
+      "[+] Classement présenté avec un podium pour les trois premiers joueurs.",
+      "[+] Tableau complet avec joueur, avatar, diamant, tempérament, niveau, gemmes et XP.",
+      "[+] La mascotte personnelle est liée au compte Discord et reste visible sur tous les serveurs."
+    ],
+    "⚙️ Dashboard": [
+      "[+] Nouveau module **Diamant** dans le dashboard.",
+      "[+] Activation ou désactivation des gains.",
+      "[+] Choix du salon des annonces.",
+      "[+] Choix des salons exclus où les messages et le vocal ne rapportent aucune gemme."
+    ]
+  },
+  "pied": "Retrouvez toutes les nouveautés sur le site CoreLab.",
+  "support": {
+    "label": "Voir le classement Diamant",
+    "emoji": "💎",
+    "url": "https://corelab-4cn.pages.dev/diamant.html"
+  }
+}

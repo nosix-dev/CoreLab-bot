@@ -1,6 +1,119 @@
 {
   "entries": [
     {
+      "version": "5.5.39",
+      "date": "2026-11-19",
+      "title": "💎 CoreLab — Mascotte Diamant",
+      "intro": "CoreLab accueille désormais une nouvelle mascotte internationale : votre **diamant** vous suit sur tous les serveurs.",
+      "sections": [
+        {
+          "title": "💎 Jeu Diamant",
+          "items": [
+            {
+              "type": "add",
+              "text": "**/diamant mascotte creer** : crée votre diamant avec son prénom et son tempérament parmi **Vif, Calme, Sauvage ou Curieux**."
+            },
+            {
+              "type": "add",
+              "text": "**/diamant mascotte nourrir** : nourrit votre mascotte avec des éclats de carbone pour gagner de l'XP."
+            },
+            {
+              "type": "add",
+              "text": "**/diamant mascotte polir** : améliore son humeur et reçoit gratuitement des gemmes."
+            },
+            {
+              "type": "add",
+              "text": "Votre diamant peut scintiller pour obtenir jusqu'à **4 fois plus d'XP** et faire apparaître une facette dorée."
+            },
+            {
+              "type": "add",
+              "text": "Le module comprend cinq stades : **Éclat, Cristal, Gemme, Joyau et Diamant pur**."
+            },
+            {
+              "type": "add",
+              "text": "**/diamant recompenses daily** : récompense quotidienne gratuite avec série, bonus de gemmes et jokers."
+            },
+            {
+              "type": "add",
+              "text": "**/diamant recompenses classement** : consulte le classement des mascottes."
+            },
+            {
+              "type": "add",
+              "text": "Les gemmes sont gagnées sans achat grâce aux messages et au temps passé en vocal."
+            },
+            {
+              "type": "info",
+              "text": "Les gains sont protégés par des cooldowns, des plafonds journaliers et l'antispam."
+            }
+          ]
+        },
+        {
+          "title": "🖼️ Affichage Discord",
+          "items": [
+            {
+              "type": "add",
+              "text": "La mascotte est maintenant visible dans la carte **/niveau**."
+            },
+            {
+              "type": "add",
+              "text": "**/rankup progress** affiche aussi votre diamant, son stade, son niveau et son humeur."
+            },
+            {
+              "type": "add",
+              "text": "Chaque stade possède son propre visuel SVG diamant, sans flamme ni feu."
+            }
+          ]
+        },
+        {
+          "title": "🌐 Site & classement",
+          "items": [
+            {
+              "type": "add",
+              "text": "Nouvelle page publique **Diamant** sur le site."
+            },
+            {
+              "type": "add",
+              "text": "Connexion **Discord obligatoire** pour afficher les noms, avatars, positions et progressions."
+            },
+            {
+              "type": "add",
+              "text": "Classement présenté avec un podium pour les trois premiers joueurs."
+            },
+            {
+              "type": "add",
+              "text": "Tableau complet avec joueur, avatar, diamant, tempérament, niveau, gemmes et XP."
+            },
+            {
+              "type": "add",
+              "text": "La mascotte personnelle est liée au compte Discord et reste visible sur tous les serveurs."
+            }
+          ]
+        },
+        {
+          "title": "⚙️ Dashboard",
+          "items": [
+            {
+              "type": "add",
+              "text": "Nouveau module **Diamant** dans le dashboard."
+            },
+            {
+              "type": "add",
+              "text": "Activation ou désactivation des gains."
+            },
+            {
+              "type": "add",
+              "text": "Choix du salon des annonces."
+            },
+            {
+              "type": "add",
+              "text": "Choix des salons exclus où les messages et le vocal ne rapportent aucune gemme."
+            }
+          ]
+        }
+      ],
+      "hash": "03adda217ae14125"
+    },
+    {
       "version": "5.5.21",
       "date": "2026-11-07",
       "title": null,
