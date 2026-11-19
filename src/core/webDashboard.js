@@ -997,12 +997,37 @@ async function route(req, res, { client }, url) {
     if (req.method === 'PUT') {
       let body;
       try { body = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+      const enabled = body.enabled !== false;
       const types = Array.isArray(body.types)
         ? [...new Set(body.types.map(String).filter(type => stats.TYPES_COMPTEURS[type]))]
         : [];
       const categoryId = typeof body.categoryId === 'string' ? body.categoryId : '';
       if (!guild.members.me?.permissions.has(PermissionFlagsBits.ManageChannels)) {
         return J(403, { error: 'invalid', reason: 'Le bot doit avoir la permission Gérer les salons.' });
+      }
+
+      if (!enabled) {
+        const oldCounters = Array.isArray(cfg.serverstats_counters) ? cfg.serverstats_counters : [];
+        for (const counter of oldCounters) {
+          await guild.channels.cache.get(String(counter.channelId))
+            ?.delete('CoreLab Dashboard : statistiques désactivées')
+            .catch(() => {});
+        }
+        const oldCategoryId = cfg.serverstats_category_id ? String(cfg.serverstats_category_id) : '';
+        if (oldCategoryId) {
+          await guild.channels.cache.get(oldCategoryId)
+            ?.delete('CoreLab Dashboard : statistiques désactivées')
+            .catch(() => {});
+        }
+        cfg.serverstats_counters = [];
+        cfg.serverstats_category_id = null;
+        cfg.serverstats_enabled = false;
+        persister('configuration');
+        return J(200, { ok: true, enabled: false, categoryId: '', counters: [] });
+      }
+
+      if (!types.length) {
+        return J(400, { error: 'invalid', reason: 'Sélectionne au moins un compteur avant d’activer les statistiques.' });
       }
 
       let category = categoryId ? guild.channels.cache.get(categoryId) : null;
