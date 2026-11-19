@@ -129,6 +129,7 @@ async function gererSelectionRoleReglement(interaction) {
         .setMinLength(30)
         .setMaxLength(3900)
         .setRequired(true);
+    if (config0.rules_content) contenuInput.setValue(String(config0.rules_content).slice(0, 3900));
     const contenuLabel = new LabelBuilder()
         .setLabel('Texte du règlement')
         .setTextInputComponent(contenuInput);
@@ -167,6 +168,7 @@ async function gererSoumissionModalReglement(interaction) {
     if (titreSaisi) config.rules_title = titreSaisi;
 
     const contenu = interaction.fields.getTextInputValue('contenu');
+    config.rules_content = contenu;
     let delaiRaw = '0';
     try {
         delaiRaw = interaction.fields.getTextInputValue('delai') || '0';
@@ -276,6 +278,42 @@ function extraireConteneurReglement(message) {
     return json;
 }
 
+async function lireReglementPourDashboard(guild, config) {
+    const message = await recupererMessageReglement(guild, config);
+    const json = extraireConteneurReglement(message);
+    const textes = json?.components?.filter(c => c.type === 10) || [];
+    const couleur = json?.accent_color ?? config.rules_color ?? 0xE8510D;
+    return {
+        published: !!message && textes.length >= 2,
+        url: message?.url || null,
+        titre: String(config.rules_title || textes[0]?.content || TITRE_REGLEMENT_DEFAUT).replace(/^#\s*/, '').trim(),
+        contenu: String(config.rules_content || textes[1]?.content || ''),
+        couleur: `#${Number(couleur).toString(16).padStart(6, '0')}`,
+    };
+}
+
+async function mettreAJourReglementDepuisDashboard(guild, config, { titre, contenu, couleur }) {
+    const message = await recupererMessageReglement(guild, config);
+    if (!message) return { published: false };
+
+    const json = extraireConteneurReglement(message);
+    const textes = json?.components?.filter(c => c.type === 10);
+    if (!textes || textes.length < 2) {
+        throw new Error('Le message du règlement n’a pas le format attendu. Republie-le avec /setup rules.');
+    }
+
+    textes[0].content = `# ${titre || TITRE_REGLEMENT_DEFAUT}`;
+    textes[1].content = contenu;
+    json.accent_color = couleur;
+    await message.edit({
+        components: [json],
+        flags: MessageFlags.IsComponentsV2,
+        allowedMentions: { parse: [] },
+    });
+
+    return { published: true, url: message.url };
+}
+
 async function ouvrirEditionReglement(interaction) {
     console.log('[reglement-edit] ouverture du modal par', interaction.user.tag);
     const config = obtenirConfigGuilde(interaction.guild.id);
@@ -381,6 +419,7 @@ async function gererSoumissionEditionReglement(interaction) {
     }
 
     config.rules_title = titre;
+    config.rules_content = contenu;
     config.rules_accept_delay = delaiSecondes;
     if (couleurResolue !== undefined) config.rules_color = couleurResolue;
     persister('configuration');
@@ -568,6 +607,8 @@ module.exports = {
     ID_MODAL_EDITION_REGLEMENT,
     stockerImageReglement,
     stockerBoutonsReglement,
+    lireReglementPourDashboard,
+    mettreAJourReglementDepuisDashboard,
     EMOJI_REGLEMENT,
     ID_BOUTON_ACCEPTER,
     MAX_BOUTONS_LIENS,

@@ -94,6 +94,7 @@ function obtenirConfigGuilde(idGuilde) {
             auth_pending_role_id: null,
             auth_review_channel_id: null,
             rules_title: null,
+            rules_content: null,
             bot_nickname: null,
             translation_enabled: false,
             translation_scope: 'server',
@@ -179,6 +180,7 @@ function obtenirConfigGuilde(idGuilde) {
     if (config.auth_pending_role_id === undefined) config.auth_pending_role_id = null;
     if (config.auth_review_channel_id === undefined) config.auth_review_channel_id = null;
     if (config.rules_title === undefined) config.rules_title = null;
+    if (config.rules_content === undefined) config.rules_content = null;
     if (config.bot_nickname === undefined) config.bot_nickname = null;
     if (config.starboard_enabled === undefined) config.starboard_enabled = false;
     if (config.starboard_channel_id === undefined) config.starboard_channel_id = null;

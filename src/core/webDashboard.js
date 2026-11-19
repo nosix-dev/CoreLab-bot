@@ -380,7 +380,7 @@ const MODULES = [
   /* ---------- Serveur ---------- */
   {
     id: 'rules', name: '📜 Règlement', group: 'Serveur', toggle: null,
-    desc: 'Apparence et comportement du règlement à accepter. Le texte et le message se publient avec /reglement ; les changements ici s’appliquent à la prochaine modification du message.',
+    desc: 'Personnalise le titre, le texte, la couleur et le délai avec un aperçu en direct. Les réglages s’appliquent immédiatement au message publié, ou à la prochaine publication avec /reglement.',
     fields: [
       CH('rules_channel_id', 'Salon du règlement', { hint: 'Normalement défini par /reglement.' }),
       T('rules_title', 'Titre du règlement', 256, { emptyDelete: true, hint: 'Vide = « 📜 Règlement du serveur ».' }),
@@ -873,6 +873,65 @@ async function route(req, res, { client }, url) {
   }
 
   const tp = p.match(/^\/api\/guilds\/(\d+)\/ticket-panels(?:\/([a-f0-9]{16}|\d{17,20})(?:\/(publish|image))?)?$/i);
+  const rules = p.match(/^\/api\/guilds\/(\d+)\/rules$/);
+  if (rules) {
+    const guildId = rules[1];
+    if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return J(404, { error: 'bot_absent' });
+    const cfg = obtenirConfigGuilde(guildId);
+    const reglement = require('./reglement');
+
+    if (req.method === 'GET') {
+      try {
+        return J(200, {
+          ...await reglement.lireReglementPourDashboard(guild, cfg),
+          delai: Number(cfg.rules_accept_delay) || 0,
+        });
+      } catch (e) {
+        console.error('[WebDashboard] lecture du règlement :', e.message);
+        return J(500, { error: 'rules', reason: e.message });
+      }
+    }
+
+    if (req.method === 'PUT') {
+      let body;
+      try { body = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+      if (!body || typeof body !== 'object' || Array.isArray(body)) return J(400, { error: 'invalid' });
+      const titre = typeof body.titre === 'string' ? body.titre.trim() : null;
+      const contenu = typeof body.contenu === 'string' ? body.contenu.trim() : null;
+      const couleur = typeof body.couleur === 'string' ? body.couleur : '';
+      const delai = body.delai;
+      if (titre === null || titre.length > 256
+        || contenu === null || contenu.length < 30 || contenu.length > 3900
+        || !/^#[0-9a-f]{6}$/i.test(couleur)
+        || !Number.isInteger(delai) || delai < 0 || delai > 3600) {
+        return J(400, { error: 'invalid', reason: 'Vérifie le titre, le texte (30 à 3 900 caractères), la couleur et le délai (0 à 3 600 secondes).' });
+      }
+
+      const titreEnregistre = titre || null;
+      const couleurEnregistree = parseInt(couleur.slice(1), 16);
+      try {
+        const result = await reglement.mettreAJourReglementDepuisDashboard(guild, cfg, {
+          titre: titreEnregistre || '📜 Règlement du serveur',
+          contenu,
+          couleur: couleurEnregistree,
+        });
+        cfg.rules_title = titreEnregistre;
+        cfg.rules_content = contenu;
+        cfg.rules_color = couleurEnregistree;
+        cfg.rules_accept_delay = delai;
+        persister('configuration');
+        console.log(`[WebDashboard] ${sess.user.username} a personnalisé le règlement sur ${guild.name}`);
+        return J(200, { ok: true, ...result });
+      } catch (e) {
+        console.error('[WebDashboard] mise à jour du règlement :', e.message);
+        return J(500, { error: 'rules', reason: e.message });
+      }
+    }
+    return J(405, { error: 'method' });
+  }
+
   if (tp) {
     const [, guildId, panelId, action] = tp;
     if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
