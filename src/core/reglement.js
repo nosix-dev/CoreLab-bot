@@ -314,6 +314,35 @@ async function mettreAJourReglementDepuisDashboard(guild, config, { titre, conte
     return { published: true, url: message.url };
 }
 
+async function déplacerReglementDepuisDashboard(guild, config, { salonId, titre, contenu, couleur }) {
+    const ancienMessage = await recupererMessageReglement(guild, config);
+    if (!ancienMessage) return { published: false };
+
+    const json = extraireConteneurReglement(ancienMessage);
+    const textes = json?.components?.filter(c => c.type === 10);
+    if (!textes || textes.length < 2) {
+        throw new Error('Le message du règlement n’a pas le format attendu. Republie-le avec /setup rules.');
+    }
+
+    textes[0].content = `# ${titre || TITRE_REGLEMENT_DEFAUT}`;
+    textes[1].content = contenu;
+    json.accent_color = couleur;
+
+    const nouveauSalon = guild.channels.cache.get(salonId)
+        ?? await guild.channels.fetch(salonId).catch(() => null);
+    if (!nouveauSalon?.send) throw new Error('Le salon de règlement sélectionné est introuvable.');
+
+    const nouveauMessage = await nouveauSalon.send({
+        components: [json],
+        flags: MessageFlags.IsComponentsV2,
+        allowedMentions: { parse: [] },
+    });
+    await ancienMessage.delete().catch(() => null);
+    config.rules_message_id = nouveauMessage.id;
+    config.rules_channel_id = nouveauSalon.id;
+    return { published: true, url: nouveauMessage.url };
+}
+
 async function ouvrirEditionReglement(interaction) {
     console.log('[reglement-edit] ouverture du modal par', interaction.user.tag);
     const config = obtenirConfigGuilde(interaction.guild.id);
@@ -609,6 +638,7 @@ module.exports = {
     stockerBoutonsReglement,
     lireReglementPourDashboard,
     mettreAJourReglementDepuisDashboard,
+    déplacerReglementDepuisDashboard,
     EMOJI_REGLEMENT,
     ID_BOUTON_ACCEPTER,
     MAX_BOUTONS_LIENS,

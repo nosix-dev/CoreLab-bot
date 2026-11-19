@@ -887,6 +887,8 @@ async function route(req, res, { client }, url) {
         return J(200, {
           ...await reglement.lireReglementPourDashboard(guild, cfg),
           delai: Number(cfg.rules_accept_delay) || 0,
+          salonId: String(cfg.rules_channel_id || ''),
+          roleIds: [cfg.member_role_id, cfg.member_role_id_2].filter(Boolean).map(String),
         });
       } catch (e) {
         console.error('[WebDashboard] lecture du règlement :', e.message);
@@ -902,25 +904,49 @@ async function route(req, res, { client }, url) {
       const contenu = typeof body.contenu === 'string' ? body.contenu.trim() : null;
       const couleur = typeof body.couleur === 'string' ? body.couleur : '';
       const delai = body.delai;
+      const salonId = typeof body.salonId === 'string' ? body.salonId : '';
+      const roleIds = Array.isArray(body.roleIds)
+        ? [...new Set(body.roleIds.map(String).slice(0, 2))]
+        : [];
+      const textChannelIds = new Set(guild.channels.cache
+        .filter(channel => TEXT_CHANNEL_TYPES.includes(channel.type))
+        .map(channel => channel.id));
+      const roleIdsDisponibles = new Set(guild.roles.cache
+        .filter(role => role.id !== guild.id)
+        .map(role => role.id));
       if (titre === null || titre.length > 256
         || contenu === null || contenu.length < 30 || contenu.length > 3900
         || !/^#[0-9a-f]{6}$/i.test(couleur)
-        || !Number.isInteger(delai) || delai < 0 || delai > 3600) {
-        return J(400, { error: 'invalid', reason: 'Vérifie le titre, le texte (30 à 3 900 caractères), la couleur et le délai (0 à 3 600 secondes).' });
+        || !Number.isInteger(delai) || delai < 0 || delai > 3600
+        || !textChannelIds.has(salonId)
+        || !roleIds.length
+        || roleIds.some(roleId => !roleIdsDisponibles.has(roleId))) {
+        return J(400, { error: 'invalid', reason: 'Vérifie le titre, le texte (30 à 3 900 caractères), la couleur, le délai (0 à 3 600 secondes), le salon et les rôles sélectionnés.' });
       }
 
       const titreEnregistre = titre || null;
       const couleurEnregistree = parseInt(couleur.slice(1), 16);
       try {
-        const result = await reglement.mettreAJourReglementDepuisDashboard(guild, cfg, {
-          titre: titreEnregistre || '📜 Règlement du serveur',
-          contenu,
-          couleur: couleurEnregistree,
-        });
+        const ancienSalonId = String(cfg.rules_channel_id || '');
+        const result = ancienSalonId && ancienSalonId !== salonId
+          ? await reglement.déplacerReglementDepuisDashboard(guild, cfg, {
+              salonId,
+              titre: titreEnregistre || '📜 Règlement du serveur',
+              contenu,
+              couleur: couleurEnregistree,
+            })
+          : await reglement.mettreAJourReglementDepuisDashboard(guild, cfg, {
+              titre: titreEnregistre || '📜 Règlement du serveur',
+              contenu,
+              couleur: couleurEnregistree,
+            });
         cfg.rules_title = titreEnregistre;
         cfg.rules_content = contenu;
         cfg.rules_color = couleurEnregistree;
         cfg.rules_accept_delay = delai;
+        cfg.rules_channel_id = salonId || null;
+        cfg.member_role_id = roleIds[0] || null;
+        cfg.member_role_id_2 = roleIds[1] || null;
         persister('configuration');
         console.log(`[WebDashboard] ${sess.user.username} a personnalisé le règlement sur ${guild.name}`);
         return J(200, { ok: true, ...result });
