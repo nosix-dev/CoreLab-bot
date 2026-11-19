@@ -55,6 +55,15 @@ const CHAINES = {
         diamant_xp: 'XP',
         diamant_sparkle: 'It sparkled! XP ×4.',
         diamant_gold: 'A golden facet appeared: +10 gemmes.',
+        diamant_infos_inventory: 'Inventory',
+        diamant_infos_quests: 'Quests',
+        diamant_infos_quests_phase: '0/3 quests available in this phase',
+        diamant_infos_radiant: 'Radiant',
+        diamant_infos_stable: 'Stable',
+        diamant_infos_dull: 'Dull',
+        diamant_infos_series: 'Series',
+        diamant_infos_jokers: 'joker(s)',
+        diamant_infos_shards: 'shards',
         not_set: '❌ Not set',
 
         // ── /setnick ─────────────────────────────────
@@ -295,6 +304,15 @@ const CHAINES = {
         diamant_xp: 'XP',
         diamant_sparkle: 'Elle a scintillé ! XP ×4.',
         diamant_gold: 'Une facette dorée est apparue : +10 gemmes.',
+        diamant_infos_inventory: 'Inventaire',
+        diamant_infos_quests: 'Quêtes',
+        diamant_infos_quests_phase: '0/3 quêtes disponibles dans cette phase',
+        diamant_infos_radiant: 'Rayonnant',
+        diamant_infos_stable: 'Stable',
+        diamant_infos_dull: 'Terne',
+        diamant_infos_series: 'Série',
+        diamant_infos_jokers: 'joker(s)',
+        diamant_infos_shards: 'éclats',
         not_set: '❌ Non défini',
 
         // ── /setnick ─────────────────────────────────

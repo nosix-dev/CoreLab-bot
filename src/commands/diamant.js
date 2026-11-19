@@ -7,6 +7,12 @@ const {
     EmbedBuilder,
     AttachmentBuilder,
     MessageFlags,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
 } = require('discord.js');
 const { t } = require('../core/i18n');
 const {
@@ -24,6 +30,10 @@ const data = new SlashCommandBuilder()
     .setName('diamant')
     .setDescription('Gérer ta mascotte diamant')
     .setDMPermission(false)
+    .addSubcommand(sub => sub
+        .setName('infos')
+        .setDescription('Afficher les informations détaillées de ta mascotte diamant')
+        .addUserOption(option => option.setName('membre').setDescription('Membre à consulter')))
     .addSubcommandGroup(group => group
         .setName('mascotte')
         .setDescription('Créer ou prendre soin de ta mascotte')
@@ -78,10 +88,90 @@ function profileEmbed(interaction, d) {
         );
 }
 
+function progressBar(current, total, size = 22) {
+    const safeTotal = Math.max(1, total);
+    const filled = Math.round(Math.max(0, Math.min(1, current / safeTotal)) * size);
+    return '█'.repeat(filled) + '░'.repeat(Math.max(0, size - filled));
+}
+
+function buildInfosPayload(interaction, d) {
+    const guildId = interaction.guildId;
+    const stage = getStage(d);
+    const currentXp = d.xp % 100;
+    const neededXp = 100;
+    const moodLabel = d.mood >= 70
+        ? t(guildId, 'diamant_infos_radiant')
+        : d.mood >= 35
+            ? t(guildId, 'diamant_infos_stable')
+            : t(guildId, 'diamant_infos_dull');
+    const moodEmoji = d.mood >= 70 ? '💙' : d.mood >= 35 ? '💧' : '🌫️';
+    const container = new ContainerBuilder().setAccentColor(0xe5500f);
+
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+            `## 💎 ${d.name.toUpperCase()}\n` +
+            `**${stage.nom.toUpperCase()}**\n\n` +
+            `# Niv. ${d.level}`
+        )
+    );
+    container.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+            `${progressBar(currentXp, neededXp)}\n` +
+            `-# ${currentXp} / ${neededXp} XP`
+        )
+    );
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+            `💎 **${d.gems}** gemmes　　•　　🔥 **${t(guildId, 'diamant_infos_series')} ${d.streak || 0}j**　　•　　${moodEmoji} ${moodLabel}`
+        )
+    );
+    container.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small)
+    );
+    container.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+            new MediaGalleryItemBuilder().setURL(`attachment://diamant-stage-${stage.niveau}.svg`)
+        )
+    );
+    container.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small)
+    );
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+            `**${t(guildId, 'diamant_infos_inventory')}**\n` +
+            `◆ **${d.carbon || 0}** ${t(guildId, 'diamant_infos_shards')}　　♢ **${d.jokers || 0}** ${t(guildId, 'diamant_infos_jokers')}\n\n` +
+            `**${t(guildId, 'diamant_infos_quests')}**\n` +
+            `🛡️ ${t(guildId, 'diamant_infos_quests_phase')}`
+        )
+    );
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+            `-# Tempérament ${d.temperament} · Humeur ${d.mood}/100 · ${stage.nom}`
+        )
+    );
+
+    return {
+        components: [container],
+        files: [stageAttachment(d)],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+        allowedMentions: { parse: [] },
+    };
+}
+
 async function execute(interaction) {
     const guildId = interaction.guildId;
     const group = interaction.options.getSubcommandGroup();
     const sub = interaction.options.getSubcommand();
+
+    if (!group && sub === 'infos') {
+        const target = interaction.options.getUser('membre') || interaction.user;
+        const d = getDiamant(target.id);
+        if (!d) return interaction.reply({ content: t(guildId, 'diamant_missing'), flags: MessageFlags.Ephemeral });
+        return interaction.reply(buildInfosPayload(interaction, d));
+    }
 
     if (group === 'mascotte' && sub === 'creer') {
         const name = interaction.options.getString('prenom').trim();
