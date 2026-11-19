@@ -166,12 +166,79 @@ async function openDashboardTicket(interaction, panelId, reasonValue) {
   return createTicketChannel(interaction, reason.label, reasonValue, {}, cfg, interaction.guild, interaction.user, panelId);
 }
 
+function ticketEditContext(interaction, cfg) {
+  const channel = interaction.channel;
+  const topic = channel?.topic || '';
+  const meta = cfg.ticket_meta?.[channel?.id] || {};
+  const isTicket = !!cfg.ticket_meta?.[channel?.id] || topic.startsWith('Ticket de ');
+  const isOpener = meta.openerId === interaction.user.id
+    || topic.startsWith(`Ticket de ${interaction.user.tag} |`);
+  const panelId = meta.panelId || topic.match(/(?:^|\|\s*)Panneau:\s*([^|]+)/)?.[1]?.trim();
+  const staffRoleIds = cfg.ticket_panels?.[panelId]?.staffRoleIds || [];
+  return {
+    meta,
+    isTicket,
+    canEdit: isOpener || canClaimPanel(interaction.member, { staffRoleIds })
+  };
+}
+
+function ticketSubjectFromTopic(topic) {
+  return topic.split('|').map(part => part.trim())
+    .find(part => part.startsWith('Sujet: '))
+    ?.slice('Sujet: '.length) || '';
+}
+
+function normalizeTicketChannelName(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 100)
+    .replace(/-+$/g, '');
+}
+
 async function handleTicketComponent(interaction) {
   const id = interaction.customId;
 
   if (id.startsWith('ticket_panel_open:')) {
     const [, panelId, reasonValue] = id.split(':');
     return openDashboardTicket(interaction, panelId, reasonValue);
+  }
+
+  if (id === 'ticket_edit_btn') {
+    const cfg = getGuildConfig(interaction.guild.id);
+    const context = ticketEditContext(interaction, cfg);
+    if (!context.isTicket) {
+      return interaction.reply({ content: '❌ Ce salon ne semble pas être un ticket ouvert.', flags: MessageFlags.Ephemeral });
+    }
+    if (!context.canEdit) {
+      return interaction.reply({ content: '❌ Seul l’auteur du ticket ou l’équipe peut le modifier.', flags: MessageFlags.Ephemeral });
+    }
+
+    const modal = new ModalBuilder().setCustomId('ticket_edit_modal').setTitle('Modifier le ticket');
+    const nameInput = new TextInputBuilder()
+      .setCustomId('name')
+      .setLabel('Nom du salon')
+      .setStyle(TextInputStyle.Short)
+      .setMaxLength(100)
+      .setRequired(true)
+      .setValue(interaction.channel.name);
+    const subject = context.meta.subject || ticketSubjectFromTopic(interaction.channel.topic || '');
+    const subjectInput = new TextInputBuilder()
+      .setCustomId('subject')
+      .setLabel('Sujet du ticket (facultatif)')
+      .setStyle(TextInputStyle.Paragraph)
+      .setMaxLength(300)
+      .setRequired(false);
+    if (subject) subjectInput.setValue(subject);
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(nameInput),
+      new ActionRowBuilder().addComponents(subjectInput)
+    );
+    return interaction.showModal(modal);
   }
 
   // ── Ajouter une raison ──────────────────────────────
@@ -576,7 +643,7 @@ async function handleTicketComponent(interaction) {
         flags: MessageFlags.Ephemeral
       });
     }
-    const disabledRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('ticket_close_btn').setLabel('Fermer le ticket').setEmoji('🔒').setStyle(ButtonStyle.Danger), new ButtonBuilder().setCustomId('ticket_claim_btn').setLabel(`Pris en charge par ${interaction.user.username}`).setEmoji('🖐️').setStyle(ButtonStyle.Secondary).setDisabled(true));
+    const disabledRow = buildTicketActionRow(true, interaction.user.username);
     try {
       await interaction.update({
         components: [disabledRow]
@@ -596,6 +663,46 @@ async function handleTicketComponent(interaction) {
 }
 async function handleTicketModal(interaction) {
   const id = interaction.customId;
+  if (id === 'ticket_edit_modal') {
+    const cfg = getGuildConfig(interaction.guild.id);
+    const context = ticketEditContext(interaction, cfg);
+    if (!context.isTicket) {
+      return interaction.reply({ content: '❌ Ce ticket n’est plus disponible.', flags: MessageFlags.Ephemeral });
+    }
+    if (!context.canEdit) {
+      return interaction.reply({ content: '❌ Seul l’auteur du ticket ou l’équipe peut le modifier.', flags: MessageFlags.Ephemeral });
+    }
+    const name = normalizeTicketChannelName(interaction.fields.getTextInputValue('name'));
+    if (!name) {
+      return interaction.reply({ content: '❌ Le nom doit contenir au moins une lettre ou un chiffre.', flags: MessageFlags.Ephemeral });
+    }
+
+    const channel = interaction.channel;
+    const meta = cfg.ticket_meta?.[channel.id] || {};
+    const topicParts = (channel.topic || '').split('|').map(part => part.trim());
+    const openerTag = meta.openerTag || (topicParts[0] || '').replace(/^Ticket de\s*/, '');
+    const reason = meta.reason || topicParts.find(part => part && !part.startsWith('Sujet: ') && !part.startsWith('Panneau:')) || 'Support';
+    const panelId = meta.panelId || topicParts.find(part => part.startsWith('Panneau:'))?.slice('Panneau: '.length);
+    const subject = interaction.fields.getTextInputValue('subject')?.trim() || '';
+    const topic = [
+      openerTag ? `Ticket de ${openerTag}` : null,
+      reason,
+      subject ? `Sujet: ${subject}` : null,
+      panelId ? `Panneau: ${panelId}` : null
+    ].filter(Boolean).join(' | ').slice(0, 1024);
+
+    try {
+      await channel.edit({ name, topic }, `Ticket modifié par ${interaction.user.tag}`);
+    } catch (e) {
+      console.error('[Ticket] modification du ticket :', e.message);
+      return interaction.reply({ content: '❌ Impossible de modifier le ticket. Vérifie les permissions du bot.', flags: MessageFlags.Ephemeral });
+    }
+    if (cfg.ticket_meta?.[channel.id]) {
+      cfg.ticket_meta[channel.id].subject = subject;
+      persist('config');
+    }
+    return interaction.reply({ content: `✅ Ticket modifié : **${name}**`, flags: MessageFlags.Ephemeral });
+  }
   if (id === 'ticket_appearance_modal') {
     const cfg = getGuildConfig(interaction.guild.id);
     const chKey = String(interaction.channel.id);
@@ -1294,7 +1401,7 @@ async function routeTicketInteraction(interaction) {
     }
     if (interaction.isModalSubmit()) {
       const id = interaction.customId;
-      if (id === 'ticket_add_reason_modal' || id === 'ticket_remove_reason_modal' || id === 'ticket_appearance_modal' || id === 'ticket_open_msg_modal') return handleTicketModal(interaction);
+      if (id === 'ticket_add_reason_modal' || id === 'ticket_remove_reason_modal' || id === 'ticket_appearance_modal' || id === 'ticket_open_msg_modal' || id === 'ticket_edit_modal') return handleTicketModal(interaction);
       if (id.startsWith('ticket_edit_reason_modal_')) return handleTicketModal(interaction);
       if (id.startsWith('ticket_form_style_modal_')) return handleTicketModal(interaction);
       if (id.startsWith('ticket_form_submit_')) return handleTicketModal(interaction);

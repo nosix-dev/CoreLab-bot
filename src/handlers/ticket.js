@@ -572,13 +572,61 @@ function buildTicketReasonButtons(reasons, panelChannelId) {
 function buildCloseButtonRow() {
   return buildTicketActionRow(false);
 }
+function buildTicketEditButton() {
+  return new ButtonBuilder()
+    .setCustomId('ticket_edit_btn')
+    .setLabel('Modifier le ticket')
+    .setEmoji('✏️')
+    .setStyle(ButtonStyle.Secondary);
+}
 function buildTicketActionRow(claimEnabled, claimedBy = null) {
   const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('ticket_close_btn').setLabel('Fermer le ticket').setEmoji('🔒').setStyle(ButtonStyle.Danger));
   if (claimEnabled) {
-    const claimBtn = new ButtonBuilder().setCustomId('ticket_claim_btn').setEmoji('🖐️').setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary).setLabel(claimedBy ? 'Pris en charge' : 'Prendre en charge').setDisabled(!!claimedBy);
+    const claimBtn = new ButtonBuilder().setCustomId('ticket_claim_btn').setEmoji('🖐️').setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary).setLabel(claimedBy ? `Pris en charge par ${claimedBy}` : 'Prendre en charge').setDisabled(!!claimedBy);
     row.addComponents(claimBtn);
   }
+  row.addComponents(buildTicketEditButton());
   return row;
+}
+
+async function ensureTicketEditButtons(client) {
+  for (const guild of client.guilds.cache.values()) {
+    const cfg = getGuildConfig(guild.id);
+    const ticketChannelIds = new Set(Object.keys(cfg.ticket_meta || {}));
+    for (const channel of guild.channels.cache.values()) {
+      if (channel.topic?.startsWith('Ticket de ')) ticketChannelIds.add(channel.id);
+    }
+    for (const channelId of ticketChannelIds) {
+      const channel = guild.channels.cache.get(channelId);
+      if (!channel?.isTextBased() || !channel.messages) continue;
+
+      try {
+        const messages = await channel.messages.fetch({ limit: 100 });
+        const hasEditButton = message => message.components.some(component =>
+          component.components?.some(child => child.customId === 'ticket_edit_btn')
+        );
+        if (messages.some(message => message.author.id === client.user.id && hasEditButton(message))) continue;
+
+        const actionMessage = messages.find(message =>
+          message.author.id === client.user.id
+          && message.components.some(component =>
+            component.components?.some(child => child.customId === 'ticket_close_btn')
+          )
+        );
+        const row = new ActionRowBuilder().addComponents(buildTicketEditButton());
+        if (actionMessage) {
+          await actionMessage.edit({ components: [...actionMessage.components, row] });
+        } else {
+          await channel.send({
+            content: 'Tu peux maintenant modifier le nom et le sujet de ce ticket avec le bouton ci-dessous.',
+            components: [row]
+          });
+        }
+      } catch (e) {
+        console.warn(`[Ticket] Impossible d’ajouter le bouton Modifier dans ${channelId} :`, e.message);
+      }
+    }
+  }
 }
 
 // ────────────────────────────────────────────────
@@ -697,6 +745,7 @@ module.exports = {
   buildTicketReasonButtons,
   buildCloseButtonRow,
   buildTicketActionRow,
+  ensureTicketEditButtons,
   createTicketChannel,
   buildFormModal,
   buildFormManagerRows,

@@ -550,6 +550,12 @@ client.once('clientReady', async () => {
   console.log(`CoreLab connecté : ${client.user.tag} | ${client.guilds.cache.size} serveurs`);
   await loadApplicationEmojis(client);
   try {
+    require('./src/handlers/ticket').ensureTicketEditButtons(client)
+      .catch(e => console.error('❌ Bouton Modifier des tickets :', e.message));
+  } catch (e) {
+    console.error('❌ Bouton Modifier des tickets :', e.message);
+  }
+  try {
     await registerCommands(client);
   } catch (e) {
     console.error('❌ Erreur sync commandes:', e.message);
