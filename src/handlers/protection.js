@@ -1190,7 +1190,7 @@ async function checkHoneypot(message) {
       const description = cfg.honeypot_lang === 'en' ? cfg.honeypot_text_en || buildHoneypotText(cfg) : buildHoneypotText(cfg);
       const row = buildHoneypotWarningRow(cfg);
       row.components[1].setLabel(cfg.honeypot_lang === 'en' ? '🌐 Français' : '🌐 Translate');
-      await warningMsg.edit({ ...buildHoneypotWarningPayload(cfg, description, row), attachments: [] });
+      await warningMsg.edit({ ...buildHoneypotWarningPayload(cfg, description, row, message.guild.id), attachments: [] });
     } catch (e) {
       console.error('Erreur mise à jour compteur HoneyPot :', e.message);
     }
@@ -1336,7 +1336,7 @@ async function handleHoneypotReview(message, cfg, reviewChannel, originalAttachm
       const description = cfg.honeypot_lang === 'en' ? cfg.honeypot_text_en || buildHoneypotText(cfg) : buildHoneypotText(cfg);
       const row = buildHoneypotWarningRow(cfg);
       row.components[1].setLabel(cfg.honeypot_lang === 'en' ? '🌐 Français' : '🌐 Translate');
-      await warningMsg.edit({ ...buildHoneypotWarningPayload(cfg, description, row), attachments: [] });
+      await warningMsg.edit({ ...buildHoneypotWarningPayload(cfg, description, row, message.guild.id), attachments: [] });
     } catch (e) {
       console.error('Erreur mise à jour compteur HoneyPot :', e.message);
     }
@@ -2555,7 +2555,7 @@ async function createHoneypotChannel(interaction, cfg, options = {}) {
     const sent = await channel.send(await buildHoneypotMessagePayload({
       ...cfg,
       honeypot_sanctions_count: 0
-    }));
+    }, guild.id));
     messageId = sent.id;
   } catch (e) {
     if (options.strict) {
@@ -2612,10 +2612,10 @@ async function dashboardHoneypotAction(guild, cfg, action, actorTag) {
     }
     const messageCreated = !warning;
     if (warning) {
-      const payload = await buildHoneypotMessagePayload(cfg);
+      const payload = await buildHoneypotMessagePayload(cfg, guild.id);
       await warning.edit({ ...payload, attachments: [] });
     } else {
-      warning = await channel.send(await buildHoneypotMessagePayload(cfg));
+      warning = await channel.send(await buildHoneypotMessagePayload(cfg, guild.id));
     }
     cfg.honeypot_message_id = warning.id;
     persist('configuration');
@@ -2831,22 +2831,25 @@ async function saveHoneypotIgnoredRole(interaction) {
   return refreshHoneypotPanel(interaction);
 }
 // ── Médias du message HoneyPot (bannière + miniature) ──
-// Dépose simplement un fichier dans src/data/protect_images/ nommé
-//   honeypot_banner.<ext>     (bannière)
-//   honeypot_thumbnail.<ext>  (miniature)
-// avec <ext> = png, jpg, jpeg, gif ou mp4. Le bot détecte automatiquement le
-// format (si plusieurs fichiers existent, le plus récent est utilisé).
+// Les anciens fichiers globaux gardent leur nom honeypot_<kind>.<ext>;
+// le dashboard enregistre les médias par serveur : <guildId>_honeypot_<kind>.<ext>.
+// Le média propre au serveur est prioritaire et le plus récent est retenu.
 const HONEYPOT_MEDIA_DIR = dossierPersistant('src/data/protect_images', 'protect_images');
-const HONEYPOT_MEDIA_RE = /\.(png|jpe?g|gif|mp4)$/i;
+const HONEYPOT_MEDIA_RE = /\.(png|jpe?g|gif|webp|mp4)$/i;
 
 // Renvoie { path, name, ext, isVideo } ou null si aucun fichier n'est présent
-function findHoneypotMedia(kind) {
+function findHoneypotMedia(kind, guildId) {
   try {
-    const prefix = `honeypot_${kind}`.toLowerCase();
-    const candidates = fs.readdirSync(HONEYPOT_MEDIA_DIR).filter(f => {
+    const files = fs.readdirSync(HONEYPOT_MEDIA_DIR);
+    const guildPrefix = guildId ? `${guildId}_honeypot_${kind}`.toLowerCase() : null;
+    const legacyPrefix = `honeypot_${kind}`.toLowerCase();
+    const eligible = prefix => files.filter(f => {
       const lower = f.toLowerCase();
       return lower.startsWith(prefix + '.') && HONEYPOT_MEDIA_RE.test(lower);
-    }).map(f => {
+    });
+    const guildFiles = guildPrefix ? eligible(guildPrefix) : [];
+    const matching = guildFiles.length ? guildFiles : eligible(legacyPrefix);
+    const candidates = matching.map(f => {
       const full = path.join(HONEYPOT_MEDIA_DIR, f);
       return { file: f, full, mtime: fs.statSync(full).mtimeMs };
     }).sort((a, b) => b.mtime - a.mtime);
@@ -2904,11 +2907,14 @@ const HONEYPOT_TEXT_FR = 'Ce salon sert à piéger les comptes hackés / arnaque
 // - Miniature : png / jpg / jpeg / gif (accessoire du texte). Discord n'accepte pas
 //   de vidéo comme miniature : un mp4 est donc affiché en petit lecteur vidéo au-dessus du texte.
 // Nouveaux AttachmentBuilder à chaque appel (utilisables une seule fois).
-function buildHoneypotWarningPayload(cfg, description = buildHoneypotText(cfg), row = buildHoneypotWarningRow(cfg)) {
-  const banner = findHoneypotMedia('banner');
-  const thumb = findHoneypotMedia('thumbnail');
+function buildHoneypotWarningPayload(cfg, description = buildHoneypotText(cfg), row = buildHoneypotWarningRow(cfg), guildId) {
+  const banner = findHoneypotMedia('banner', guildId);
+  const thumb = findHoneypotMedia('thumbnail', guildId);
   const files = [];
-  const container = new ContainerBuilder().setAccentColor(0xE8510D);
+  const accentColor = Number.isInteger(cfg.honeypot_color) && cfg.honeypot_color >= 0 && cfg.honeypot_color <= 0xFFFFFF
+    ? cfg.honeypot_color
+    : 0xE8510D;
+  const container = new ContainerBuilder().setAccentColor(accentColor);
 
   // Miniature vidéo (mp4) : lecteur en haut du message
   if (thumb && thumb.isVideo) {
@@ -2937,7 +2943,7 @@ function buildHoneypotWarningPayload(cfg, description = buildHoneypotText(cfg), 
   };
 }
 
-async function buildHoneypotMessagePayload(cfg) {
+async function buildHoneypotMessagePayload(cfg, guildId) {
   const textFr = buildHoneypotText(cfg);
   let description = textFr;
   if (cfg.honeypot_lang === 'en') {
@@ -2953,7 +2959,7 @@ async function buildHoneypotMessagePayload(cfg) {
   }
   const row = buildHoneypotWarningRow(cfg);
   row.components[1].setLabel(cfg.honeypot_lang === 'en' ? '🌐 Français' : '🌐 Translate');
-  return buildHoneypotWarningPayload(cfg, description, row);
+  return buildHoneypotWarningPayload(cfg, description, row, guildId);
 }
 
 // Édite le message d'avertissement publié dans le salon HoneyPot pour refléter la sanction actuellement configurée
@@ -2963,7 +2969,7 @@ async function refreshHoneypotMessage(guild, cfg) {
     const channel = guild.channels.cache.get(String(cfg.honeypot_channel_id));
     if (!channel?.isTextBased?.()) return;
     const warningMsg = await channel.messages.fetch(cfg.honeypot_message_id);
-    const payload = await buildHoneypotMessagePayload(cfg);
+    const payload = await buildHoneypotMessagePayload(cfg, guild.id);
     await warningMsg.edit({ ...payload, attachments: [] });
   } catch (e) {
     console.error('Erreur rafraîchissement message HoneyPot :', e.message);
@@ -3008,7 +3014,7 @@ async function toggleHoneypotTranslate(interaction) {
   persist('configuration');
   const row = buildHoneypotWarningRow(cfg);
   row.components[1].setLabel(cfg.honeypot_lang === 'en' ? '🌐 Français' : '🌐 Translate');
-  return interaction.editReply({ ...buildHoneypotWarningPayload(cfg, description, row), attachments: [] });
+  return interaction.editReply({ ...buildHoneypotWarningPayload(cfg, description, row, interaction.guild.id), attachments: [] });
 }
 async function saveHoneypotChannel(interaction) {
   const cfg = getGuildConfig(interaction.guild.id);
@@ -3020,7 +3026,7 @@ async function saveHoneypotChannel(interaction) {
   const channel = interaction.guild.channels.cache.get(String(channelId));
   if (channel?.isTextBased?.()) {
     try {
-      const sent = await channel.send(await buildHoneypotMessagePayload(cfg));
+      const sent = await channel.send(await buildHoneypotMessagePayload(cfg, interaction.guild.id));
       cfg.honeypot_message_id = sent.id;
     } catch (e) {
       console.error('Erreur envoi message HoneyPot :', e.message);

@@ -21,6 +21,7 @@ const CATEGORY_TYPE = 4;
 const MAX_LIST = 25;
 const previewBusy = new Map(); // userId → horodatage du dernier rendu d'aperçu (-1 = rendu en cours)
 const TICKET_IMAGE_DIR = dossierPersistant('src/data/ticket_images', 'ticket_images');
+const HONEYPOT_MEDIA_DIR = dossierPersistant('src/data/protect_images', 'protect_images');
 
 /* ============================================================
    Modules affichés dans le dashboard.
@@ -341,7 +342,7 @@ const MODULES = [
   },
   {
     id: 'honeypot', name: '🍯 HoneyPot', group: 'Protection', toggle: 'honeypot_enabled',
-    desc: 'Génère le salon piège et son avertissement, puis configure les sanctions, le salon de revue, le rôle ignoré et les logs.',
+    desc: 'Génère le salon piège et son avertissement, puis configure les sanctions, les images, la couleur, le salon de revue, le rôle ignoré et les logs.',
     fields: [
       B('honeypot_enabled', 'Activer le HoneyPot', false),
       CH('honeypot_channel_id', 'Salon piège', { dep: 'honeypot_enabled' }),
@@ -351,7 +352,8 @@ const MODULES = [
       S('infraction_default_action', 'Action par défaut', 'timeout', HONEYPOT_ACTIONS, { hint: 'Utilisée par le HoneyPot si aucun salon de revue staff n’est configuré.' }),
       N('infraction_default_duration_minutes', 'Durée par défaut (minutes)', 1440, 1, 40320, { hint: 'Utilisée uniquement si l’action par défaut est « Timeout ».' }),
       T('infraction_default_reason', 'Raison par défaut', 500, { emptyDelete: true, hint: 'Vide = aucune raison pré-remplie.' }),
-      S('honeypot_lang', 'Langue du message du salon piège', 'fr', O(['fr', 'Français'], ['en', 'English']), { section: 'HoneyPot' })
+      S('honeypot_lang', 'Langue du message du salon piège', 'fr', O(['fr', 'Français'], ['en', 'English']), { section: 'HoneyPot' }),
+      { key: 'honeypot_color', label: 'Couleur du composant V2', type: 'color', def: '#e8510d', premium: true, section: 'Apparence du message', hint: 'Couleur de la bordure du message. Enregistre, puis clique sur « Régénérer le message » pour l’appliquer.' }
     ]
   },
   {
@@ -1012,6 +1014,7 @@ async function route(req, res, { client }, url) {
           return J(200, { ok: true, has: false });
         }
         if (req.method === 'POST') {
+          if (!premiumOk(sess.user.id)) return J(403, { error: 'premium' });
           let buf;
           try { buf = await readRaw(req, 8 * 1024 * 1024); } catch (e) {
             if (e.message === 'trop gros') return J(413, { error: 'too_big' });
@@ -1160,12 +1163,78 @@ async function route(req, res, { client }, url) {
     }
   }
 
-  const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye)|\/(activity)|\/honeypot\/(generate|regenerate|refresh))?$/);
+  const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye)|\/(activity)|\/honeypot\/(generate|regenerate|refresh)|\/honeypot-media\/(banner|thumbnail))?$/);
   if (!m) return J(404, { error: 'not_found' });
-  const [, guildId, isMeta, modId, previewKind, bgKind, isActivity, hpAction] = m;
+  const [, guildId, isMeta, modId, previewKind, bgKind, isActivity, hpAction, hpMediaKind] = m;
   if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
   const guild = client.guilds.cache.get(guildId);
   if (!guild) return J(404, { error: 'bot_absent' });
+
+  if (hpMediaKind) {
+    const member = await guild.members.fetch(sess.user.id).catch(() => null);
+    if (!member || (!member.permissions.has(ADMIN) && !member.permissions.has(MANAGE_GUILD))) {
+      return J(403, { error: 'forbidden' });
+    }
+    const cfg = obtenirConfigGuilde(guildId);
+    const prefix = `${guildId}_honeypot_${hpMediaKind}.`;
+    const mediaFiles = () => fs.existsSync(HONEYPOT_MEDIA_DIR)
+      ? fs.readdirSync(HONEYPOT_MEDIA_DIR)
+        .filter(file => file.startsWith(prefix) && /\.(png|jpe?g|gif|webp|mp4)$/i.test(file))
+        .sort((a, b) => fs.statSync(path.join(HONEYPOT_MEDIA_DIR, b)).mtimeMs - fs.statSync(path.join(HONEYPOT_MEDIA_DIR, a)).mtimeMs)
+      : [];
+    const imageFiles = () => mediaFiles().filter(file => !/\.mp4$/i.test(file));
+    const removeImages = keep => {
+      for (const file of mediaFiles()) {
+        if (file !== keep) fs.unlinkSync(path.join(HONEYPOT_MEDIA_DIR, file));
+      }
+    };
+    const refreshMessage = async () => {
+      if (cfg.honeypot_channel_id) {
+        await require('../handlers/protection').dashboardHoneypotAction(guild, cfg, 'refresh', sess.user.username);
+      }
+    };
+    if (req.method === 'GET') {
+      const filename = imageFiles()[0] || null;
+      return J(200, {
+        has: !!filename,
+        ext: filename ? path.extname(filename).slice(1).toLowerCase() : null,
+        premium: premiumOk(sess.user.id)
+      });
+    }
+    if (req.method === 'POST') {
+      if (!premiumOk(sess.user.id)) return J(403, { error: 'premium' });
+      try {
+        let buf;
+        try { buf = await readRaw(req, 8 * 1024 * 1024); } catch (e) {
+          if (e.message === 'trop gros') return J(413, { error: 'too_big' });
+          throw e;
+        }
+        const ext = sniffImage(buf);
+        if (!ext) return J(400, { error: 'invalid_image' });
+        fs.mkdirSync(HONEYPOT_MEDIA_DIR, { recursive: true });
+        const filename = `${prefix}${ext}`;
+        fs.writeFileSync(path.join(HONEYPOT_MEDIA_DIR, filename), buf);
+        removeImages(filename);
+        await refreshMessage();
+        console.log(`[WebDashboard] ${sess.user.username} a changé l’image HoneyPot (${hpMediaKind}) sur ${guild.name}`);
+        return J(200, { ok: true, has: true, ext });
+      } catch (e) {
+        console.error(`[WebDashboard] image HoneyPot (${hpMediaKind}) :`, e.message);
+        return J(500, { error: 'honeypot_media', reason: e.message });
+      }
+    }
+    if (req.method === 'DELETE') {
+      try {
+        removeImages();
+        await refreshMessage();
+        return J(200, { ok: true, has: false });
+      } catch (e) {
+        console.error(`[WebDashboard] retrait image HoneyPot (${hpMediaKind}) :`, e.message);
+        return J(500, { error: 'honeypot_media', reason: e.message });
+      }
+    }
+    return J(405, { error: 'method' });
+  }
 
   if (hpAction) {
     if (req.method !== 'POST') return J(405, { error: 'method' });
