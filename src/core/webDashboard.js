@@ -721,7 +721,10 @@ async function route(req, res, { client }, url) {
   /* ---------- Connexion Discord ---------- */
   if (p === '/auth/login') {
     const state = crypto.randomBytes(16).toString('hex');
-    const returnTo = url.searchParams.get('return') === 'diamant' ? 'diamant' : 'dashboard';
+    const requestedReturn = url.searchParams.get('return');
+    const returnTo = requestedReturn === 'diamant' || requestedReturn === 'tarifs'
+      ? requestedReturn
+      : 'dashboard';
     states.set(state, { timestamp: Date.now(), returnTo });
     console.log(`[WebDashboard] login : client_id=${CLIENT_ID} secret=${SECRET.length} car. redirect=${REDIRECT}`);
     const q = new URLSearchParams({ client_id: CLIENT_ID, response_type: 'code', scope: 'identify guilds', redirect_uri: REDIRECT, state });
@@ -756,14 +759,74 @@ async function route(req, res, { client }, url) {
         guilds: guilds.filter(g => hasAccess(g.permissions, g.owner)).slice(0, 100).map(g => ({ id: g.id, name: String(g.name || '').slice(0, 60), icon: g.icon })),
         exp: Date.now() + SESSION_MS
       }, SECRET);
-      const stateInfo = states.get(state);
       const destination = stateInfo?.returnTo === 'diamant'
         ? `${SITE.replace(/\/$/, '')}/diamant.html#token=${token}`
-        : `${SITE}#token=${token}`;
+        : stateInfo?.returnTo === 'tarifs'
+          ? `${SITE.replace(/\/$/, '')}/tarifs.html#token=${token}`
+          : `${SITE}#token=${token}`;
       return go(destination);
     } catch (e) {
       console.error('[WebDashboard] connexion :', e.message);
       return go(`${SITE}#error=login`);
+    }
+  }
+
+  /* ---------- Paiements PayPal : webhook vérifié avant toute session Discord ---------- */
+  if (p === '/api/paypal/webhook' && req.method === 'POST') {
+    const webhookId = (env.PAYPAL_WEBHOOK_ID || '').trim();
+    const clientId = (env.PAYPAL_CLIENT_ID || '').trim();
+    const secret = (env.PAYPAL_CLIENT_SECRET || '').trim();
+    if (!webhookId || !clientId || !secret) return J(503, { error: 'paypal_not_configured' });
+    const base = (env.PAYPAL_API_BASE || 'https://api-m.paypal.com').replace(/\/$/, '');
+    try {
+      const body = await readRaw(req, 200000);
+      const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
+      const tokenRes = await fetch(`${base}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'grant_type=client_credentials',
+      });
+      const tokenData = await tokenRes.json();
+      if (!tokenRes.ok || !tokenData.access_token) return J(502, { error: 'paypal_auth' });
+      const verification = await fetch(`${base}/v1/notifications/verify-webhook-signature`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenData.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          auth_algo: req.headers['paypal-auth-algo'],
+          cert_url: req.headers['paypal-cert-url'],
+          transmission_id: req.headers['paypal-transmission-id'],
+          transmission_sig: req.headers['paypal-transmission-sig'],
+          transmission_time: req.headers['paypal-transmission-time'],
+          webhook_id: webhookId,
+          webhook_event: JSON.parse(body.toString('utf8')),
+        }),
+      });
+      const verificationData = await verification.json();
+      if (!verification.ok || verificationData.verification_status !== 'SUCCESS') return J(403, { error: 'invalid_signature' });
+
+      const event = JSON.parse(body.toString('utf8'));
+      const resource = event.resource || {};
+      const userId = String(resource.custom_id || '');
+      const planId = String(resource.plan_id || '');
+      const activeEvents = new Set(['BILLING.SUBSCRIPTION.ACTIVATED', 'BILLING.SUBSCRIPTION.UPDATED']);
+      const cancelledEvents = new Set(['BILLING.SUBSCRIPTION.CANCELLED', 'BILLING.SUBSCRIPTION.SUSPENDED', 'BILLING.SUBSCRIPTION.EXPIRED']);
+      if (!userId) return J(200, { ignored: true });
+
+      const premium = require('./premium');
+      const expires = resource.billing_info?.next_billing_time || null;
+      if (activeEvents.has(event.event_type)) {
+        if (planId === env.PAYPAL_PLAN_PREMIUM) premium.setPremium(userId, true, expires);
+        else if (planId === env.PAYPAL_PLAN_PERSONNALISATION) premium.setCustomization(userId, true, expires);
+        else if (planId === env.PAYPAL_PLAN_TOTAL) premium.setTotal(userId, true, expires);
+      } else if (cancelledEvents.has(event.event_type)) {
+        if (planId === env.PAYPAL_PLAN_PREMIUM) premium.setPremium(userId, false);
+        else if (planId === env.PAYPAL_PLAN_PERSONNALISATION) premium.setCustomization(userId, false);
+        else if (planId === env.PAYPAL_PLAN_TOTAL) premium.setTotal(userId, false);
+      }
+      return J(200, { received: true });
+    } catch (e) {
+      console.error('[PayPal webhook] :', e.message);
+      return J(400, { error: 'invalid_webhook' });
     }
   }
 
@@ -791,6 +854,58 @@ async function route(req, res, { client }, url) {
 
   if (p === '/api/me' && req.method === 'GET') {
     return J(200, { user: sess.user, guilds: sess.guilds.map(g => ({ ...g, botIn: client.guilds.cache.has(g.id) })) });
+  }
+  if (p === '/api/logout' && req.method === 'POST') return J(200, { ok: true });
+
+  if (p === '/api/paypal/checkout' && req.method === 'POST') {
+    let body;
+    try { body = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+    const planKey = String(body.plan || '');
+    const plans = {
+      premium: env.PAYPAL_PLAN_PREMIUM,
+      personnalisation: env.PAYPAL_PLAN_PERSONNALISATION,
+      total: env.PAYPAL_PLAN_TOTAL,
+    };
+    const planId = plans[planKey];
+    const clientId = (env.PAYPAL_CLIENT_ID || '').trim();
+    const secret = (env.PAYPAL_CLIENT_SECRET || '').trim();
+    if (!planId || !clientId || !secret) return J(503, { error: 'paypal_not_configured' });
+    const base = (env.PAYPAL_API_BASE || 'https://api-m.paypal.com').replace(/\/$/, '');
+    try {
+      const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
+      const tokenRes = await fetch(`${base}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'grant_type=client_credentials',
+      });
+      const tokenData = await tokenRes.json();
+      if (!tokenRes.ok || !tokenData.access_token) return J(502, { error: 'paypal_auth' });
+      const siteOrigin = (env.SITE_URL || env.DASHBOARD_URL || SITE).replace(/\/$/, '');
+      const subscriptionRes = await fetch(`${base}/v1/billing/subscriptions`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenData.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan_id: planId,
+          custom_id: sess.user.id,
+          application_context: {
+            brand_name: 'CoreLab',
+            locale: 'fr-FR',
+            shipping_preference: 'NO_SHIPPING',
+            user_action: 'SUBSCRIBE_NOW',
+            return_url: `${siteOrigin}/tarifs.html?paypal=success#token=${tok}`,
+            cancel_url: `${siteOrigin}/tarifs.html?paypal=cancelled#token=${tok}`,
+          },
+        }),
+      });
+      const subscription = await subscriptionRes.json();
+      if (!subscriptionRes.ok) return J(502, { error: 'paypal_checkout', reason: subscription.name || 'subscription_failed' });
+      const approve = (subscription.links || []).find(link => link.rel === 'approve');
+      if (!approve?.href) return J(502, { error: 'paypal_checkout', reason: 'approve_link_missing' });
+      return J(200, { url: approve.href });
+    } catch (e) {
+      console.error('[PayPal checkout] :', e.message);
+      return J(500, { error: 'paypal_checkout' });
+    }
   }
   if (p === '/api/diamants' && req.method === 'GET') {
     try {
