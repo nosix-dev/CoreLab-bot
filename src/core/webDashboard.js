@@ -10,6 +10,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { obtenirConfigGuilde, persister } = require('./config');
 const { dossierPersistant } = require('./persistentPath');
 
@@ -961,6 +962,115 @@ async function route(req, res, { client }, url) {
       bucket.splice(index, 1);
       persist('autoresponses');
       return J(200, { ok: true, responses: bucket });
+    }
+    return J(405, { error: 'method' });
+  }
+
+  const ss = p.match(/^\/api\/guilds\/(\d+)\/serverstats$/);
+  if (ss) {
+    const guildId = ss[1];
+    if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return J(404, { error: 'bot_absent' });
+    const cfg = obtenirConfigGuilde(guildId);
+    const stats = require('./serverStatsCounters');
+
+    if (req.method === 'GET') {
+      if (stats.necessiteFetchMembres(['humains', 'bots', 'en_ligne'])) await guild.members.fetch().catch(() => {});
+      const counters = Array.isArray(cfg.serverstats_counters) ? cfg.serverstats_counters : [];
+      return J(200, {
+        enabled: cfg.serverstats_enabled !== false,
+        categoryId: cfg.serverstats_category_id ? String(cfg.serverstats_category_id) : '',
+        counters: counters.map(counter => ({
+          type: String(counter.type),
+          channelId: String(counter.channelId),
+        })).filter(counter => stats.TYPES_COMPTEURS[counter.type]),
+        types: Object.entries(stats.TYPES_COMPTEURS).map(([type, def]) => ({
+          type,
+          label: def.libelle,
+          emoji: def.emoji,
+          value: stats.calculerValeur(guild, type),
+        })),
+      });
+    }
+
+    if (req.method === 'PUT') {
+      let body;
+      try { body = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+      const types = Array.isArray(body.types)
+        ? [...new Set(body.types.map(String).filter(type => stats.TYPES_COMPTEURS[type]))]
+        : [];
+      const categoryId = typeof body.categoryId === 'string' ? body.categoryId : '';
+      if (!guild.members.me?.permissions.has(PermissionFlagsBits.ManageChannels)) {
+        return J(403, { error: 'invalid', reason: 'Le bot doit avoir la permission Gérer les salons.' });
+      }
+
+      let category = categoryId ? guild.channels.cache.get(categoryId) : null;
+      if (category && category.type !== ChannelType.GuildCategory) category = null;
+
+      if (types.length && body.createCategory) {
+        if (!category) {
+          category = await guild.channels.create({
+            name: '📊 CoreLabStats',
+            type: ChannelType.GuildCategory,
+            permissionOverwrites: [{
+              id: guild.roles.everyone.id,
+              allow: [PermissionFlagsBits.ViewChannel],
+              deny: [PermissionFlagsBits.Connect],
+            }],
+          }).catch(() => null);
+        }
+      } else if (categoryId && !category) {
+        return J(400, { error: 'invalid', reason: 'La catégorie sélectionnée n’existe plus.' });
+      }
+
+      if (types.length && !category) {
+        return J(400, { error: 'invalid', reason: 'Sélectionne ou crée une catégorie pour les compteurs.' });
+      }
+
+      const oldCounters = Array.isArray(cfg.serverstats_counters) ? cfg.serverstats_counters : [];
+      const selected = new Set(types);
+      const next = [];
+
+      if (stats.necessiteFetchMembres(types)) await guild.members.fetch().catch(() => {});
+      for (const counter of oldCounters) {
+        const channel = guild.channels.cache.get(String(counter.channelId));
+        if (selected.has(counter.type) && channel) {
+          await channel.setName(stats.construireNomSalon(counter.type, stats.calculerValeur(guild, counter.type)))
+            .catch(() => {});
+          next.push({ type: counter.type, channelId: channel.id });
+          selected.delete(counter.type);
+        } else if (channel) {
+          await channel.delete('CoreLab Dashboard : compteur retiré').catch(() => {});
+        }
+      }
+
+      for (const type of types) {
+        if (!selected.has(type)) continue;
+        const channel = await guild.channels.create({
+          name: stats.construireNomSalon(type, stats.calculerValeur(guild, type)),
+          type: ChannelType.GuildVoice,
+          parent: category.id,
+          permissionOverwrites: [{
+            id: guild.roles.everyone.id,
+            allow: [PermissionFlagsBits.ViewChannel],
+            deny: [PermissionFlagsBits.Connect],
+          }],
+        }).catch(() => null);
+        if (channel) next.push({ type, channelId: channel.id });
+      }
+
+      cfg.serverstats_counters = next;
+      cfg.serverstats_category_id = types.length && category ? category.id : null;
+      cfg.serverstats_enabled = types.length > 0;
+      if (!types.length && cfg.serverstats_category_id) {
+        await guild.channels.cache.get(cfg.serverstats_category_id)?.delete('CoreLab Dashboard : aucun compteur').catch(() => {});
+        cfg.serverstats_category_id = null;
+      } else if (!types.length) {
+        if (categoryId) await guild.channels.cache.get(categoryId)?.delete('CoreLab Dashboard : aucun compteur').catch(() => {});
+      }
+      persister('configuration');
+      return J(200, { ok: true, enabled: cfg.serverstats_enabled, categoryId: cfg.serverstats_category_id, counters: next });
     }
     return J(405, { error: 'method' });
   }
