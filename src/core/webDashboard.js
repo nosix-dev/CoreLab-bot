@@ -472,7 +472,10 @@ const states = new Map();   // state -> timestamp
 setInterval(() => {
   const now = Date.now();
   for (const [k, s] of sessions) if (s.exp < now) sessions.delete(k);
-  for (const [k, t] of states) if (now - t > 600000) states.delete(k);
+  for (const [k, s] of states) {
+    const timestamp = typeof s === 'number' ? s : s?.timestamp;
+    if (timestamp && now - timestamp > 600000) states.delete(k);
+  }
 }, 300000).unref();
 
 const hasAccess = (perms, owner) => {
@@ -718,7 +721,8 @@ async function route(req, res, { client }, url) {
   /* ---------- Connexion Discord ---------- */
   if (p === '/auth/login') {
     const state = crypto.randomBytes(16).toString('hex');
-    states.set(state, Date.now());
+    const returnTo = url.searchParams.get('return') === 'diamant' ? 'diamant' : 'dashboard';
+    states.set(state, { timestamp: Date.now(), returnTo });
     console.log(`[WebDashboard] login : client_id=${CLIENT_ID} secret=${SECRET.length} car. redirect=${REDIRECT}`);
     const q = new URLSearchParams({ client_id: CLIENT_ID, response_type: 'code', scope: 'identify guilds', redirect_uri: REDIRECT, state });
     return go(`https://discord.com/oauth2/authorize?${q}`);
@@ -727,6 +731,7 @@ async function route(req, res, { client }, url) {
     const code = url.searchParams.get('code'), state = url.searchParams.get('state');
     if (url.searchParams.get('error')) return go(`${SITE}#error=denied`); // refus ou annulation sur Discord
     if (!code || !state || !states.has(state)) return go(`${SITE}#error=state`);
+    const stateInfo = states.get(state);
     states.delete(state);
     try {
       const r = await fetch(`${DISCORD}/oauth2/token`, {
@@ -751,7 +756,11 @@ async function route(req, res, { client }, url) {
         guilds: guilds.filter(g => hasAccess(g.permissions, g.owner)).slice(0, 100).map(g => ({ id: g.id, name: String(g.name || '').slice(0, 60), icon: g.icon })),
         exp: Date.now() + SESSION_MS
       }, SECRET);
-      return go(`${SITE}#token=${token}`);
+      const stateInfo = states.get(state);
+      const destination = stateInfo?.returnTo === 'diamant'
+        ? `${SITE.replace(/\/$/, '')}/diamant.html#token=${token}`
+        : `${SITE}#token=${token}`;
+      return go(destination);
     } catch (e) {
       console.error('[WebDashboard] connexion :', e.message);
       return go(`${SITE}#error=login`);
@@ -782,6 +791,45 @@ async function route(req, res, { client }, url) {
 
   if (p === '/api/me' && req.method === 'GET') {
     return J(200, { user: sess.user, guilds: sess.guilds.map(g => ({ ...g, botIn: client.guilds.cache.has(g.id) })) });
+  }
+  if (p === '/api/diamants' && req.method === 'GET') {
+    try {
+      const { stockage } = require('./data');
+      const { getStage } = require('./diamant');
+      const rows = Object.entries(stockage.diamants || {})
+        .map(([id, d]) => ({ id, d }))
+        .sort((a, b) => (b.d.xp || 0) - (a.d.xp || 0) || (b.d.gems || 0) - (a.d.gems || 0))
+        .slice(0, 50);
+      const ranking = await Promise.all(rows.map(async (row, index) => {
+        const stage = getStage(row.d);
+        const user = client.users.cache.get(row.id) || await client.users.fetch(row.id).catch(() => null);
+        const avatar = user?.avatar
+          ? `https://cdn.discordapp.com/avatars/${row.id}/${user.avatar}.${user.avatar.startsWith('a_') ? 'gif' : 'png'}?size=128`
+          : `https://cdn.discordapp.com/embed/avatars/${(Number(row.id) >> 22) % 6}.png`;
+        return {
+          rank: index + 1,
+          userId: row.id,
+          name: user?.globalName || user?.username || String(row.d.name || 'Diamant'),
+          avatar,
+          diamant: String(row.d.name || 'Diamant'),
+          temperament: String(row.d.temperament || ''),
+          stage: stage.nom,
+          level: Number(row.d.level || 1),
+          xp: Number(row.d.xp || 0),
+          gems: Number(row.d.gems || 0),
+          mood: Math.max(0, Math.min(100, Number(row.d.mood || 0))),
+          stageNumber: stage.niveau,
+        };
+      }));
+      return J(200, {
+        updatedAt: new Date().toISOString(),
+        me: ranking.find(row => row.userId === sess.user.id) || null,
+        ranking,
+      });
+    } catch (e) {
+      console.error('[WebDashboard] classement diamant :', e.message);
+      return J(500, { error: 'diamants' });
+    }
   }
   if (p === '/api/logout' && req.method === 'POST') { return J(200, { ok: true }); }
 

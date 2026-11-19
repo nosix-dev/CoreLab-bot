@@ -67,52 +67,6 @@ try {
   };
 
   http.createServer(async (req, res) => {
-    if (req.url.split('?')[0] === '/diamants') {
-      if (req.method !== 'GET' && req.method !== 'OPTIONS') {
-        res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8', 'Allow': 'GET, OPTIONS' });
-        return res.end(JSON.stringify({ error: 'method' }));
-      }
-      const headers = {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Cache-Control': 'public, max-age=30',
-      };
-      if (req.method === 'OPTIONS') {
-        res.writeHead(204, headers);
-        return res.end();
-      }
-      try {
-        const { stockage } = require('./src/core/data');
-        const { getStage } = require('./src/core/diamant');
-        const rows = Object.entries(stockage.diamants || {})
-          .map(([id, d]) => ({ id, d }))
-          .sort((a, b) => (b.d.xp || 0) - (a.d.xp || 0) || (b.d.gems || 0) - (a.d.gems || 0))
-          .slice(0, 50);
-        const ranking = await Promise.all(rows.map(async (row, index) => {
-          const stage = getStage(row.d);
-          const user = client.users.cache.get(row.id) || await client.users.fetch(row.id).catch(() => null);
-          return {
-            rank: index + 1,
-            name: user?.globalName || user?.username || String(row.d.name || 'Diamant'),
-            diamant: String(row.d.name || 'Diamant'),
-            temperament: String(row.d.temperament || ''),
-            stage: stage.nom,
-            level: Number(row.d.level || 1),
-            xp: Number(row.d.xp || 0),
-            gems: Number(row.d.gems || 0),
-            mood: Math.max(0, Math.min(100, Number(row.d.mood || 0))),
-            stageNumber: stage.niveau,
-          };
-        }));
-        res.writeHead(200, headers);
-        return res.end(JSON.stringify({ updatedAt: new Date().toISOString(), ranking }));
-      } catch (error) {
-        console.error('[Diamants API]', error.message);
-        res.writeHead(500, headers);
-        return res.end(JSON.stringify({ ranking: [] }));
-      }
-    }
     // Webhook de votes top.gg (POST /topgg, en-tête Authorization = TOPGG_WEBHOOK_AUTH)
     if (req.method === 'POST' && req.url.split('?')[0] === '/topgg') {
       try { return require('./src/core/topggVotes').handleWebhook(req, res); }
