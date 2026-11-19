@@ -63,6 +63,7 @@ const constantes = {
         EMBEDS_PERSONNALISES: 'custom_embeds.json',
         ECONOMIE: 'economy.json',
         COMPTAGE: 'counting.json',
+        DIAMANTS: 'diamants.json',
     },
     COMMANDES_PUBLIQUES: new Set([
         'anniversaire', 'invite', 'aide', 'rank', 'leaderboard',

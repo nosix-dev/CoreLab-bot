@@ -102,6 +102,7 @@ const stockage = {
     embedsPersonnalises: chargerDonnees(FICHIERS.EMBEDS_PERSONNALISES, {}),
     donneesEconomie: chargerDonnees(FICHIERS.ECONOMIE, {}),
     comptage: chargerDonnees(FICHIERS.COMPTAGE, {}),
+    diamants: chargerDonnees(FICHIERS.DIAMANTS, {}),
 };
 
 // ────────────────────────────────────────────────
@@ -137,6 +138,7 @@ stockage.scheduled = stockage.planifies;
 stockage.partnerships = stockage.partenariats;
 stockage.broadcastButtons = stockage.boutonsDiffusion;
 stockage.economyData = stockage.donneesEconomie;
+stockage.diamants = stockage.diamants;
 
 function persister(cle) {
     const correspondance = {
@@ -186,6 +188,7 @@ function persister(cle) {
         embedsPersonnalises: FICHIERS.EMBEDS_PERSONNALISES,
         donneesEconomie: FICHIERS.ECONOMIE,
         comptage: FICHIERS.COMPTAGE,
+        diamants: FICHIERS.DIAMANTS,
 
         // alias anglais (mêmes fichiers, clés différentes)
         config: FICHIERS.CONFIGURATION,
@@ -216,6 +219,7 @@ function persister(cle) {
         partnerships: FICHIERS.PARTENARIATS,
         broadcastButtons: FICHIERS.BOUTONS_DIFFUSION,
         economyData: FICHIERS.ECONOMIE,
+        diamonds: FICHIERS.DIAMANTS,
     };
     if (correspondance[cle]) sauvegarderDonnees(correspondance[cle], stockage[cle]);
 }

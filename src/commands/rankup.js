@@ -21,6 +21,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 const fs = require('fs');
+const path = require('path');
 const {
   SlashCommandBuilder,
   PermissionFlagsBits: P,
@@ -38,11 +39,15 @@ const {
   TextInputBuilder,
   TextInputStyle,
   ChannelType,
+  AttachmentBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
   MessageFlags
 } = require('discord.js');
 const { chargerDonnees, sauvegarderDonnees } = require('../core/data');
 const { fichierPersistant } = require('../core/persistentPath');
 const { roleProblem } = require('./roleMenu');
+const { getDiamant, getStage } = require('../core/diamant');
 
 const FICHIER = 'rankup.json';
 const FICHIER_STATS = fichierPersistant('rankup_stats.json');
@@ -401,6 +406,24 @@ const rankup = {
       if (!cfg.enabled) {
         c.addSeparatorComponents(sep(false));
         c.addTextDisplayComponents(txt('-# ⛔ Le module est désactivé : les compteurs sont à l\'arrêt.'));
+      }
+      const diamant = getDiamant(user.id);
+      if (diamant) {
+        const stage = getStage(diamant);
+        c.addSeparatorComponents(sep(false));
+        c.addTextDisplayComponents(txt(`💎 **Mascotte Diamant** — ${diamant.name} • ${stage.nom} • Niveau ${diamant.level} • Humeur ${diamant.mood}/100`));
+        const svgPath = path.join(__dirname, '..', '..', stage.svg);
+        c.addMediaGalleryComponents(
+          new MediaGalleryBuilder().addItems(
+            new MediaGalleryItemBuilder().setURL(`attachment://diamant-stage-${stage.niveau}.svg`)
+          )
+        );
+        return interaction.reply({
+          components: [c],
+          files: [new AttachmentBuilder(svgPath, { name: `diamant-stage-${stage.niveau}.svg` })],
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+          allowedMentions: { parse: [] },
+        });
       }
       return interaction.reply({ components: [c], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
     }

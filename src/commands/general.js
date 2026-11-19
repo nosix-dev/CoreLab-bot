@@ -73,6 +73,7 @@ const {
 const {
   generateXpLeaderboardImage
 } = require('../handlers/xpLeaderboardImage');
+const { getDiamant, getStage } = require('../core/diamant');
 const {
   generateGiveawayImage,
   generateGiveawayResultImage,
@@ -353,11 +354,31 @@ const allDefinedCommands = [makeCommand('premium', 'Découvrez les avantages de 
     flags: MessageFlags.Ephemeral
   }));
 }, PermissionFlagsBits.ManageGuild), makeCommand('niveau', 'Voir votre niveau et votre XP', null, async interaction => {
-  const embed = new EmbedBuilder().setTitle('📊 Niveau').setDescription('Système d\'XP prêt à l\'emploi.').setColor(0xE8510D);
-  await interaction.reply(toCV2Payload({
-    embeds: [embed],
-    flags: MessageFlags.Ephemeral
-  }));
+  const guildId = String(interaction.guild.id);
+  const userId = String(interaction.user.id);
+  const xp = Number(store.xpData?.[guildId]?.[userId] || 0);
+  const level = getLevelFromXp(xp);
+  const diamant = getDiamant(userId);
+  const embed = new EmbedBuilder()
+    .setTitle('📊 Niveau & Mascotte')
+    .setDescription(`Niveau **${level.level}** · **${xp.toLocaleString('fr-FR')} XP**`)
+    .setColor(0xE8510D);
+  if (diamant) {
+    const stage = getStage(diamant);
+    embed.addFields(
+      { name: '💎 Mascotte', value: `**${diamant.name}** · ${diamant.temperament}`, inline: true },
+      { name: 'Stade', value: stage.nom, inline: true },
+      { name: 'Humeur', value: `${diamant.mood}/100`, inline: true },
+    ).setThumbnail(`attachment://diamant-stage-${stage.niveau}.svg`);
+  } else {
+    embed.addFields({ name: '💎 Mascotte', value: 'Aucune mascotte. Utilise `/diamant mascotte creer`.', inline: false });
+  }
+  const payload = toCV2Payload({ embeds: [embed], flags: MessageFlags.Ephemeral });
+  if (diamant) {
+    const stage = getStage(diamant);
+    payload.files = [new AttachmentBuilder(path.join(__dirname, '..', '..', stage.svg), { name: `diamant-stage-${stage.niveau}.svg` })];
+  }
+  await interaction.reply(payload);
 }), makeCommand('classement', 'Classement XP du serveur', null, async interaction => {
   await interaction.deferReply();
   const xpData = store.xpData?.[String(interaction.guild.id)] || {};

@@ -415,6 +415,15 @@ const MODULES = [
     ]
   },
   {
+    id: 'diamant', name: '💎 Diamant', group: 'Serveur', toggle: 'diamant_gains_enabled',
+    desc: 'Active les gains gratuits de gemmes par messages et vocal pour la mascotte Diamant. Les données du diamant appartiennent aux utilisateurs.',
+    fields: [
+      B('diamant_gains_enabled', 'Activer les gains du diamant', true),
+      CH('diamant_announcement_channel_id', 'Salon des annonces du diamant', { hint: 'Salon optionnel pour les annonces publiques de progression.' }),
+      CHS('diamant_excluded_channels', 'Salons sans gain', { hint: 'Les messages et le temps vocal dans ces salons ne donnent aucune gemme.' })
+    ]
+  },
+  {
     id: 'ai', name: '🤖 Assistant IA', group: 'Serveur', toggle: null,
     desc: 'L’assistant IA CoreLab. Le salon et la catégorie se créent avec /config-ia.',
     fields: [

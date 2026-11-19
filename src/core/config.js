@@ -199,6 +199,9 @@ function obtenirConfigGuilde(idGuilde) {
     if (config.ia_mention_enabled === undefined) config.ia_mention_enabled = true;
     if (config.ia_category_id === undefined) config.ia_category_id = null;
     if (config.ia_channel_id === undefined) config.ia_channel_id = null;
+    if (config.diamant_gains_enabled === undefined) config.diamant_gains_enabled = true;
+    if (config.diamant_announcement_channel_id === undefined) config.diamant_announcement_channel_id = null;
+    if (config.diamant_excluded_channels === undefined) config.diamant_excluded_channels = [];
     if (config.ia_message_id === undefined) config.ia_message_id = null;
     if (config.ia_tickets === undefined) config.ia_tickets = {};
     if (config.anti_bot_enabled === undefined) config.anti_bot_enabled = false;
