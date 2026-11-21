@@ -277,7 +277,10 @@ async function checkRaidMode(member) {
     await applyRaidAction(member, cfg);
     return true;
   }
-  if (list.length < (cfg.raidmode_threshold || 10)) return false;
+  // Mode nuit + « Anti-raid renforcé » : seuil d'arrivées divisé par deux
+  let raidThreshold = cfg.raidmode_threshold || 10;
+  try { if (cfg.night_antiraid && require('./nightMode').isNightActive(gid)) raidThreshold = Math.max(2, Math.floor(raidThreshold / 2)); } catch { /* mode nuit indisponible */ }
+  if (list.length < raidThreshold) return false;
 
   // Seuil dépassé → activation du lockdown
   let previousLevel = null;

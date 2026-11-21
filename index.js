@@ -259,6 +259,9 @@ const {
 const {
   registerAntiScamHandler
 } = require('./src/handlers/antiScam');
+const { registerNightModeHandler } = require('./src/handlers/nightMode');
+const { registerSensitivePermsHandler } = require('./src/handlers/sensitivePerms');
+const { registerNetworkAlertsHandler } = require('./src/handlers/networkAlerts');
 const {
   registerPartnershipAutoHandler
 } = require('./src/handlers/partnershipAuto');
@@ -735,9 +738,6 @@ client.on('interactionCreate', async interaction => {
     if (id.startsWith('mp_desabonner')) {
       return routeMpUnsubscribeInteraction(interaction);
     }
-  }
-  if (interaction.isButton() && interaction.customId.startsWith('surv_c_')) {
-    return require('./src/handlers/surveillance').routeSurvInteraction(interaction);
   }
   if (interaction.isButton() && interaction.customId.startsWith('rolebtn_')) {
     const {
@@ -1364,12 +1364,14 @@ require('./src/commands/anime').registerAnime(client);
 registerStarboardHandlers(client);
 registerModmailHandler(client);
 registerAntiScamHandler(client);
+registerNightModeHandler(client);
+registerSensitivePermsHandler(client);
+registerNetworkAlertsHandler(client);
 registerNicknameGuardHandler(client);
 registerPartnershipAutoHandler(client);
 registerBotRoleHandler(client);
 registerAutoRoleHandler(client);
 require('./src/handlers/joinRequest').registerJoinRequestHandler(client);
-require('./src/handlers/surveillance').registerSurveillanceHandler(client);
 registerBumpReminderHandler(client);
 require('./src/commands/blacklist').registerBlacklistHandler(client);
 registerAutomodOnJoinHandler(client);
