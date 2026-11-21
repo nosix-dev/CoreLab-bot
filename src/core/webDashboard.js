@@ -721,10 +721,7 @@ async function route(req, res, { client }, url) {
   /* ---------- Connexion Discord ---------- */
   if (p === '/auth/login') {
     const state = crypto.randomBytes(16).toString('hex');
-    const requestedReturn = url.searchParams.get('return');
-    const returnTo = requestedReturn === 'diamant' || requestedReturn === 'tarifs'
-      ? requestedReturn
-      : 'dashboard';
+    const returnTo = url.searchParams.get('return') === 'diamant' ? 'diamant' : 'dashboard';
     states.set(state, { timestamp: Date.now(), returnTo });
     console.log(`[WebDashboard] login : client_id=${CLIENT_ID} secret=${SECRET.length} car. redirect=${REDIRECT}`);
     const q = new URLSearchParams({ client_id: CLIENT_ID, response_type: 'code', scope: 'identify guilds', redirect_uri: REDIRECT, state });
@@ -759,74 +756,14 @@ async function route(req, res, { client }, url) {
         guilds: guilds.filter(g => hasAccess(g.permissions, g.owner)).slice(0, 100).map(g => ({ id: g.id, name: String(g.name || '').slice(0, 60), icon: g.icon })),
         exp: Date.now() + SESSION_MS
       }, SECRET);
+      const stateInfo = states.get(state);
       const destination = stateInfo?.returnTo === 'diamant'
         ? `${SITE.replace(/\/$/, '')}/diamant.html#token=${token}`
-        : stateInfo?.returnTo === 'tarifs'
-          ? `${SITE.replace(/\/$/, '')}/tarifs.html#token=${token}`
-          : `${SITE}#token=${token}`;
+        : `${SITE}#token=${token}`;
       return go(destination);
     } catch (e) {
       console.error('[WebDashboard] connexion :', e.message);
       return go(`${SITE}#error=login`);
-    }
-  }
-
-  /* ---------- Paiements PayPal : webhook vérifié avant toute session Discord ---------- */
-  if (p === '/api/paypal/webhook' && req.method === 'POST') {
-    const webhookId = (env.PAYPAL_WEBHOOK_ID || '').trim();
-    const clientId = (env.PAYPAL_CLIENT_ID || '').trim();
-    const secret = (env.PAYPAL_CLIENT_SECRET || '').trim();
-    if (!webhookId || !clientId || !secret) return J(503, { error: 'paypal_not_configured' });
-    const base = (env.PAYPAL_API_BASE || 'https://api-m.paypal.com').replace(/\/$/, '');
-    try {
-      const body = await readRaw(req, 200000);
-      const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
-      const tokenRes = await fetch(`${base}/v1/oauth2/token`, {
-        method: 'POST',
-        headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'grant_type=client_credentials',
-      });
-      const tokenData = await tokenRes.json();
-      if (!tokenRes.ok || !tokenData.access_token) return J(502, { error: 'paypal_auth' });
-      const verification = await fetch(`${base}/v1/notifications/verify-webhook-signature`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${tokenData.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          auth_algo: req.headers['paypal-auth-algo'],
-          cert_url: req.headers['paypal-cert-url'],
-          transmission_id: req.headers['paypal-transmission-id'],
-          transmission_sig: req.headers['paypal-transmission-sig'],
-          transmission_time: req.headers['paypal-transmission-time'],
-          webhook_id: webhookId,
-          webhook_event: JSON.parse(body.toString('utf8')),
-        }),
-      });
-      const verificationData = await verification.json();
-      if (!verification.ok || verificationData.verification_status !== 'SUCCESS') return J(403, { error: 'invalid_signature' });
-
-      const event = JSON.parse(body.toString('utf8'));
-      const resource = event.resource || {};
-      const userId = String(resource.custom_id || '');
-      const planId = String(resource.plan_id || '');
-      const activeEvents = new Set(['BILLING.SUBSCRIPTION.ACTIVATED', 'BILLING.SUBSCRIPTION.UPDATED']);
-      const cancelledEvents = new Set(['BILLING.SUBSCRIPTION.CANCELLED', 'BILLING.SUBSCRIPTION.SUSPENDED', 'BILLING.SUBSCRIPTION.EXPIRED']);
-      if (!userId) return J(200, { ignored: true });
-
-      const premium = require('./premium');
-      const expires = resource.billing_info?.next_billing_time || null;
-      if (activeEvents.has(event.event_type)) {
-        if (planId === env.PAYPAL_PLAN_PREMIUM) premium.setPremium(userId, true, expires);
-        else if (planId === env.PAYPAL_PLAN_PERSONNALISATION) premium.setCustomization(userId, true, expires);
-        else if (planId === env.PAYPAL_PLAN_TOTAL) premium.setTotal(userId, true, expires);
-      } else if (cancelledEvents.has(event.event_type)) {
-        if (planId === env.PAYPAL_PLAN_PREMIUM) premium.setPremium(userId, false);
-        else if (planId === env.PAYPAL_PLAN_PERSONNALISATION) premium.setCustomization(userId, false);
-        else if (planId === env.PAYPAL_PLAN_TOTAL) premium.setTotal(userId, false);
-      }
-      return J(200, { received: true });
-    } catch (e) {
-      console.error('[PayPal webhook] :', e.message);
-      return J(400, { error: 'invalid_webhook' });
     }
   }
 
@@ -854,58 +791,6 @@ async function route(req, res, { client }, url) {
 
   if (p === '/api/me' && req.method === 'GET') {
     return J(200, { user: sess.user, guilds: sess.guilds.map(g => ({ ...g, botIn: client.guilds.cache.has(g.id) })) });
-  }
-  if (p === '/api/logout' && req.method === 'POST') return J(200, { ok: true });
-
-  if (p === '/api/paypal/checkout' && req.method === 'POST') {
-    let body;
-    try { body = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
-    const planKey = String(body.plan || '');
-    const plans = {
-      premium: env.PAYPAL_PLAN_PREMIUM,
-      personnalisation: env.PAYPAL_PLAN_PERSONNALISATION,
-      total: env.PAYPAL_PLAN_TOTAL,
-    };
-    const planId = plans[planKey];
-    const clientId = (env.PAYPAL_CLIENT_ID || '').trim();
-    const secret = (env.PAYPAL_CLIENT_SECRET || '').trim();
-    if (!planId || !clientId || !secret) return J(503, { error: 'paypal_not_configured' });
-    const base = (env.PAYPAL_API_BASE || 'https://api-m.paypal.com').replace(/\/$/, '');
-    try {
-      const auth = Buffer.from(`${clientId}:${secret}`).toString('base64');
-      const tokenRes = await fetch(`${base}/v1/oauth2/token`, {
-        method: 'POST',
-        headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'grant_type=client_credentials',
-      });
-      const tokenData = await tokenRes.json();
-      if (!tokenRes.ok || !tokenData.access_token) return J(502, { error: 'paypal_auth' });
-      const siteOrigin = (env.SITE_URL || env.DASHBOARD_URL || SITE).replace(/\/$/, '');
-      const subscriptionRes = await fetch(`${base}/v1/billing/subscriptions`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${tokenData.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan_id: planId,
-          custom_id: sess.user.id,
-          application_context: {
-            brand_name: 'CoreLab',
-            locale: 'fr-FR',
-            shipping_preference: 'NO_SHIPPING',
-            user_action: 'SUBSCRIBE_NOW',
-            return_url: `${siteOrigin}/tarifs.html?paypal=success#token=${tok}`,
-            cancel_url: `${siteOrigin}/tarifs.html?paypal=cancelled#token=${tok}`,
-          },
-        }),
-      });
-      const subscription = await subscriptionRes.json();
-      if (!subscriptionRes.ok) return J(502, { error: 'paypal_checkout', reason: subscription.name || 'subscription_failed' });
-      const approve = (subscription.links || []).find(link => link.rel === 'approve');
-      if (!approve?.href) return J(502, { error: 'paypal_checkout', reason: 'approve_link_missing' });
-      return J(200, { url: approve.href });
-    } catch (e) {
-      console.error('[PayPal checkout] :', e.message);
-      return J(500, { error: 'paypal_checkout' });
-    }
   }
   if (p === '/api/diamants' && req.method === 'GET') {
     try {
@@ -1600,6 +1485,147 @@ async function route(req, res, { client }, url) {
   }
 
   /* ---------- Absences du staff (mêmes données que la commande /absence) ---------- */
+  /* ---------- Signalements : dossiers par membre, réglages, décisions ---------- */
+  const rp = p.match(/^\/api\/guilds\/(\d+)\/reports(?:\/(settings|batch|member\/(\d{17,20})\/(resolve|dismiss)))?$/);
+  if (rp) {
+    if (!sess.guilds.some(g => g.id === rp[1])) return J(403, { error: 'forbidden' });
+    const rGuild = client.guilds.cache.get(rp[1]);
+    if (!rGuild) return J(404, { error: 'bot_absent' });
+    const R = require('./reports');
+    const by = { id: sess.user.id, name: sess.user.username };
+    try {
+      if (req.method === 'GET' && !rp[2]) {
+        const st = url.searchParams.get('status') || '';
+        if (st && !['open', 'resolved', 'dismissed'].includes(st)) return J(400, { error: 'invalid' });
+        const out = R.dossiers(rGuild, { status: st, q: (url.searchParams.get('q') || '').slice(0, 60) });
+        const cfg = obtenirConfigGuilde(rp[1]);
+        return J(200, { ...out, settings: R.reglages(rp[1]), enabled: !!cfg.signalement_enabled, channel: cfg.signalement_channel_id || null });
+      }
+      if (rp[2] === 'settings') {
+        if (req.method === 'GET') return J(200, { settings: R.reglages(rp[1]) });
+        if (req.method === 'PUT') {
+          let b;
+          try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+          const r = R.majReglages(rp[1], b || {});
+          if (r.error) return J(400, r);
+          console.log(`[WebDashboard] ${sess.user.username} a modifié les réglages de signalements sur ${rGuild.name}`);
+          return J(200, { ok: true, settings: r.settings });
+        }
+      }
+      if (rp[2] === 'batch' && req.method === 'POST') {
+        let b;
+        try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+        const ids = Array.isArray(b.ids) ? b.ids.filter(x => /^[a-f0-9]{12}$/.test(x)).slice(0, 200) : [];
+        if (!ids.length) return J(400, { error: 'invalid' });
+        const r = R.decider(rp[1], ids, b.action, by);
+        if (r.error) return J(r.error === 'not_found' ? 404 : 400, { error: r.error });
+        console.log(`[WebDashboard] ${sess.user.username} : ${b.action} sur ${r.count} signalement(s) (${rGuild.name})`);
+        return J(200, { ok: true, count: r.count });
+      }
+      if (rp[3] && req.method === 'POST') {
+        const ids = R.idsOuvertsDuMembre(rp[1], rp[3]);
+        if (!ids.length) return J(404, { error: 'not_found' });
+        const r = R.decider(rp[1], ids, rp[4], by);
+        if (r.error) return J(400, { error: r.error });
+        console.log(`[WebDashboard] ${sess.user.username} : ${rp[4]} sur le dossier ${rp[3]} (${rGuild.name})`);
+        return J(200, { ok: true, count: r.count });
+      }
+      return J(405, { error: 'method' });
+    } catch (e) {
+      console.error('[WebDashboard] reports :', e.message);
+      return J(500, { error: 'reports' });
+    }
+  }
+
+  /* ---------- Infractions : avertissements + infractions ajoutées + sanctions (kick/ban/timeout/mute) ---------- */
+  const im = p.match(/^\/api\/guilds\/(\d+)\/mod\/infractions$/);
+  if (im) {
+    if (!sess.guilds.some(g => g.id === im[1])) return J(403, { error: 'forbidden' });
+    const iGuild = client.guilds.cache.get(im[1]);
+    if (!iGuild) return J(404, { error: 'bot_absent' });
+    if (req.method !== 'GET') return J(405, { error: 'method' });
+    try {
+      const { store } = require('./data');
+      const sanctions = require('./sanctionsLog');
+      const gid = String(im[1]);
+      const hash = (...a) => crypto.createHash('sha1').update(a.join('|')).digest('hex').slice(0, 8).toUpperCase();
+      const who = id => {
+        const m = iGuild.members.cache.get(String(id));
+        if (m) return { id: String(id), name: m.displayName, avatar: m.displayAvatarURL({ size: 64 }) };
+        const u = client.users.cache.get(String(id));
+        return u ? { id: String(id), name: u.username, avatar: u.displayAvatarURL({ size: 64 }) } : { id: String(id), name: null, avatar: null };
+      };
+      const all = [];
+      for (const [uid, list] of Object.entries(store.warns || {})) {
+        if (!Array.isArray(list)) continue;
+        for (const w of list) if (w && w.guild_id === gid) all.push({ id: hash('w', uid, w.date, w.reason), type: 'warn', member: who(uid), reason: w.reason, moderator: who(w.moderator), ts: Date.parse(w.date) || 0 });
+      }
+      for (const [uid, list] of Object.entries((store.infractions || {})[gid] || {})) {
+        if (!Array.isArray(list)) continue;
+        for (const w of list) if (w) all.push({ id: hash('i', uid, w.date, w.reason), type: 'infraction', member: who(uid), reason: w.reason, moderator: who(w.moderator), ts: Date.parse(w.date) || 0 });
+      }
+      for (const e of sanctions.lister(gid)) {
+        all.push({ id: hash('s', e.type, e.member.id, e.ts), type: e.type, member: { ...who(e.member.id), name: who(e.member.id).name || e.member.name, avatar: who(e.member.id).avatar || e.member.avatar }, reason: e.reason, moderator: { ...who(e.moderator.id), name: who(e.moderator.id).name || e.moderator.name }, ts: e.ts });
+      }
+      const type = url.searchParams.get('status') || '';
+      if (type && !['warn', 'infraction', 'timeout', 'kick', 'ban', 'mute'].includes(type)) return J(400, { error: 'invalid' });
+      const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit'), 10) || 25, 1), 100);
+      const offset = Math.max(parseInt(url.searchParams.get('before'), 10) || 0, 0);
+      const rows = all.filter(x => !type || x.type === type).sort((a, b) => b.ts - a.ts);
+      const items = rows.slice(offset, offset + limit);
+      return J(200, { items, next: offset + limit < rows.length ? String(offset + limit) : null, total: rows.length });
+    } catch (e) {
+      console.error('[WebDashboard] infractions :', e.message);
+      return J(500, { error: 'infractions' });
+    }
+  }
+
+  /* ---------- Surveillance : membres surveillés + conflits entre membres ---------- */
+  const sv = p.match(/^\/api\/guilds\/(\d+)\/mod\/(watchlist|conflicts)(?:\/(settings|\d{17,20}))?$/);
+  if (sv) {
+    if (!sess.guilds.some(g => g.id === sv[1])) return J(403, { error: 'forbidden' });
+    const sGuild = client.guilds.cache.get(sv[1]);
+    if (!sGuild) return J(404, { error: 'bot_absent' });
+    const SV = require('../handlers/surveillance').api;
+    try {
+      if (sv[2] === 'watchlist') {
+        if (req.method === 'GET' && !sv[3]) return J(200, SV.listeSurveillance(sGuild));
+        if (req.method === 'PUT' && sv[3] === 'settings') {
+          let b;
+          try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+          const r = SV.reglagesSurveillance(sGuild, b || {});
+          return r.error ? J(400, r) : J(200, r);
+        }
+        if (req.method === 'POST' && !sv[3]) {
+          let b;
+          try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+          const mb = await SV.resoudreMembre(sGuild, b.member);
+          if (!mb) return J(404, { error: 'member_not_found', reason: 'Membre introuvable sur ce serveur.' });
+          const r = SV.ajouterSurveillance(sGuild, mb, b.reason, { id: sess.user.id, name: sess.user.username });
+          if (r.error) return J(400, r);
+          console.log(`[WebDashboard] ${sess.user.username} surveille ${mb.user.username} sur ${sGuild.name}`);
+          return J(200, { ok: true });
+        }
+        if (req.method === 'DELETE' && sv[3] && sv[3] !== 'settings') {
+          const r = SV.retirerSurveillance(sv[1], sv[3]);
+          return r.error ? J(404, r) : J(200, r);
+        }
+      } else {
+        if (req.method === 'GET' && !sv[3]) return J(200, SV.listeConflits(sGuild));
+        if (req.method === 'PUT' && sv[3] === 'settings') {
+          let b;
+          try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+          const r = SV.reglagesConflits(sGuild, b || {});
+          return r.error ? J(400, r) : J(200, r);
+        }
+      }
+      return J(405, { error: 'method' });
+    } catch (e) {
+      console.error('[WebDashboard] surveillance :', e.message);
+      return J(500, { error: 'surveillance' });
+    }
+  }
+
   const am = p.match(/^\/api\/guilds\/(\d+)\/absences(?:\/([\w-]+))?(?:\/(approve|refuse))?$/);
   if (am) {
     if (!sess.guilds.some(g => g.id === am[1])) return J(403, { error: 'forbidden' });

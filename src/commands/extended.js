@@ -1644,6 +1644,7 @@ const timeout = {
     if (minutes) parts.push(`${minutes} minute${minutes > 1 ? 's' : ''}`);
     const dureeStr = parts.join(', ');
     await member.timeout(durationMs, reason);
+    require('../core/sanctionsLog').enregistrer(interaction.guild.id, { type: 'timeout', member, moderator: interaction.user, reason: `${reason} (${dureeStr})` });
 
     // DM au membre
     try {

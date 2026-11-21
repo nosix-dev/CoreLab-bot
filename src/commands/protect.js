@@ -8,6 +8,7 @@ const {
   getGuildConfig
 } = require('../core/config');
 const { buildProtectPayload } = require('../core/protectCard');
+const reportsStore = require('../core/reports');
 const {
   toCV2Payload
 } = require("../core/componentsV2");
@@ -46,6 +47,19 @@ const report = makeCommand('report', '🚩 Signaler un membre au staff', data =>
   if (membre.id === interaction.user.id) {
     return interaction.reply({
       content: '❌ Tu ne peux pas te signaler toi-même.',
+      flags: MessageFlags.Ephemeral
+    });
+  }
+  const saved = reportsStore.ajouter(interaction.guild.id, {
+    reporter: { id: interaction.user.id, name: interaction.member?.displayName || interaction.user.username, avatar: interaction.user.displayAvatarURL({ size: 64 }) },
+    target: { id: membre.id, name: interaction.guild.members.cache.get(membre.id)?.displayName || membre.username, avatar: membre.displayAvatarURL({ size: 64 }) },
+    reason: raison,
+    channelId: interaction.channel?.id,
+    channelName: interaction.channel?.name
+  });
+  if (saved.error === 'duplicate') {
+    return interaction.reply({
+      content: '❌ Tu as déjà un signalement en cours sur ce membre. Le staff va le traiter.',
       flags: MessageFlags.Ephemeral
     });
   }

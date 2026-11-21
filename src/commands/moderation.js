@@ -26,6 +26,7 @@ const {
 } = require("../core/componentsV2");
 const { glassPayload } = require('../core/glassEmbed');
 async function sendInfraction(guild, type, member, moderator, reason) {
+  if (type !== 'Warn') require('../core/sanctionsLog').enregistrer(guild.id, { type: type.toLowerCase(), member, moderator, reason });
   const icons = {
     Ban: '🔨',
     Kick: '👢',
