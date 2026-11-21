@@ -1642,6 +1642,147 @@ async function route(req, res, { client }, url) {
     }
   }
 
+  /* ---------- Modération : signalements, infractions, surveillance (pages du site) ---------- */
+  const mm = p.match(/^\/api\/guilds\/(\d+)\/(reports|mod\/infractions|mod\/watchlist|mod\/conflicts)(?:\/([\w:.-]+))?(?:\/([\w-]+))?$/);
+  if (mm) {
+    const [, mgid, mroot, mseg, mseg2] = mm;
+    if (!sess.guilds.some(g => g.id === mgid)) return J(403, { error: 'forbidden' });
+    const mGuild = client.guilds.cache.get(mgid);
+    if (!mGuild) return J(404, { error: 'bot_absent' });
+    const by = { id: sess.user.id, name: sess.user.username };
+    const body = async () => { try { const b = await readBody(req); return b && typeof b === 'object' && !Array.isArray(b) ? b : null; } catch { return null; } };
+    const nameOf = id => { const u = mGuild.members.cache.get(String(id)) || client.users.cache.get(String(id)); return u ? (u.displayName || u.username || null) : null; };
+    try {
+      /* ----- Signalements ----- */
+      if (mroot === 'reports') {
+        const reports = require('./reports');
+        if (req.method === 'GET' && !mseg) {
+          const q = new URL(req.url, 'http://x').searchParams;
+          const status = ['open', 'resolved', 'dismissed'].includes(q.get('status')) ? q.get('status') : '';
+          const cfg = obtenirConfigGuilde(mgid);
+          return J(200, {
+            ...reports.dossiers(mGuild, { status, q: String(q.get('q') || '').slice(0, 80) }),
+            settings: reports.reglages(mgid),
+            enabled: cfg.signalement_enabled === true,
+            channel: cfg.signalement_channel_id || ''
+          });
+        }
+        if (req.method === 'PUT' && mseg === 'settings') {
+          const b = await body(); if (!b) return J(400, { error: 'invalid' });
+          const r = reports.majReglages(mgid, b);
+          return r.error ? J(400, r) : J(200, r);
+        }
+        if (req.method === 'POST' && mseg === 'batch') {
+          const b = await body();
+          if (!b || !Array.isArray(b.ids) || !b.ids.length || b.ids.length > 200) return J(400, { error: 'invalid' });
+          const r = reports.decider(mgid, b.ids.map(String), String(b.action), by);
+          if (r.error) return J(r.error === 'not_found' ? 404 : 400, { error: r.error });
+          console.log(`[WebDashboard] ${by.name} a ${b.action === 'resolve' ? 'traité' : 'ignoré'} ${r.count} signalement(s) sur ${mGuild.name}`);
+          return J(200, r);
+        }
+        return J(405, { error: 'method' });
+      }
+
+      /* ----- Infractions : avertissements + infractions ajoutées + kick/ban/timeout/mute ----- */
+      if (mroot === 'mod/infractions') {
+        const { store, persist } = require('./data');
+        const sanctions = require('./sanctionsLog');
+        const ms = d => { const t = Date.parse(d); return Number.isFinite(t) ? t : 0; };
+        if (req.method === 'GET' && !mseg) {
+          const q = new URL(req.url, 'http://x').searchParams;
+          const type = String(q.get('status') || '');
+          const limit = Math.min(100, Math.max(1, Number(q.get('limit')) || 25));
+          const offset = Math.max(0, Number(q.get('before')) || 0);
+          const all = [];
+          for (const [uid, list] of Object.entries(store.warns || {})) {
+            for (const w of Array.isArray(list) ? list : []) {
+              if (!w || w.guild_id !== mgid) continue;
+              all.push({ id: `w-${uid}-${ms(w.date)}`, type: 'warn', member: { id: uid, name: nameOf(uid) }, reason: w.reason || '', moderator: { id: String(w.moderator || ''), name: nameOf(w.moderator) }, ts: ms(w.date) });
+            }
+          }
+          const inf = store.infractions || {};
+          for (const [k, v] of Object.entries(inf)) {
+            if (Array.isArray(v)) { // format anti-arnaque : { [uid]: [ { type, detail, guild_id, date } ] }
+              for (const w of v) {
+                if (!w || w.guild_id !== mgid) continue;
+                all.push({ id: `a-${k}-${ms(w.date)}`, type: 'infraction', member: { id: k, name: nameOf(k) }, reason: w.detail || w.type || '', moderator: { id: '', name: 'Automatique' }, ts: ms(w.date) });
+              }
+            } else if (k === mgid && v && typeof v === 'object') { // format /infraction : { [guildId]: { [uid]: [ { reason, moderator, date } ] } }
+              for (const [uid, list] of Object.entries(v)) {
+                for (const w of Array.isArray(list) ? list : []) {
+                  if (!w) continue;
+                  all.push({ id: `i-${uid}-${ms(w.date)}`, type: 'infraction', member: { id: uid, name: nameOf(uid) }, reason: w.reason || '', moderator: { id: String(w.moderator || ''), name: nameOf(w.moderator) }, ts: ms(w.date) });
+                }
+              }
+            }
+          }
+          for (const e of sanctions.lister(mgid)) {
+            all.push({ id: `s-${e.member.id}-${e.ts}`, type: e.type, member: { id: e.member.id, name: nameOf(e.member.id) || e.member.name }, reason: e.reason || '', moderator: { id: e.moderator.id, name: nameOf(e.moderator.id) || e.moderator.name }, ts: e.ts });
+          }
+          const rows = all.filter(e => !type || e.type === type).sort((a, b) => b.ts - a.ts);
+          const items = rows.slice(offset, offset + limit);
+          return J(200, { items, next: offset + limit < rows.length ? String(offset + limit) : null });
+        }
+        if (req.method === 'DELETE' && mseg) {
+          const [kind, uid, tsRaw] = [mseg.split('-')[0], mseg.split('-')[1], Number(mseg.split('-')[2])];
+          let removed = false;
+          if (kind === 'w' && store.warns?.[uid]) {
+            const i = store.warns[uid].findIndex(w => w && w.guild_id === mgid && ms(w.date) === tsRaw);
+            if (i >= 0) { store.warns[uid].splice(i, 1); if (!store.warns[uid].length) delete store.warns[uid]; persist('warns'); removed = true; }
+          } else if (kind === 'i' && store.infractions?.[mgid]?.[uid]) {
+            const list = store.infractions[mgid][uid];
+            const i = Array.isArray(list) ? list.findIndex(w => w && ms(w.date) === tsRaw) : -1;
+            if (i >= 0) { list.splice(i, 1); if (!list.length) delete store.infractions[mgid][uid]; persist('infractions'); removed = true; }
+          } else if (kind === 'a' && Array.isArray(store.infractions?.[uid])) {
+            const i = store.infractions[uid].findIndex(w => w && w.guild_id === mgid && ms(w.date) === tsRaw);
+            if (i >= 0) { store.infractions[uid].splice(i, 1); persist('infractions'); removed = true; }
+          } else if (kind === 's') removed = sanctions.retirer(mgid, tsRaw, uid);
+          if (!removed) return J(404, { error: 'not_found' });
+          console.log(`[WebDashboard] ${by.name} a retiré une infraction sur ${mGuild.name}`);
+          return J(200, { ok: true });
+        }
+        return J(405, { error: 'method' });
+      }
+
+      /* ----- Surveillance : membres surveillés + conflits entre membres ----- */
+      const surv = require('../handlers/surveillance').api;
+      if (mroot === 'mod/watchlist') {
+        if (req.method === 'GET' && !mseg) return J(200, surv.listeSurveillance(mGuild));
+        if (req.method === 'PUT' && mseg === 'settings') {
+          const b = await body(); if (!b) return J(400, { error: 'invalid' });
+          const r = surv.reglagesSurveillance(mGuild, b);
+          return r.error ? J(400, r) : J(200, r);
+        }
+        if (req.method === 'POST' && !mseg) {
+          const b = await body(); if (!b) return J(400, { error: 'invalid' });
+          const mb = await surv.resoudreMembre(mGuild, b.member);
+          if (!mb) return J(404, { error: 'member_not_found', reason: 'Membre introuvable sur ce serveur.' });
+          const r = surv.ajouterSurveillance(mGuild, mb, b.reason, by);
+          if (r.error) return J(400, r);
+          console.log(`[WebDashboard] ${by.name} a mis ${mb.user.username} sous surveillance sur ${mGuild.name}`);
+          return J(200, r);
+        }
+        if (req.method === 'DELETE' && mseg && !mseg2) {
+          const r = surv.retirerSurveillance(mgid, mseg);
+          return r.error ? J(404, r) : J(200, r);
+        }
+        return J(405, { error: 'method' });
+      }
+      if (mroot === 'mod/conflicts') {
+        if (req.method === 'GET' && !mseg) return J(200, surv.listeConflits(mGuild));
+        if (req.method === 'PUT' && mseg === 'settings') {
+          const b = await body(); if (!b) return J(400, { error: 'invalid' });
+          const r = surv.reglagesConflits(mGuild, b);
+          return r.error ? J(400, r) : J(200, r);
+        }
+        return J(405, { error: 'method' });
+      }
+    } catch (e) {
+      console.error('[WebDashboard] modération :', e.message);
+      return J(500, { error: 'moderation' });
+    }
+  }
+
   const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye)|\/(activity)|\/honeypot\/(generate|regenerate|refresh)|\/honeypot-media\/(banner|thumbnail))?$/);
   if (!m) return J(404, { error: 'not_found' });
   const [, guildId, isMeta, modId, previewKind, bgKind, isActivity, hpAction, hpMediaKind] = m;

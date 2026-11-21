@@ -736,6 +736,9 @@ client.on('interactionCreate', async interaction => {
       return routeMpUnsubscribeInteraction(interaction);
     }
   }
+  if (interaction.isButton() && interaction.customId.startsWith('surv_c_')) {
+    return require('./src/handlers/surveillance').routeSurvInteraction(interaction);
+  }
   if (interaction.isButton() && interaction.customId.startsWith('rolebtn_')) {
     const {
       getGuildBucket,
@@ -1366,6 +1369,7 @@ registerPartnershipAutoHandler(client);
 registerBotRoleHandler(client);
 registerAutoRoleHandler(client);
 require('./src/handlers/joinRequest').registerJoinRequestHandler(client);
+require('./src/handlers/surveillance').registerSurveillanceHandler(client);
 registerBumpReminderHandler(client);
 require('./src/commands/blacklist').registerBlacklistHandler(client);
 registerAutomodOnJoinHandler(client);

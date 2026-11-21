@@ -38,4 +38,19 @@ function lister(guildId) {
   return Array.isArray(db[String(guildId)]) ? db[String(guildId)] : [];
 }
 
-module.exports = { enregistrer, lister };
+// Retire une entrée (identifiée par sa date et le membre concerné). Retourne true si elle existait.
+function retirer(guildId, ts, memberId) {
+  try {
+    const db = charger();
+    const gid = String(guildId);
+    const liste = Array.isArray(db[gid]) ? db[gid] : [];
+    const i = liste.findIndex(e => e.ts === ts && e.member?.id === String(memberId));
+    if (i < 0) return false;
+    liste.splice(i, 1);
+    fs.writeFileSync(FILE + '.tmp', JSON.stringify(db));
+    fs.renameSync(FILE + '.tmp', FILE);
+    return true;
+  } catch (e) { console.error('[sanctionsLog]', e.message); return false; }
+}
+
+module.exports = { enregistrer, lister, retirer };
