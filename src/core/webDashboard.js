@@ -440,6 +440,19 @@ const MODULES = [
       B('serverstats_enabled', 'Activer les compteurs', false),
       CAT('serverstats_category_id', 'Catégorie des compteurs', { dep: 'serverstats_enabled' })
     ]
+  },
+  {
+    id: 'stafftools', name: '👥 Staff', group: 'Serveur', toggle: 'stafftools_enabled',
+    desc: 'Votes du staff (délai, minimum de votants) et alerte quand aucun membre du staff n’est actif.',
+    fields: [
+      B('stafftools_enabled', 'Activer le module', false),
+      CH('stafftools_vote_channel', 'Salon privé du vote', { dep: 'stafftools_enabled', hint: 'Le vote est publié dans ce salon : seul le staff doit pouvoir le voir.' }),
+      S('stafftools_vote_hours', 'Délai du vote', '24', O(['6', '6 heures'], ['12', '12 heures'], ['24', '24 heures'], ['48', '48 heures'], ['72', '72 heures']), { dep: 'stafftools_enabled' }),
+      N('stafftools_vote_min', 'Minimum de votants', 3, 1, 50, { dep: 'stafftools_enabled', hint: 'Sans ce nombre de votes à la fin du délai, le vote est rejeté.' }),
+      B('stafftools_gap_alert', 'Alerter quand aucun staff n’est actif', false, { hint: 'Une alerte est envoyée quand aucun membre du staff n’a été actif pendant la durée choisie.' }),
+      S('stafftools_gap_hours', 'Durée sans staff avant l’alerte', '4', O(['2', '2 heures'], ['4', '4 heures'], ['6', '6 heures'], ['8', '8 heures']), { dep: 'stafftools_gap_alert' }),
+      CH('stafftools_gap_channel', 'Salon d’alerte', { dep: 'stafftools_gap_alert' })
+    ]
   }
 ];
 MODULES.splice(MODULES.findIndex(m => m.id === 'welcome') + 1, 0, cardModule('welcome'), cardModule('goodbye'));
@@ -1485,147 +1498,6 @@ async function route(req, res, { client }, url) {
   }
 
   /* ---------- Absences du staff (mêmes données que la commande /absence) ---------- */
-  /* ---------- Signalements : dossiers par membre, réglages, décisions ---------- */
-  const rp = p.match(/^\/api\/guilds\/(\d+)\/reports(?:\/(settings|batch|member\/(\d{17,20})\/(resolve|dismiss)))?$/);
-  if (rp) {
-    if (!sess.guilds.some(g => g.id === rp[1])) return J(403, { error: 'forbidden' });
-    const rGuild = client.guilds.cache.get(rp[1]);
-    if (!rGuild) return J(404, { error: 'bot_absent' });
-    const R = require('./reports');
-    const by = { id: sess.user.id, name: sess.user.username };
-    try {
-      if (req.method === 'GET' && !rp[2]) {
-        const st = url.searchParams.get('status') || '';
-        if (st && !['open', 'resolved', 'dismissed'].includes(st)) return J(400, { error: 'invalid' });
-        const out = R.dossiers(rGuild, { status: st, q: (url.searchParams.get('q') || '').slice(0, 60) });
-        const cfg = obtenirConfigGuilde(rp[1]);
-        return J(200, { ...out, settings: R.reglages(rp[1]), enabled: !!cfg.signalement_enabled, channel: cfg.signalement_channel_id || null });
-      }
-      if (rp[2] === 'settings') {
-        if (req.method === 'GET') return J(200, { settings: R.reglages(rp[1]) });
-        if (req.method === 'PUT') {
-          let b;
-          try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
-          const r = R.majReglages(rp[1], b || {});
-          if (r.error) return J(400, r);
-          console.log(`[WebDashboard] ${sess.user.username} a modifié les réglages de signalements sur ${rGuild.name}`);
-          return J(200, { ok: true, settings: r.settings });
-        }
-      }
-      if (rp[2] === 'batch' && req.method === 'POST') {
-        let b;
-        try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
-        const ids = Array.isArray(b.ids) ? b.ids.filter(x => /^[a-f0-9]{12}$/.test(x)).slice(0, 200) : [];
-        if (!ids.length) return J(400, { error: 'invalid' });
-        const r = R.decider(rp[1], ids, b.action, by);
-        if (r.error) return J(r.error === 'not_found' ? 404 : 400, { error: r.error });
-        console.log(`[WebDashboard] ${sess.user.username} : ${b.action} sur ${r.count} signalement(s) (${rGuild.name})`);
-        return J(200, { ok: true, count: r.count });
-      }
-      if (rp[3] && req.method === 'POST') {
-        const ids = R.idsOuvertsDuMembre(rp[1], rp[3]);
-        if (!ids.length) return J(404, { error: 'not_found' });
-        const r = R.decider(rp[1], ids, rp[4], by);
-        if (r.error) return J(400, { error: r.error });
-        console.log(`[WebDashboard] ${sess.user.username} : ${rp[4]} sur le dossier ${rp[3]} (${rGuild.name})`);
-        return J(200, { ok: true, count: r.count });
-      }
-      return J(405, { error: 'method' });
-    } catch (e) {
-      console.error('[WebDashboard] reports :', e.message);
-      return J(500, { error: 'reports' });
-    }
-  }
-
-  /* ---------- Infractions : avertissements + infractions ajoutées + sanctions (kick/ban/timeout/mute) ---------- */
-  const im = p.match(/^\/api\/guilds\/(\d+)\/mod\/infractions$/);
-  if (im) {
-    if (!sess.guilds.some(g => g.id === im[1])) return J(403, { error: 'forbidden' });
-    const iGuild = client.guilds.cache.get(im[1]);
-    if (!iGuild) return J(404, { error: 'bot_absent' });
-    if (req.method !== 'GET') return J(405, { error: 'method' });
-    try {
-      const { store } = require('./data');
-      const sanctions = require('./sanctionsLog');
-      const gid = String(im[1]);
-      const hash = (...a) => crypto.createHash('sha1').update(a.join('|')).digest('hex').slice(0, 8).toUpperCase();
-      const who = id => {
-        const m = iGuild.members.cache.get(String(id));
-        if (m) return { id: String(id), name: m.displayName, avatar: m.displayAvatarURL({ size: 64 }) };
-        const u = client.users.cache.get(String(id));
-        return u ? { id: String(id), name: u.username, avatar: u.displayAvatarURL({ size: 64 }) } : { id: String(id), name: null, avatar: null };
-      };
-      const all = [];
-      for (const [uid, list] of Object.entries(store.warns || {})) {
-        if (!Array.isArray(list)) continue;
-        for (const w of list) if (w && w.guild_id === gid) all.push({ id: hash('w', uid, w.date, w.reason), type: 'warn', member: who(uid), reason: w.reason, moderator: who(w.moderator), ts: Date.parse(w.date) || 0 });
-      }
-      for (const [uid, list] of Object.entries((store.infractions || {})[gid] || {})) {
-        if (!Array.isArray(list)) continue;
-        for (const w of list) if (w) all.push({ id: hash('i', uid, w.date, w.reason), type: 'infraction', member: who(uid), reason: w.reason, moderator: who(w.moderator), ts: Date.parse(w.date) || 0 });
-      }
-      for (const e of sanctions.lister(gid)) {
-        all.push({ id: hash('s', e.type, e.member.id, e.ts), type: e.type, member: { ...who(e.member.id), name: who(e.member.id).name || e.member.name, avatar: who(e.member.id).avatar || e.member.avatar }, reason: e.reason, moderator: { ...who(e.moderator.id), name: who(e.moderator.id).name || e.moderator.name }, ts: e.ts });
-      }
-      const type = url.searchParams.get('status') || '';
-      if (type && !['warn', 'infraction', 'timeout', 'kick', 'ban', 'mute'].includes(type)) return J(400, { error: 'invalid' });
-      const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit'), 10) || 25, 1), 100);
-      const offset = Math.max(parseInt(url.searchParams.get('before'), 10) || 0, 0);
-      const rows = all.filter(x => !type || x.type === type).sort((a, b) => b.ts - a.ts);
-      const items = rows.slice(offset, offset + limit);
-      return J(200, { items, next: offset + limit < rows.length ? String(offset + limit) : null, total: rows.length });
-    } catch (e) {
-      console.error('[WebDashboard] infractions :', e.message);
-      return J(500, { error: 'infractions' });
-    }
-  }
-
-  /* ---------- Surveillance : membres surveillés + conflits entre membres ---------- */
-  const sv = p.match(/^\/api\/guilds\/(\d+)\/mod\/(watchlist|conflicts)(?:\/(settings|\d{17,20}))?$/);
-  if (sv) {
-    if (!sess.guilds.some(g => g.id === sv[1])) return J(403, { error: 'forbidden' });
-    const sGuild = client.guilds.cache.get(sv[1]);
-    if (!sGuild) return J(404, { error: 'bot_absent' });
-    const SV = require('../handlers/surveillance').api;
-    try {
-      if (sv[2] === 'watchlist') {
-        if (req.method === 'GET' && !sv[3]) return J(200, SV.listeSurveillance(sGuild));
-        if (req.method === 'PUT' && sv[3] === 'settings') {
-          let b;
-          try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
-          const r = SV.reglagesSurveillance(sGuild, b || {});
-          return r.error ? J(400, r) : J(200, r);
-        }
-        if (req.method === 'POST' && !sv[3]) {
-          let b;
-          try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
-          const mb = await SV.resoudreMembre(sGuild, b.member);
-          if (!mb) return J(404, { error: 'member_not_found', reason: 'Membre introuvable sur ce serveur.' });
-          const r = SV.ajouterSurveillance(sGuild, mb, b.reason, { id: sess.user.id, name: sess.user.username });
-          if (r.error) return J(400, r);
-          console.log(`[WebDashboard] ${sess.user.username} surveille ${mb.user.username} sur ${sGuild.name}`);
-          return J(200, { ok: true });
-        }
-        if (req.method === 'DELETE' && sv[3] && sv[3] !== 'settings') {
-          const r = SV.retirerSurveillance(sv[1], sv[3]);
-          return r.error ? J(404, r) : J(200, r);
-        }
-      } else {
-        if (req.method === 'GET' && !sv[3]) return J(200, SV.listeConflits(sGuild));
-        if (req.method === 'PUT' && sv[3] === 'settings') {
-          let b;
-          try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
-          const r = SV.reglagesConflits(sGuild, b || {});
-          return r.error ? J(400, r) : J(200, r);
-        }
-      }
-      return J(405, { error: 'method' });
-    } catch (e) {
-      console.error('[WebDashboard] surveillance :', e.message);
-      return J(500, { error: 'surveillance' });
-    }
-  }
-
   const am = p.match(/^\/api\/guilds\/(\d+)\/absences(?:\/([\w-]+))?(?:\/(approve|refuse))?$/);
   if (am) {
     if (!sess.guilds.some(g => g.id === am[1])) return J(403, { error: 'forbidden' });
