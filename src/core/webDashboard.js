@@ -494,6 +494,34 @@ const MODULES = [
       S('stafftools_gap_hours', 'Durée sans staff avant l’alerte', '4', O(['2', '2 heures'], ['4', '4 heures'], ['6', '6 heures'], ['8', '8 heures']), { dep: 'stafftools_gap_alert' }),
       CH('stafftools_gap_channel', 'Salon d’alerte', { dep: 'stafftools_gap_alert' })
     ]
+  },
+
+  /* ---------- Modules « internes » : pages dédiées du site (non listés dans les modules génériques) ---------- */
+  {
+    id: 'pending', name: '📥 À traiter', group: 'Serveur', toggle: null, internal: true,
+    desc: 'Réglages de la page « À traiter » : délai des conversations sans réponse et récap quotidien.',
+    fields: [
+      N('pending_unanswered_hours', 'Conversation sans réponse après (heures)', 4, 1, 168),
+      B('pending_recap_enabled', 'Récap quotidien', false),
+      CH('pending_recap_channel', 'Salon du staff', { dep: 'pending_recap_enabled' }),
+      T('pending_recap_time', 'Heure d’envoi', 5, { dep: 'pending_recap_enabled', def: '09:00', validate: v => (/^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? null : 'heure invalide (HH:MM)') })
+    ]
+  },
+  {
+    id: 'discipline', name: '⚖️ Sanctions', group: 'Serveur', toggle: null, internal: true,
+    desc: 'Paliers de sanctions automatiques, strikes, quarantaine, validation et contestations.',
+    fields: [
+      { key: 'discipline_tiers', label: 'Paliers de sanctions', type: 'tiers', def: [] },
+      N('discipline_strike_expiry_days', 'Durée de vie d’un strike (jours)', 0, 0, 365),
+      B('discipline_strike_dm', 'Prévenir le membre en message privé', true),
+      B('discipline_quarantine_enabled', 'Activer la quarantaine', false),
+      RO('discipline_quarantine_role', 'Rôle de quarantaine', { dep: 'discipline_quarantine_enabled' }),
+      B('discipline_validation_enabled', 'Faire valider les sanctions lourdes', false),
+      CH('discipline_validation_channel', 'Salon de validation', { dep: 'discipline_validation_enabled' }),
+      B('discipline_appeals_enabled', 'Autoriser les contestations', false),
+      CH('discipline_appeals_channel', 'Salon des contestations', { dep: 'discipline_appeals_enabled' }),
+      N('discipline_appeals_days', 'Délai pour contester (jours)', 7, 1, 90, { dep: 'discipline_appeals_enabled' })
+    ]
   }
 ];
 MODULES.splice(MODULES.findIndex(m => m.id === 'welcome') + 1, 0, cardModule('welcome'), cardModule('goodbye'));
@@ -624,6 +652,7 @@ function readField(f, raw) {
     case 'color': return Number.isInteger(raw) ? '#' + raw.toString(16).padStart(6, '0') : (f.def || '#ffffff');
     case 'ranks': return Array.isArray(raw) ? raw.map(r => ({ roleId: String(r.roleId), messages: r.messages | 0, minutes: r.minutes | 0 })) : [];
     case 'xproles': return Array.isArray(raw) ? raw.map(r => ({ level: r.level | 0, roleId: String(r.roleId) })) : [];
+    case 'tiers': return Array.isArray(raw) ? raw.map(r => ({ strikes: r.strikes | 0, action: String(r.action || 'timeout'), duration: Number(r.duration) || 0 })) : [];
     default: return raw;
   }
 }
@@ -742,6 +771,19 @@ function checkField(f, v, cur, ctx) {
         out.push({ level, roleId });
       }
       return { value: out };
+    }
+    case 'tiers': {
+      if (!Array.isArray(v) || v.length > 20) return bad('20 paliers maximum');
+      const ACTIONS = ['timeout', 'kick', 'ban', 'quarantine'], out = [];
+      for (const r of v) {
+        const action = String(r?.action || '');
+        if (!ACTIONS.includes(action)) return bad('sanction invalide');
+        const strikes = Math.min(50, Math.max(1, Math.round(Number(r?.strikes) || 1)));
+        let duration = action === 'kick' ? 0 : Math.max(0, Math.round(Number(r?.duration) || 0));
+        if (action === 'timeout' && !duration) duration = 1440; // un timeout ne peut pas être « définitif »
+        out.push({ strikes, action, duration });
+      }
+      return { value: out.sort((x, y) => x.strikes - y.strikes) };
     }
     default: return bad('type inconnu');
   }
@@ -1798,7 +1840,7 @@ async function route(req, res, { client }, url) {
   }
 
   if (!isMeta && !modId && req.method === 'GET') {
-    const modules = MODULES.map(mod => {
+    const modules = MODULES.filter(mod => !mod.internal).map(mod => {
       const v = readValues(mod, guildId);
       return { id: mod.id, name: mod.name, group: mod.group, desc: mod.desc, enabled: mod.toggle ? !!v[mod.toggle] : null };
     });
