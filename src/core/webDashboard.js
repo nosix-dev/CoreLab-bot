@@ -45,6 +45,45 @@ const CHS = (key, label, x) => ({ key, label, type: 'channels', def: [], ...x })
 const ROS = (key, label, x) => ({ key, label, type: 'roles', def: [], assign: true, ...x });
 const O = (...pairs) => pairs.map(([v, l]) => ({ v, l }));
 
+/* Événements de logs choisis un par un depuis le dashboard (page « Logs »).
+   cat = ancien réglage par catégorie (log_messages…) utilisé tant que l'événement n'a jamais été enregistré.
+   sent:false = le bot n'envoie pas encore ce log. */
+const LOG_EVENTS = {
+  thread_create: { label: 'Création d’un fil', cat: 'log_channels', sent: true },
+  thread_delete: { label: 'Suppression d’un fil', cat: 'log_channels', sent: false },
+  invite_create: { label: 'Création d’une invitation', cat: 'log_server', sent: true },
+  invite_delete: { label: 'Suppression d’une invitation', cat: 'log_server', sent: false },
+  voice_join: { label: 'Connexion vocale', cat: 'log_voice', sent: true },
+  voice_leave: { label: 'Déconnexion vocale', cat: 'log_voice', sent: true },
+  voice_move: { label: 'Changement de salon vocal', cat: 'log_voice', sent: true },
+  message_delete: { label: 'Message supprimé', cat: 'log_messages', sent: true },
+  message_edit: { label: 'Message modifié', cat: 'log_messages', sent: true },
+  member_join: { label: 'Arrivée d’un membre', cat: 'log_members', sent: true },
+  member_leave: { label: 'Départ d’un membre', cat: 'log_members', sent: true },
+  nickname_change: { label: 'Changement de pseudo', cat: 'log_members_update', sent: true },
+  channel_create: { label: 'Création d’un salon', cat: 'log_channels', sent: true },
+  channel_delete: { label: 'Suppression d’un salon', cat: 'log_channels', sent: true },
+  role_create: { label: 'Création d’un rôle', cat: 'log_roles', sent: true },
+  role_delete: { label: 'Suppression d’un rôle', cat: 'log_roles', sent: true },
+  mod_ban: { label: 'Bannissement', cat: 'log_bans', sent: true },
+  mod_unban: { label: 'Débannissement', cat: 'log_bans', sent: true },
+  mod_kick: { label: 'Expulsion', cat: 'log_members', sent: false },
+  mod_timeout: { label: 'Exclusion temporaire', cat: 'log_members_update', sent: true },
+  mod_warn: { label: 'Avertissement', cat: 'log_sanctions', sent: false },
+  mod_purge: { label: 'Suppression en masse', cat: 'log_messages', sent: true }
+};
+// Lecture : un événement jamais enregistré reprend le comportement historique (salon des logs + type de log).
+function readLogEvents(cfg) {
+  const saved = (cfg && typeof cfg.logs_events === 'object' && cfg.logs_events) || {};
+  const out = {};
+  for (const [k, m] of Object.entries(LOG_EVENTS)) {
+    const e = saved[k];
+    if (e && typeof e === 'object') out[k] = { enabled: e.enabled === true, channel: e.channel ? String(e.channel) : '' };
+    else out[k] = { enabled: !!m.sent && !!cfg?.log_channel_id && cfg?.[m.cat] !== false, channel: cfg?.log_channel_id ? String(cfg.log_channel_id) : '' };
+  }
+  return out;
+}
+
 const ACTIONS = O(['kick', 'Expulser'], ['ban', 'Bannir'], ['timeout', 'Mettre en sourdine (timeout)']);
 const HONEYPOT_ACTIONS = O(
   ['ban', 'Bannir'],
@@ -132,6 +171,8 @@ const MODULES = [
     id: 'logs', name: '📋 Logs', group: 'Général', toggle: null,
     desc: 'Journal des événements du serveur (messages, membres, bans…).',
     fields: [
+      B('logs_enabled', 'Activer les logs', true),
+      { key: 'logs_events', label: 'Événements', type: 'logevents', def: {}, hidden: true },
       CH('log_channel_id', 'Salon des logs', { hint: 'Sans salon, aucun log n’est envoyé.' }),
       S('log_style', 'Style des logs', 'image', O(['image', 'Carte image'], ['embed', 'Embed classique'])),
       B('log_messages', 'Messages (supprimés / modifiés)', true, { section: 'Types de logs' }),
@@ -590,7 +631,7 @@ function readValues(mod, guildId) {
   const src = source(mod, guildId), out = {};
   for (const f of mod.fields) {
     const key = mod.store === 'rankup' ? f.key : f.key;
-    out[f.key] = readField(f, getPath(src, key));
+    out[f.key] = f.type === 'logevents' ? readLogEvents(src) : readField(f, getPath(src, key));
   }
   return out;
 }
@@ -673,6 +714,19 @@ function checkField(f, v, cur, ctx) {
         if (!messages && !minutes) return bad('chaque palier demande au moins des messages ou du vocal');
         if (!old.has(roleId)) { const e = roleCheck(roleId); if (e) return bad(e); }
         seen.add(roleId); out.push({ roleId, messages, minutes });
+      }
+      return { value: out };
+    }
+    case 'logevents': {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return bad('format invalide');
+      const out = {};
+      for (const k of Object.keys(LOG_EVENTS)) {
+        const e = v[k];
+        if (!e || typeof e !== 'object') continue;
+        const ch = e.channel ? String(e.channel) : '';
+        const old = String(cur?.[k]?.channel || '');
+        if (ch && ch !== old && !ctx.chanIds.has(ch)) return bad(`salon introuvable (${LOG_EVENTS[k].label})`);
+        out[k] = { enabled: e.enabled === true, channel: ch };
       }
       return { value: out };
     }
@@ -1767,7 +1821,7 @@ async function route(req, res, { client }, url) {
     if (!mod) return J(404, { error: 'module' });
 
     if (req.method === 'GET') {
-      return J(200, { module: { id: mod.id, name: mod.name, desc: mod.desc, preview: mod.preview || null, fields: mod.fields.map(publicField) }, values: readValues(mod, guildId), premium: premiumOk(sess.user.id) });
+      return J(200, { module: { id: mod.id, name: mod.name, desc: mod.desc, preview: mod.preview || null, fields: mod.fields.filter(f => !f.hidden).map(publicField) }, values: readValues(mod, guildId), premium: premiumOk(sess.user.id) });
     }
 
     if (req.method === 'PUT') {

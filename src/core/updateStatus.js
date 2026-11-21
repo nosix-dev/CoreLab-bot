@@ -3,8 +3,8 @@
 //
 // Commande propriétaire :
 //   !update 5.5.5 1/11/2026            → affiche deux boutons : 🤖 Bot / 🌐 Site
-//   !update bot 5.5.5 1/11/2026        → lance directement la mise à jour du bot (statut « Mise à jour … en cours »)
-//   !update site 5.5.5 1/11/2026       → lance directement la mise à jour du site (exposée à /status → update.site)
+//   !update bot 5.5.5 1/11/2026        → lance directement la mise à jour du bot (statut « Mise à jour du bot … en cours »)
+//   !update site 5.5.5 1/11/2026       → lance directement la mise à jour du site (statut « Mise à jour du site … en cours » + /status → update.site)
 //   !update off                        → arrête (si bot ET site sont actifs : boutons Bot / Site / Les deux)
 //   !update bot off  |  !update site off
 //   !update status                     → affiche l'état du bot et du site
@@ -40,8 +40,9 @@ let presenceAppliquee = false;
 
 function sauver() { sauvegarderDonnees(FICHIER, etat); }
 
-// Le bot est-il en mode « mise à jour » ? (utilisé par la rotation des statuts dans index.js)
-function actif() { return !!etat.bot.enabled; }
+// Une mise à jour (bot ou site) est-elle en cours ? (utilisé par la rotation des statuts dans index.js :
+// tant que c'est vrai, la rotation normale est suspendue et le statut de mise à jour est affiché sous le nom du bot)
+function actif() { return !!(etat.bot.enabled || etat.site.enabled); }
 
 // État public (sans l'ID de l'auteur) : à exposer dans /status pour que le site puisse afficher un bandeau.
 function etatPublic() {
@@ -49,16 +50,21 @@ function etatPublic() {
     return { bot: pub(etat.bot), site: pub(etat.site) };
 }
 
-function texteStatut() {
-    return `🔄 Mise à jour ${etat.bot.version} en cours`.slice(0, 128);
+function texteStatut(cible = 'bot') {
+    const c = CIBLES[cible];
+    return `${cible === 'bot' ? '🔄' : c.emoji} Mise à jour ${c.de} ${etat[cible].version} en cours`.slice(0, 128);
 }
 
+let tour = 0;
 // Appelée à chaque tour de la rotation des statuts (toutes les 10 s) et à l'activation / désactivation.
+// Le texte apparaît sous le nom du bot. Si le bot ET le site sont en mise à jour, les deux textes alternent.
 function appliquerPresence(client) {
     if (!client?.isReady?.()) return;
     try {
-        if (etat.bot.enabled) {
-            client.user.setPresence({ status: 'dnd', activities: [{ name: texteStatut(), type: 0 }] });
+        const actifs = ['bot', 'site'].filter(k => etat[k].enabled);
+        if (actifs.length) {
+            const cible = actifs[tour++ % actifs.length];
+            client.user.setPresence({ status: etat.bot.enabled ? 'dnd' : 'online', activities: [{ name: texteStatut(cible), type: 0 }] });
             presenceAppliquee = true;
         } else if (presenceAppliquee) {
             client.user.setPresence({ status: 'online', activities: [] }); // la rotation des statuts reprend ensuite
@@ -89,8 +95,8 @@ function embedDemarrage(cible, client) {
         .setColor(COULEUR)
         .setTitle(`${c.emoji} Mise à jour ${c.de} ${e.version} en cours`)
         .setDescription(cible === 'bot'
-            ? `Le bot est en cours de mise à jour.\nStatut : « ${texteStatut()} »`
-            : 'Le site est en cours de mise à jour.\nL\'information est disponible pour le site via `/status` (`update.site`).')
+            ? `Le bot est en cours de mise à jour.\nStatut : « ${texteStatut('bot')} »`
+            : `Le site est en cours de mise à jour.\nStatut : « ${texteStatut('site')} »\nL'information est aussi disponible pour le site via \`/status\` (\`update.site\`).`)
         .addFields({ name: 'Version', value: e.version, inline: true });
     if (e.date) embed.addFields({ name: 'Date', value: e.date, inline: true });
     embed.setFooter({ text: `Pour arrêter : ${client.prefix}update ${cible} off` });
@@ -106,7 +112,7 @@ function demarrer(cible, version, date, auteurId, client) {
         by: auteurId,
     };
     sauver();
-    if (cible === 'bot') appliquerPresence(client);
+    appliquerPresence(client);
     return embedDemarrage(cible, client);
 }
 
@@ -116,8 +122,8 @@ function arreter(cible, client) {
     const version = etat[cible].version;
     etat[cible] = vide();
     sauver();
-    if (cible === 'bot') appliquerPresence(client);
-    return simple(0x2ECC71, `✅ **Mise à jour ${c.de} ${version} terminée.**${cible === 'bot' ? ' Le statut du bot est revenu à la normale.' : ''}`);
+    appliquerPresence(client);
+    return simple(0x2ECC71, `✅ **Mise à jour ${c.de} ${version} terminée.**${actif() ? '' : ' Le statut du bot est revenu à la normale.'}`);
 }
 
 function embedStatut(client, aide) {
@@ -234,9 +240,9 @@ async function commande(message, client) {
     });
 }
 
-// À appeler au démarrage : reprend le statut si une mise à jour du bot était en cours.
+// À appeler au démarrage : reprend le statut si une mise à jour (bot ou site) était en cours.
 function restaurer(client) {
-    if (etat.bot.enabled) appliquerPresence(client);
+    if (actif()) appliquerPresence(client);
 }
 
 module.exports = { commande, actif, etatPublic, appliquerPresence, restaurer };

@@ -194,11 +194,32 @@ async function buildPayload(guild, spec, opts = {}) {
     }
 }
 
+// Événement de logs (clé du dashboard) déduit de la carte envoyée
+const LOG_EVENT_BY_TITLE = {
+    'Message supprimé': 'message_delete', 'Suppression en masse': 'mod_purge', 'Message modifié': 'message_edit',
+    'Nouveau membre': 'member_join', 'Membre parti': 'member_leave', 'Pseudo modifié': 'nickname_change',
+    'Timeout appliqué': 'mod_timeout', 'Timeout retiré': 'mod_timeout',
+    'Rôle créé': 'role_create', 'Rôle supprimé': 'role_delete',
+    'Salon créé': 'channel_create', 'Salon supprimé': 'channel_delete',
+    'Invitation créée': 'invite_create', 'Fil créé': 'thread_create',
+    'Membre banni': 'mod_ban', 'Bannissement levé': 'mod_unban',
+};
+function eventKeyOf(spec, opts) {
+    if (opts?.voice) return ({ join: 'voice_join', leave: 'voice_leave', move: 'voice_move' })[spec?.type] || null;
+    return LOG_EVENT_BY_TITLE[stripEmoji(spec?.title)] || null;
+}
+
 // Salon de logs configuré (null si désactivé / introuvable / pas de permission)
-function getLogChannel(guild, categorie) {
+function getLogChannel(guild, categorie, eventKey = null) {
     const cfg = getGuildConfig(guild.id);
-    if (categorie && cfg?.[categorie] === false) return null; // type de log désactivé
-    const logId = cfg?.log_channel_id;
+    if (cfg?.logs_enabled === false) return null; // interrupteur général du dashboard
+    const ev = eventKey ? cfg?.logs_events?.[eventKey] : null;
+    if (ev && typeof ev === 'object') {
+        if (ev.enabled !== true) return null; // événement réglé depuis le dashboard
+    } else if (categorie && cfg?.[categorie] === false) {
+        return null; // type de log désactivé (ancien réglage par catégorie)
+    }
+    const logId = (ev && ev.channel) || cfg?.log_channel_id;
     if (!logId) return null;
     const channel = guild.channels.cache.get(String(logId));
     if (!channel) return null;
@@ -211,7 +232,7 @@ function getLogChannel(guild, categorie) {
 async function sendCard(guild, categorie, spec, opts = {}) {
     if (!guild) return;
     try {
-        const channel = getLogChannel(guild, categorie);
+        const channel = getLogChannel(guild, categorie, eventKeyOf(spec, opts));
         if (!channel) return;
         const payload = await buildPayload(guild, spec, opts);
         await channel.send(payload);
