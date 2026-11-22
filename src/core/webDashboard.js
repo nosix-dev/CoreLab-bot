@@ -989,6 +989,38 @@ async function route(req, res, { client }, url) {
   if (p === '/api/me' && req.method === 'GET') {
     return J(200, { user: sess.user, guilds: sess.guilds.map(g => ({ ...g, botIn: client.guilds.cache.has(g.id) })) });
   }
+  /* Synthèse de l'accueil : infractions / avertissements / notes sur 7 jours + total des membres (serveurs où CoreLab est présent) */
+  if (p === '/api/me/summary' && req.method === 'GET') {
+    try {
+      const { store } = require('./data');
+      const { chargerDonnees } = require('./data');
+      const sanctions = require('./sanctionsLog');
+      const since = Date.now() - 7 * 24 * 3600 * 1000;
+      const recent = d => { const t = new Date(d).getTime(); return Number.isFinite(t) && t >= since; };
+      const ids = new Set(sess.guilds.filter(g => client.guilds.cache.has(g.id)).map(g => g.id));
+      let infractions = 0, warns = 0, notes = 0, members = 0;
+      for (const id of ids) {
+        members += client.guilds.cache.get(id)?.memberCount || 0;
+        infractions += sanctions.lister(id).filter(e => e.ts >= since).length;
+        for (const h of Object.values((store.infractions || {})[id] || {})) {
+          if (Array.isArray(h)) infractions += h.filter(e => e && e.date && recent(e.date)).length;
+        }
+      }
+      for (const list of Object.values(store.warns || {})) {
+        if (Array.isArray(list)) warns += list.filter(w => w && ids.has(String(w.guild_id)) && recent(w.date)).length;
+      }
+      const nd = chargerDonnees('mod_notes.json', {});
+      for (const id of ids) {
+        for (const list of Object.values(nd[id] || {})) {
+          if (Array.isArray(list)) notes += list.filter(n => n && recent(n.date)).length;
+        }
+      }
+      return J(200, { infractions, warns, notes, members, servers: ids.size });
+    } catch (e) {
+      console.error('[WebDashboard] summary :', e.message);
+      return J(500, { error: 'summary' });
+    }
+  }
   if (p === '/api/diamants' && req.method === 'GET') {
     try {
       const { stockage } = require('./data');
