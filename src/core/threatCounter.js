@@ -27,5 +27,6 @@ process.on('beforeExit', save);
 module.exports = {
   inc(key = 'threats_blocked', n = 1) { counters[key] = (counters[key] || 0) + n; dirty = true; },
   get(key = 'threats_blocked') { return counters[key] || 0; },
-  all() { return { ...counters }; },
+  // threats_blocked est toujours présent (0 au départ) pour que le site affiche « 0 » et non « — »
+  all() { return { threats_blocked: 0, ...counters }; },
 };
