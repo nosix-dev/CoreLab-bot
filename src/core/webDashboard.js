@@ -1730,6 +1730,51 @@ async function route(req, res, { client }, url) {
     }
   }
 
+  /* ---------- Incidents de signalement (/report) : dossiers, réglages, décisions ---------- */
+  const rpm = p.match(/^\/api\/guilds\/(\d+)\/reports(?:\/(settings|batch))?$/);
+  if (rpm) {
+    if (!sess.guilds.some(g => g.id === rpm[1])) return J(403, { error: 'forbidden' });
+    const rGuild = client.guilds.cache.get(rpm[1]);
+    if (!rGuild) return J(404, { error: 'bot_absent' });
+    const rep = require('./reports');
+    try {
+      if (req.method === 'GET' && !rpm[2]) {
+        const cfg = obtenirConfigGuilde(rGuild.id);
+        const status = ['open', 'resolved', 'dismissed'].includes(url.searchParams.get('status')) ? url.searchParams.get('status') : '';
+        const d = rep.dossiers(rGuild, { status, q: (url.searchParams.get('q') || '').slice(0, 80) });
+        return J(200, {
+          enabled: !!cfg.signalement_enabled,
+          channel: cfg.signalement_channel_id || '',
+          settings: rep.reglages(rGuild.id),
+          stats: d.stats,
+          dossiers: d.dossiers
+        });
+      }
+      if (req.method === 'PUT' && rpm[2] === 'settings') {
+        let b;
+        try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+        const r = rep.majReglages(rGuild.id, b || {});
+        if (r.error) return J(400, r);
+        console.log(`[WebDashboard] ${sess.user.username} a modifié les réglages de signalement sur ${rGuild.name}`);
+        return J(200, r);
+      }
+      if (req.method === 'POST' && rpm[2] === 'batch') {
+        let b;
+        try { b = await readBody(req); } catch { return J(400, { error: 'invalid' }); }
+        const ids = Array.isArray(b.ids) ? b.ids.map(String).slice(0, 500) : [];
+        if (!ids.length) return J(400, { error: 'invalid', reason: 'Aucun signalement sélectionné.' });
+        const r = rep.decider(rGuild.id, ids, b.action, { id: sess.user.id, name: sess.user.username });
+        if (r.error === 'invalid') return J(400, r);
+        if (r.error) return J(404, r);
+        return J(200, r);
+      }
+      return J(405, { error: 'method' });
+    } catch (e) {
+      console.error('[WebDashboard] reports :', e.message);
+      return J(500, { error: 'reports' });
+    }
+  }
+
   const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye)|\/(activity)|\/honeypot\/(generate|regenerate|refresh)|\/honeypot-media\/(banner|thumbnail))?$/);
   if (!m) return J(404, { error: 'not_found' });
   const [, guildId, isMeta, modId, previewKind, bgKind, isActivity, hpAction, hpMediaKind] = m;
