@@ -147,6 +147,7 @@ const warn = {
     });
     persist('warns');
     await sendInfraction(interaction.guild, 'Warn', member, interaction.user, reason);
+    require('../handlers/logs').logWarn(interaction.guild, { target: member.user, moderator: interaction.user, reason }).catch(() => {});
     await interaction.reply({
       content: `✅ ${member} averti (${store.warns[uid].length} avertissement(s)).`,
       flags: MessageFlags.Ephemeral

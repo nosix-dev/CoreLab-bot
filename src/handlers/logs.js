@@ -203,7 +203,21 @@ const LOG_EVENT_BY_TITLE = {
     'Salon créé': 'channel_create', 'Salon supprimé': 'channel_delete',
     'Invitation créée': 'invite_create', 'Fil créé': 'thread_create',
     'Membre banni': 'mod_ban', 'Bannissement levé': 'mod_unban',
+    'Fil supprimé': 'thread_delete', 'Invitation supprimée': 'invite_delete',
+    'Membre expulsé': 'mod_kick', 'Avertissement': 'mod_warn',
 };
+// Événements ajoutés avec le dashboard : envoyés uniquement si activés explicitement depuis la page « Logs »
+// (évite de faire apparaître de nouveaux logs sur les serveurs qui n'ont jamais touché à ces réglages).
+const OPT_IN_EVENTS = new Set(['thread_delete', 'invite_delete', 'mod_kick', 'mod_warn']);
+
+// Diagnostic : un log activé qui ne part pas est écrit une seule fois dans la console (par serveur / événement / cause)
+const diagVus = new Set();
+function diag(guild, eventKey, cause) {
+    const cle = `${guild.id}:${eventKey || '-'}:${cause}`;
+    if (diagVus.has(cle)) return;
+    diagVus.add(cle);
+    console.warn(`[Logs] ${guild.name} (${guild.id}) — « ${eventKey || 'log'} » non envoyé : ${cause}`);
+}
 function eventKeyOf(spec, opts) {
     if (opts?.voice) return ({ join: 'voice_join', leave: 'voice_leave', move: 'voice_move' })[spec?.type] || null;
     return LOG_EVENT_BY_TITLE[stripEmoji(spec?.title)] || null;
@@ -216,15 +230,26 @@ function getLogChannel(guild, categorie, eventKey = null) {
     const ev = eventKey ? cfg?.logs_events?.[eventKey] : null;
     if (ev && typeof ev === 'object') {
         if (ev.enabled !== true) return null; // événement réglé depuis le dashboard
+    } else if (eventKey && OPT_IN_EVENTS.has(eventKey)) {
+        return null; // nouvel événement : jamais activé depuis le dashboard
     } else if (categorie && cfg?.[categorie] === false) {
         return null; // type de log désactivé (ancien réglage par catégorie)
     }
     const logId = (ev && ev.channel) || cfg?.log_channel_id;
-    if (!logId) return null;
+    if (!logId) {
+        if (ev && ev.enabled === true) diag(guild, eventKey, 'aucun salon choisi (ni pour cet événement, ni salon des logs par défaut)');
+        return null;
+    }
     const channel = guild.channels.cache.get(String(logId));
-    if (!channel) return null;
+    if (!channel) {
+        if (ev && ev.enabled === true) diag(guild, eventKey, `le salon ${logId} est introuvable (supprimé ?)`);
+        return null;
+    }
     const me = guild.members.me;
-    if (!me || !channel.permissionsFor(me)?.has(PermissionFlagsBits.SendMessages)) return null;
+    if (!me || !channel.permissionsFor(me)?.has(PermissionFlagsBits.SendMessages)) {
+        if (ev && ev.enabled === true) diag(guild, eventKey, `le bot ne peut pas écrire dans #${channel.name}`);
+        return null;
+    }
     return channel;
 }
 
@@ -421,13 +446,33 @@ function registerLogHandlers(client) {
             if (member.user.bot) return;
 
             // Un départ qui est en fait une expulsion est déjà enregistré par le journal Discord
-            require('../core/auditJournal').acteurRecent(member.guild, AuditLogEvent.MemberKick, member.id, 1200).then(k => {
-                if (k) return;
-                require('../core/auditJournal').ajouterEvenement(member.guild.id, {
-                    type: 'membres', action: 'Membre parti', targetId: member.id, targetType: 'User', targetLabel: member.user.tag,
-                    details: member.joinedTimestamp ? `Sur le serveur depuis le ${new Date(member.joinedTimestamp).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}` : '',
+            const kickActor = await require('../core/auditJournal').acteurRecent(member.guild, AuditLogEvent.MemberKick, member.id, 1200).catch(() => null);
+            if (!kickActor) {
+                try {
+                    require('../core/auditJournal').ajouterEvenement(member.guild.id, {
+                        type: 'membres', action: 'Membre parti', targetId: member.id, targetType: 'User', targetLabel: member.user.tag,
+                        details: member.joinedTimestamp ? `Sur le serveur depuis le ${new Date(member.joinedTimestamp).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}` : '',
+                    });
+                } catch { /* journal indisponible */ }
+            }
+
+            // Expulsion : carte dédiée si l'événement « Expulsion » est activé dans le dashboard, sinon carte « Membre parti » comme avant
+            if (kickActor && getLogChannel(member.guild, 'log_members', 'mod_kick')) {
+                await sendCard(member.guild, 'log_members', {
+                    theme: 'orange',
+                    title: '👢 Membre expulsé',
+                    sub: member.user.tag,
+                    blocks: [
+                        { label: 'Expulsé par', value: actorName(kickActor) },
+                        { label: 'Resté sur le serveur', value: member.joinedTimestamp ? formatAge(Date.now() - member.joinedTimestamp) : 'Inconnu' },
+                    ],
+                    bigLabel: 'Membres restants',
+                    bigValue: member.guild.memberCount.toLocaleString('fr-FR'),
+                    footerLeft: `ID ${member.id}`,
+                    footerRight: member.guild.name,
                 });
-            }).catch(() => { });
+                return;
+            }
 
             const joinedTs = member.joinedTimestamp;
             const roles = member.roles?.cache
@@ -688,6 +733,44 @@ function registerLogHandlers(client) {
             });
         } catch (e) {
             console.error('Erreur log threadCreate :', e);
+        }
+    });
+
+    // ── 🔗 Invitation supprimée ──────────────────────────────────
+    client.on('inviteDelete', async invite => {
+        try {
+            if (!invite.guild) return;
+            await sendCard(invite.guild, 'log_server', {
+                theme: 'red',
+                title: '🔗 Invitation supprimée',
+                blocks: [
+                    { label: 'Code', value: invite.code },
+                    { label: 'Salon', value: invite.channel ? `# ${invite.channel.name}` : 'Inconnu' },
+                ],
+                footerLeft: `discord.gg/${invite.code}`,
+                footerRight: invite.guild.name,
+            });
+        } catch (e) {
+            console.error('Erreur log inviteDelete :', e);
+        }
+    });
+
+    // ── 🧵 Fil supprimé ───────────────────────────────────────
+    client.on('threadDelete', async thread => {
+        try {
+            if (!thread.guild) return;
+            await sendCard(thread.guild, 'log_channels', {
+                theme: 'red',
+                title: '🧵 Fil supprimé',
+                blocks: [
+                    { label: 'Fil', value: thread.name || 'Inconnu' },
+                    { label: 'Salon parent', value: thread.parent ? `# ${thread.parent.name}` : 'Inconnu' },
+                ],
+                footerLeft: `ID ${thread.id}`,
+                footerRight: thread.guild.name,
+            });
+        } catch (e) {
+            console.error('Erreur log threadDelete :', e);
         }
     });
 
@@ -1051,4 +1134,21 @@ function registerLogHandlers(client) {
     console.log('✅ Système de logs détaillé initialisé.');
 }
 
-module.exports = { registerLogHandlers, sendLog, getAuditActor, truncate };
+// Avertissement donné à un membre (appelé par la commande /warn)
+async function logWarn(guild, { target, moderator, reason } = {}) {
+    if (!guild || !target) return;
+    await sendCard(guild, 'log_sanctions', {
+        theme: 'orange',
+        title: '⚠️ Avertissement',
+        sub: target.tag ?? target.username,
+        blocks: [
+            { label: 'Membre', value: userName(target) },
+            { label: 'Modérateur', value: userName(moderator) },
+        ],
+        quotes: [{ label: 'Raison', text: reason || 'Aucune raison fournie', maxLines: 4 }],
+        footerLeft: `ID ${target.id}`,
+        footerRight: guild.name,
+    });
+}
+
+module.exports = { registerLogHandlers, sendLog, getAuditActor, truncate, logWarn };
