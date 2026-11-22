@@ -58,14 +58,16 @@ const SPAM_MAX_MESSAGES = 6;
 const SPAM_WINDOW_MS = 7000;
 const SPAM_TIMEOUT_MS = 5 * 60 * 1000;
 const { getProtectionLogChannelId } = require('../core/protectionLog');
-async function sendProtectionLog(guild, embed, files = []) {
+async function sendProtectionLog(guild, embed, files = [], opts = {}) {
+  // opts.classic = true : vrai embed Discord (champs côte à côte), sans conversion en Components V2
+  const toPayload = opts.classic ? (p) => ({ embeds: p.embeds, files: p.files }) : toCV2Payload;
   require('../core/radarLog').depuisEmbed(guild, embed); // journal du Radar (dashboard)
   const cfg = getGuildConfig(guild.id);
   const channelId = getProtectionLogChannelId(cfg);
   if (channelId) {
     const channel = guild.channels.cache.get(String(channelId));
     if (channel?.isTextBased?.()) {
-      await channel.send(toCV2Payload({
+      await channel.send(toPayload({
         embeds: [embed],
         files
       })).catch(() => { });
@@ -74,7 +76,7 @@ async function sendProtectionLog(guild, embed, files = []) {
   if (cfg.transparence_enabled && cfg.transparence_channel_id) {
     const publicChannel = guild.channels.cache.get(String(cfg.transparence_channel_id));
     if (publicChannel?.isTextBased?.()) {
-      await publicChannel.send(toCV2Payload({
+      await publicChannel.send(toPayload({
         embeds: [embed],
         files
       })).catch(() => { });
@@ -1269,7 +1271,7 @@ async function checkHoneypot(message) {
     embed.setImage(`attachment://${honeypotImageName}`);
     logFiles.push(honeypotImageFile);
   }
-  await sendProtectionLog(message.guild, embed, logFiles);
+  await sendProtectionLog(message.guild, embed, logFiles, { classic: true });
   return true;
 }
 
