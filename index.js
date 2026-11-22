@@ -58,11 +58,24 @@ try {
       uptime_s: Math.floor((client.uptime || 0) / 1000),
       servers: client.guilds.cache.size,
       users: client.guilds.cache.reduce((a, g) => a + (g.memberCount || 0), 0),
+      // Liste publique pour le défilement du site (nom, icône, membres). Masquer un serveur : STATUS_HIDE_GUILDS=id1,id2
+      guilds: (() => {
+        const hide = new Set((process.env.STATUS_HIDE_GUILDS || '').split(',').map(x => x.trim()).filter(Boolean));
+        return [...client.guilds.cache.values()]
+          .filter(g => !hide.has(g.id))
+          .sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0))
+          .slice(0, 40)
+          .map(g => ({ n: g.name, i: g.iconURL({ extension: 'png', size: 64 }) || null, m: g.memberCount || 0 }));
+      })(),
       commands: client.commands?.size || 0,
       cpu: { percent: Math.min(100, +cpuPct.toFixed(1)), cores: os.cpus().length, model: os.cpus()[0]?.model || '' },
       memory: { used: process.memoryUsage().rss, total: memTotal },
       storage,
       history: require('./src/core/uptimeHistory').getHistory(),
+      components: require('./src/core/uptimeHistory').getComponents(),
+      latency: require('./src/core/uptimeHistory').getLatency(),
+      incidents: require('./src/core/uptimeHistory').getIncidents(),
+      since: require('./src/core/uptimeHistory').getSince(),
       counters: require('./src/core/threatCounter').all(),
     };
   };
