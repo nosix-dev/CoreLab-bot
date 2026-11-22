@@ -20,7 +20,7 @@ const MAX_RULES = 40;
 const SHORTENERS = ['bit.ly', 'tinyurl.com', 'cutt.ly', 'is.gd', 'goo.gl', 't.co', 'ow.ly', 'rebrand.ly', 'shorturl.at', 'rb.gy'];
 
 const TESTS = {
-  insults: t => /\b(connard|connasse|salope|enfoir[ée]|pute|fdp|ntm|encul[ée]|abruti|d[ée]bile|idiot|merde)\b/i.test(t),
+  insults: t => /(?<![\p{L}\p{N}])(?:connard|connasse|salope|enfoir[ée]|pute|fdp|ntm|encul[ée]|abruti|d[ée]bile|idiot|merde)s?(?![\p{L}\p{N}])/iu.test(t),
   caps: t => { const l = t.replace(/[^A-Za-zÀ-ÿ]/g, ''); if (l.length < 10) return false; return l.replace(/[^A-ZÀ-Ý]/g, '').length / l.length > 0.7; },
   invites: t => /(discord\.gg|discord(?:app)?\.com\/invite)\/\w+/i.test(t)
 };

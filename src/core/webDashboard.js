@@ -334,6 +334,7 @@ const MODULES = [
       B('anti_bot_enabled', 'Anti-bot (refuser les bots non autorisés)', false, { section: 'Comptes' }),
       B('anti_alt_enabled', 'Anti-alt (comptes trop récents)', false),
       N('anti_alt_min_days', 'Âge minimum anti-alt (jours)', 7, 1, 365, { dep: 'anti_alt_enabled' }),
+      B('automod_apply_staff', 'Appliquer l’automodération aussi aux administrateurs et modérateurs', false),
       // Page « Automodération » du dashboard (règles, automod intelligent, liens, nouveaux membres, limite)
       { key: 'automod_rules', label: 'Règles', type: 'amrules', def: [], hidden: true },
       { key: 'automod_smart', label: 'Automod intelligent', type: 'amsmart', def: {}, hidden: true },

@@ -54,12 +54,21 @@ function addWarn(message, label) {
   } catch (e) { console.error('[AutomodRules] warn :', e.message); }
 }
 
+// Diagnostic : suppression impossible (une seule ligne console par serveur et par salon)
+const diagVus = new Set();
+function diagSuppression(message, err) {
+  const cle = `${message.guild.id}:${message.channelId}`;
+  if (diagVus.has(cle)) return;
+  diagVus.add(cle);
+  console.warn(`[AutomodRules] ${message.guild.name || message.guild.id} : impossible de supprimer un message dans #${message.channel?.name || message.channelId} (${err?.message || 'erreur'}). Le bot a-t-il la permission « Gérer les messages » dans ce salon ?`);
+}
+
 /* Applique l'action d'une règle ; retourne true si le message a été supprimé */
 async function appliquer(message, cfg, { id, name, action, heat: pts, timeoutMin }) {
   const key = `${message.guild.id}:${message.author.id}`;
   let deleted = false, done = [];
   if (action !== 'alert') {
-    try { await message.delete(); deleted = true; done.push('message supprimé'); } catch { /* permission manquante */ }
+    try { await message.delete(); deleted = true; done.push('message supprimé'); } catch (e) { diagSuppression(message, e); }
   }
   if (action === 'warn') { addWarn(message, name); done.push('avertissement'); }
   let timeoutMs = action === 'timeout' ? (timeoutMin || 10) * 60 * 1000 : 0;
@@ -86,8 +95,10 @@ const inList = (d, list) => list.some(x => d === x || d.endsWith('.' + x));
 
 async function traiter(message) {
   if (!message.guild || !message.member || message.author.bot || message.webhookId) return;
-  if (message.member.permissions.has(PermissionFlagsBits.Administrator) || message.member.permissions.has(PermissionFlagsBits.ManageMessages)) return;
   const cfg = obtenirConfigGuilde(message.guild.id);
+  // Les administrateurs et modérateurs sont ignorés, sauf si l'option « Appliquer aussi aux administrateurs » est activée (dashboard)
+  const staff = message.member.permissions.has(PermissionFlagsBits.Administrator) || message.member.permissions.has(PermissionFlagsBits.ManageMessages);
+  if (staff && cfg.automod_apply_staff !== true) return;
   const text = String(message.content || '');
   const now = Date.now();
 
