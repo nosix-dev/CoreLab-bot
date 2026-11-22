@@ -11,8 +11,8 @@ const { PermissionFlagsBits } = require('discord.js');
 const sanctionsLog = require('./sanctionsLog');
 const reports = require('./reports');
 
-const TYPES_SANCTION = ['ban', 'kick', 'timeout', 'mute'];
-const LIBELLE = { ban: 'Bannissement', kick: 'Expulsion', timeout: 'Timeout', mute: 'Mute' };
+const TYPES_SANCTION = ['ban', 'kick', 'timeout', 'mute', 'quarantine'];
+const LIBELLE = { ban: 'Bannissement', kick: 'Expulsion', timeout: 'Timeout', mute: 'Mute', quarantine: 'Quarantaine' };
 
 const ok = (body = { ok: true }) => ({ code: 200, body });
 const ko = (code, error, reason) => ({ code, body: { error, ...(reason ? { reason } : {}) } });
@@ -39,7 +39,7 @@ const nomModo = (guild, id) => {
 };
 
 /* ------------------------------ À traiter ------------------------------ */
-function queue(guild, query) {
+async function queue(guild, query) {
   const d = reports.dossiers(guild, { status: 'open', q: query.get('q') || '' });
   const items = [];
   for (const dos of d.dossiers) {
@@ -53,11 +53,22 @@ function queue(guild, query) {
       });
     }
   }
+  // Sanctions automatiques : validations en attente + contestations ouvertes, et conversations modmail sans réponse
+  let conversations = 0;
+  try {
+    const f = await require('./discipline').elementsFile(guild);
+    items.push(...f.items);
+    conversations = f.conversations;
+  } catch (e) { console.error('[modApi] file À traiter :', e.message); }
   const { page, next } = pagination(items, query);
-  return ok({ items: page, next, stats: { pending: items.length, reports: items.length, conversations: 0 } });
+  return ok({ items: page, next, stats: { pending: items.length + conversations, reports: items.length, conversations } });
 }
-function queueAction(guild, user, id, action) {
+async function queueAction(guild, user, id, action) {
   if (!['resolve', 'dismiss'].includes(action)) return ko(400, 'invalid');
+  if (/^(valid|appeal)_/.test(String(id))) {
+    const r = await require('./discipline').deciderDepuisDashboard(guild, user, String(id), action);
+    return r.error ? ko(r.error === 'not_found' ? 404 : 400, r.error, r.reason) : ok();
+  }
   const r = reports.decider(guild.id, [id], action, { id: user.id, name: user.username });
   if (r.error === 'not_found') return ko(404, 'not_found');
   return r.error ? ko(400, r.error) : ok(r);
@@ -137,6 +148,7 @@ function statutSanction(guild, e, cfg) {
   if (e.revoked) return 'revoked';
   if (e.type === 'kick') return 'expired';
   if (e.type === 'ban') return 'active';
+  if (e.type === 'quarantine') return require('./discipline').estEnQuarantaine(guild.id, e.member.id) ? 'active' : 'expired';
   const m = guild.members.cache.get(e.member.id);
   if (!m) return 'expired';
   if (e.type === 'timeout') return (m.communicationDisabledUntilTimestamp || 0) > Date.now() ? 'active' : 'expired';
@@ -164,6 +176,7 @@ async function leverSanction(guild, user, id) {
   const raison = `Levée depuis le dashboard par ${user.username}`;
   try {
     if (e.type === 'ban') await guild.bans.remove(uid, raison);
+    else if (e.type === 'quarantine') await require('./discipline').libererQuarantaine(guild, uid, raison);
     else if (e.type === 'timeout') { const mb = guild.members.cache.get(uid) || await guild.members.fetch(uid).catch(() => null); if (mb) await mb.timeout(null, raison); }
     else if (e.type === 'mute') {
       const cfg = require('./config').obtenirConfigGuilde(guild.id);

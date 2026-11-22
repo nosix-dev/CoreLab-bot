@@ -18,7 +18,8 @@ const LIBELLES = {
   unmute: '🔊 Démute',
   timeout: '⏳ Timeout',
   untimeout: '✅ Timeout retiré',
-  warn: '⚠️ Avertissement'
+  warn: '⚠️ Avertissement',
+  quarantine: '🔒 Quarantaine'
 };
 
 // Icone dashboard par type d'infraction (retombe sur 🛡️ si type inconnu)
@@ -29,7 +30,8 @@ const ICONES_DASHBOARD = {
   unmute: '🔊',
   timeout: '⏳',
   untimeout: '✅',
-  warn: '⚠️'
+  warn: '⚠️',
+  quarantine: '🔒'
 };
 
 const THEMES_CARTE = {
@@ -39,7 +41,8 @@ const THEMES_CARTE = {
   timeout: 'amber',
   warn: 'amber',
   unmute: 'green',
-  untimeout: 'green'
+  untimeout: 'green',
+  quarantine: 'orange'
 };
 
 /**

@@ -1897,6 +1897,23 @@ async function route(req, res, { client }, url) {
     }
   }
 
+  /* ---------- Sanctions : préparation de la quarantaine (rôle + salons en lecture seule) ---------- */
+  const qm = p.match(/^\/api\/guilds\/(\d+)\/discipline\/quarantine-setup$/);
+  if (qm) {
+    if (!sess.guilds.some(g => g.id === qm[1])) return J(403, { error: 'forbidden' });
+    const qGuild = client.guilds.cache.get(qm[1]);
+    if (!qGuild) return J(404, { error: 'bot_absent' });
+    if (req.method !== 'POST') return J(405, { error: 'method' });
+    try {
+      const r = await require('./discipline').preparerQuarantaine(qGuild, sess.user);
+      if (r.code === 200) console.log(`[WebDashboard] ${sess.user.username} : quarantaine préparée sur ${qGuild.name}`);
+      return J(r.code, r.body);
+    } catch (e) {
+      console.error('[WebDashboard] quarantaine :', e.message);
+      return J(500, { error: 'quarantine' });
+    }
+  }
+
   const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye)|\/(activity)|\/honeypot\/(generate|regenerate|refresh)|\/honeypot-media\/(banner|thumbnail))?$/);
   if (!m) return J(404, { error: 'not_found' });
   const [, guildId, isMeta, modId, previewKind, bgKind, isActivity, hpAction, hpMediaKind] = m;

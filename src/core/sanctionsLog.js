@@ -29,7 +29,7 @@ function enregistrer(guildId, { type, member, moderator, reason }) {
     });
     if (db[gid].length > MAX_PAR_SERVEUR) db[gid] = db[gid].slice(-MAX_PAR_SERVEUR);
     try {
-      const LBL = { kick: 'Expulsion', ban: 'Bannissement', timeout: 'Timeout', mute: 'Mute' };
+      const LBL = { kick: 'Expulsion', ban: 'Bannissement', timeout: 'Timeout', mute: 'Mute', quarantine: 'Quarantaine' };
       require('./radarLog').enregistrer(gid, {
         category: 'moderation', title: LBL[type] || 'Sanction',
         description: `${member.displayName || member.user?.username || member.username || member.id} — ${String(reason || 'Aucune').slice(0, 160)}`,

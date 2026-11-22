@@ -575,6 +575,7 @@ client.once('clientReady', async () => {
   updateStatus.restaurer(client);
   try { require('./src/core/discordBackup').demarrer(client); } catch (e) { console.error('❌ Backup Discord:', e.message); }
   try { require('./src/core/topggVotes').demarrer(client); } catch (e) { console.error('❌ Votes top.gg:', e.message); }
+  try { require('./src/core/discipline').demarrer(client); } catch (e) { console.error('❌ Sanctions:', e.message); }
   synchroniserPseudosAuDemarrage(client);
   synchroniserRoleAuDemarrage(client);
   rehydrateIaSessions(client);
@@ -680,6 +681,9 @@ client.on('interactionCreate', async interaction => {
     }
     if (id.startsWith('modmail_')) {
       return routeModmailInteraction(interaction).catch(e => console.error('[Modmail] interaction :', e));
+    }
+    if (id.startsWith('sanct:')) {
+      return require('./src/core/discipline').routeSanctionInteraction(interaction).catch(e => console.error('[Sanctions] interaction :', e.message));
     }
     if (id.startsWith('discon:')) {
       return require('./src/commands/discon').routeDisconInteraction(interaction).catch(e => console.error('[DISCON] interaction :', e.message));

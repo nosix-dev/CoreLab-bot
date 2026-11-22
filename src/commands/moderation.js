@@ -146,6 +146,7 @@ const warn = {
       guild_id: interaction.guild.id
     });
     persist('warns');
+    require('../core/discipline').apresStrike(interaction.guild, uid, { reason }).catch(() => {});
     await sendInfraction(interaction.guild, 'Warn', member, interaction.user, reason);
     require('../handlers/logs').logWarn(interaction.guild, { target: member.user, moderator: interaction.user, reason }).catch(() => {});
     await interaction.reply({

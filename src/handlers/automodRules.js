@@ -51,6 +51,7 @@ function addWarn(message, label) {
     if (!store.warns[uid]) store.warns[uid] = [];
     store.warns[uid].push({ reason: `Automodération : ${label}`, moderator: message.client.user.id, date: new Date().toISOString(), guild_id: message.guild.id });
     persist('warns');
+    require('../core/discipline').apresStrike(message.guild, uid, { reason: `Automodération : ${label}` }).catch(() => {});
   } catch (e) { console.error('[AutomodRules] warn :', e.message); }
 }
 

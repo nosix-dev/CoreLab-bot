@@ -81,6 +81,19 @@ async function logAndStrike(message, type, detail) {
     });
     persist('infractions');
 
+    // Strike : un avertissement du serveur, pris en compte par les paliers de sanctions du dashboard
+    try {
+        if (!store.warns[uid]) store.warns[uid] = [];
+        store.warns[uid].push({
+            reason: `Anti-arnaque : ${type}`,
+            moderator: message.client.user.id,
+            date: new Date().toISOString(),
+            guild_id: message.guild.id,
+        });
+        persist('warns');
+        require('../core/discipline').apresStrike(message.guild, uid, { reason: `Anti-arnaque : ${type}` }).catch(() => {});
+    } catch (e) { console.error('[AntiScam] strike :', e.message); }
+
     const embed = new EmbedBuilder()
         .setTitle(`🚨 ${type}`)
         .setColor(0xff0000)
