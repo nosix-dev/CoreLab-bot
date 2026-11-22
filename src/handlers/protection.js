@@ -62,6 +62,13 @@ async function sendProtectionLog(guild, embed, files = [], opts = {}) {
   // opts.classic = true : vrai embed Discord (champs côte à côte), sans conversion en Components V2
   const toPayload = opts.classic ? (p) => ({ embeds: p.embeds, files: p.files }) : toCV2Payload;
   require('../core/radarLog').depuisEmbed(guild, embed); // journal du Radar (dashboard)
+  // Compteur « menaces bloquées » (site + /statut) : uniquement les vrais déclenchements de protection
+  try {
+    const titre = embed?.data?.title || embed?.title || '';
+    if (/Âge minimum non respecté|Anti-bot|Anti-alt|Anti-lien|Anti-Nuke déclenché|Ghost Ping|Auto RaidMode déclenché|saute-salon|Captcha échoué|Anti-spam déclenché|Anti-@everyone|HoneyPot déclenché/.test(titre)) {
+      require('../core/threatCounter').inc('threats_blocked');
+    }
+  } catch { /* ne bloque jamais le log */ }
   const cfg = getGuildConfig(guild.id);
   const channelId = getProtectionLogChannelId(cfg);
   if (channelId) {

@@ -63,6 +63,7 @@ try {
       memory: { used: process.memoryUsage().rss, total: memTotal },
       storage,
       history: require('./src/core/uptimeHistory').getHistory(),
+      counters: require('./src/core/threatCounter').all(),
     };
   };
 

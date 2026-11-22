@@ -71,6 +71,7 @@ async function ocrImageText(url) {
 }
 
 async function logAndStrike(message, type, detail) {
+    try { require('../core/threatCounter').inc('threats_blocked'); } catch { /* compteur du site */ }
     const uid = String(message.author.id);
     if (!store.infractions[uid]) store.infractions[uid] = [];
     store.infractions[uid].push({
