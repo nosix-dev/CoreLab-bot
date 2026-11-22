@@ -59,6 +59,7 @@ const SPAM_WINDOW_MS = 7000;
 const SPAM_TIMEOUT_MS = 5 * 60 * 1000;
 const { getProtectionLogChannelId } = require('../core/protectionLog');
 async function sendProtectionLog(guild, embed, files = []) {
+  require('../core/radarLog').depuisEmbed(guild, embed); // journal du Radar (dashboard)
   const cfg = getGuildConfig(guild.id);
   const channelId = getProtectionLogChannelId(cfg);
   if (channelId) {
@@ -843,9 +844,12 @@ function rehydrateDdosVoice(client) {
 //   unverifiedRoleId, verifiedRoleId, kickOnFail
 // }
 const captchaPending = new Map();
-function generateCaptchaCode(length = 5) {
-  // Lettres + chiffres, sans les caractères ambigus (0, O, 1, I)
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+// Difficulté du défi : facile = 4 lettres, standard = 5 caractères, difficile = 7 caractères.
+const CAPTCHA_LONGUEUR = { easy: 4, standard: 5, hard: 7 };
+function generateCaptchaCode(difficulty = 'standard') {
+  const length = CAPTCHA_LONGUEUR[difficulty] || CAPTCHA_LONGUEUR.standard;
+  // Lettres + chiffres, sans les caractères ambigus (0, O, 1, I) ; facile = lettres seulement
+  const chars = difficulty === 'easy' ? 'ABCDEFGHJKLMNPQRSTUVWXYZ' : 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < length; i++) {
     code += chars[Math.floor(Math.random() * chars.length)];
@@ -880,6 +884,13 @@ async function assignCaptcha(member) {
   const unverifiedRole = guild.roles.cache.get(String(cfg.captcha_role_id));
   const channel = guild.channels.cache.get(String(cfg.captcha_channel_id));
   if (!unverifiedRole || !channel || !channel.isTextBased?.()) return;
+  // Rôles dispensés : ces membres n'ont aucun captcha à passer (ils reçoivent directement le rôle « vérifié »).
+  const exempt = Array.isArray(cfg.captcha_exempt_roles) ? cfg.captcha_exempt_roles.map(String) : [];
+  if (exempt.some(id => member.roles.cache.has(id))) {
+    const verified = cfg.captcha_verified_role_id ? guild.roles.cache.get(String(cfg.captcha_verified_role_id)) : null;
+    if (verified && !member.roles.cache.has(verified.id)) await member.roles.add(verified, 'Captcha — rôle dispensé de vérification').catch(() => { });
+    return;
+  }
   try {
     await member.roles.add(unverifiedRole, 'Captcha — en attente de vérification');
   } catch (e) {
@@ -891,9 +902,11 @@ async function assignCaptcha(member) {
   clearCaptchaPending(key);
   const maxAttempts = Number(cfg.captcha_max_attempts) || 3;
   const timeoutMinutes = Number(cfg.captcha_timeout_minutes) || 5;
-  const code = generateCaptchaCode();
+  const difficulty = ['easy', 'standard', 'hard'].includes(cfg.captcha_difficulty) ? cfg.captcha_difficulty : 'standard';
+  const code = generateCaptchaCode(difficulty);
   const entry = {
     code,
+    difficulty,
     attempts: maxAttempts,
     maxAttempts,
     channelId: channel.id,
@@ -941,7 +954,7 @@ async function handleCaptchaMessage(message) {
     if (entry.attempts <= 0) {
       await captchaVerifyFailed(message.guild, message.author.id, entry, 'attempts');
     } else {
-      entry.code = generateCaptchaCode();
+      entry.code = generateCaptchaCode(entry.difficulty);
       const cfgTimeout = Number(cfg.captcha_timeout_minutes) || 5;
       const channel = message.channel;
       const errorEmbed = new EmbedBuilder().setTitle('❌ Code incorrect').setDescription(`<@${message.author.id}> Code incorrect ! Il vous reste **${entry.attempts}** tentative(s).`).setColor(0xff0000);
@@ -1007,6 +1020,20 @@ async function captchaVerifyFailed(guild, userId, entry, reason) {
   }
   const logEmbed = new EmbedBuilder().setTitle('❌ Captcha échoué').setDescription(`${target} (\`${userId}\`) a échoué la vérification captcha (${reason === 'timeout' ? 'temps écoulé' : 'tentatives épuisées'}).`).setColor(0xff0000).setTimestamp();
   await sendProtectionLog(guild, logEmbed);
+}
+// Bouton « Me vérifier » du panneau publié depuis le dashboard : lance (ou rappelle) le captcha du membre.
+async function startCaptchaFromButton(interaction) {
+  const cfg = getGuildConfig(interaction.guild.id);
+  const reply = content => interaction.reply({ content, flags: MessageFlags.Ephemeral }).catch(() => { });
+  if (!cfg.captcha_enabled || !cfg.captcha_role_id || !cfg.captcha_channel_id) return reply('La vérification est désactivée sur ce serveur.');
+  const member = interaction.member?.roles?.cache ? interaction.member : await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+  if (!member) return reply('Impossible de te retrouver sur le serveur.');
+  if (captchaPending.has(`${interaction.guild.id}_${member.id}`)) return reply(`Un code t'attend déjà dans <#${cfg.captcha_channel_id}>.`);
+  const verified = cfg.captcha_verified_role_id && member.roles.cache.has(String(cfg.captcha_verified_role_id));
+  if (verified) return reply('Tu es déjà vérifié ✅');
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(() => { });
+  await assignCaptcha(member);
+  return interaction.editReply({ content: `Un code vient d'être envoyé dans <#${cfg.captcha_channel_id}>.` }).catch(() => { });
 }
 async function handleCaptchaTimeout(guild, userId) {
   const key = `${guild.id}_${userId}`;
@@ -3251,6 +3278,7 @@ async function routeProtectionInteraction(interaction) {
         return interaction.update(buildDdosPanel(interaction.guild, cfg, '🟢 Anti-DDoS activé.'));
       }
       if (id === 'protect_ddos_clear') return endDdosFromPanel(interaction, '🧯 Alerte Anti-DDoS levée : salons et serveur remis à la normale.');
+      if (id === 'protect_captcha_start') return startCaptchaFromButton(interaction);
       if (id === 'protect_captcha_btn') return openCaptchaConfig(interaction);
       if (id === 'protect_captcha_create_channel') return createCaptchaChannel(interaction);
       if (id === 'protect_minage_btn') return openMinAgePanel(interaction);

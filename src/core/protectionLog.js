@@ -22,6 +22,7 @@ function getProtectionLogChannel(guild) {
 
 // Envoie un embed (carte « verre fumé ») dans le salon de logs de protection
 async function sendProtectionEmbed(guild, embed, badge = 'PROTECTION') {
+  require('./radarLog').depuisEmbed(guild, embed); // journal du Radar (dashboard)
   const channel = getProtectionLogChannel(guild);
   if (!channel) return false;
   try {

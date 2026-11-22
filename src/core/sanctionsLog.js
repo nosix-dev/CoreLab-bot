@@ -28,6 +28,15 @@ function enregistrer(guildId, { type, member, moderator, reason }) {
       ts: Date.now()
     });
     if (db[gid].length > MAX_PAR_SERVEUR) db[gid] = db[gid].slice(-MAX_PAR_SERVEUR);
+    try {
+      const LBL = { kick: 'Expulsion', ban: 'Bannissement', timeout: 'Timeout', mute: 'Mute' };
+      require('./radarLog').enregistrer(gid, {
+        category: 'moderation', title: LBL[type] || 'Sanction',
+        description: `${member.displayName || member.user?.username || member.username || member.id} — ${String(reason || 'Aucune').slice(0, 160)}`,
+        member: { id: String(member.id), name: member.displayName || member.user?.username || member.username || null },
+        action: LBL[type] || type
+      });
+    } catch { /* le Radar est facultatif */ }
     fs.writeFileSync(FILE + '.tmp', JSON.stringify(db));
     fs.renameSync(FILE + '.tmp', FILE);
   } catch (e) { console.error('[sanctionsLog]', e.message); }
@@ -53,4 +62,20 @@ function retirer(guildId, ts, memberId) {
   } catch (e) { console.error('[sanctionsLog]', e.message); return false; }
 }
 
-module.exports = { enregistrer, lister, retirer };
+// Marque une sanction comme levée (depuis le dashboard). Retourne true si elle existait.
+function marquerLevee(guildId, ts, memberId, par) {
+  try {
+    const db = charger();
+    const liste = Array.isArray(db[String(guildId)]) ? db[String(guildId)] : [];
+    const e = liste.find(x => x.ts === ts && x.member?.id === String(memberId));
+    if (!e) return false;
+    e.revoked = true;
+    e.revokedAt = Date.now();
+    e.revokedBy = par ? String(par).slice(0, 80) : null;
+    fs.writeFileSync(FILE + '.tmp', JSON.stringify(db));
+    fs.renameSync(FILE + '.tmp', FILE);
+    return true;
+  } catch (e) { console.error('[sanctionsLog]', e.message); return false; }
+}
+
+module.exports = { enregistrer, lister, retirer, marquerLevee };

@@ -392,6 +392,8 @@ const MODULES = [
       CH('captcha_channel_id', 'Salon de vérification', { dep: 'captcha_enabled' }),
       RO('captcha_role_id', 'Rôle donné pendant la vérification', { dep: 'captcha_enabled' }),
       RO('captcha_verified_role_id', 'Rôle donné une fois vérifié', { dep: 'captcha_enabled' }),
+      S('captcha_difficulty', 'Difficulté du défi', 'standard', O(['easy', 'Facile (4 lettres)'], ['standard', 'Standard (5 caractères)'], ['hard', 'Difficile (7 caractères)']), { dep: 'captcha_enabled' }),
+      { key: 'captcha_exempt_roles', label: 'Rôles dispensés de vérification', type: 'roles', def: [], dep: 'captcha_enabled', hint: 'Ces membres n’ont pas de captcha à passer.' },
       N('captcha_timeout_minutes', 'Temps pour répondre (minutes)', 5, 1, 120, { dep: 'captcha_enabled' }),
       N('captcha_max_attempts', 'Essais autorisés', 3, 1, 20, { dep: 'captcha_enabled' }),
       B('captcha_kick_on_fail', 'Expulser en cas d’échec', true, { dep: 'captcha_enabled' })
@@ -559,6 +561,34 @@ const MODULES = [
       S('stafftools_gap_hours', 'Durée sans staff avant l’alerte', '4', O(['2', '2 heures'], ['4', '4 heures'], ['6', '6 heures'], ['8', '8 heures']), { dep: 'stafftools_gap_alert' }),
       CH('stafftools_gap_channel', 'Salon d’alerte', { dep: 'stafftools_gap_alert' })
     ]
+  },
+
+  /* ---------- Modules internes (pages Modération du dashboard ; absents de la liste des modules) ---------- */
+  {
+    id: 'pending', name: 'À traiter', group: 'Modération', toggle: null, internal: true,
+    desc: 'Délai des conversations sans réponse et récap quotidien du staff.',
+    fields: [
+      N('pending_unanswered_hours', 'Conversation sans réponse après (heures)', 4, 1, 72),
+      B('pending_recap_enabled', 'Récap quotidien', false),
+      CH('pending_recap_channel', 'Salon du staff', { dep: 'pending_recap_enabled' }),
+      { key: 'pending_recap_time', label: 'Heure d’envoi', type: 'time', def: '09:00', dep: 'pending_recap_enabled' }
+    ]
+  },
+  {
+    id: 'discipline', name: 'Sanctions', group: 'Modération', toggle: null, internal: true,
+    desc: 'Paliers de sanctions, strikes, quarantaine, validation et contestations.',
+    fields: [
+      { key: 'discipline_tiers', label: 'Paliers de sanctions', type: 'tiers', def: [] },
+      N('discipline_strike_expiry_days', 'Durée de vie d’un strike (jours)', 0, 0, 365),
+      B('discipline_strike_dm', 'Prévenir le membre en message privé', true),
+      B('discipline_quarantine_enabled', 'Activer la quarantaine', false),
+      RO('discipline_quarantine_role', 'Rôle de quarantaine', { dep: 'discipline_quarantine_enabled' }),
+      B('discipline_validation_enabled', 'Faire valider les sanctions lourdes', false),
+      CH('discipline_validation_channel', 'Salon de validation', { dep: 'discipline_validation_enabled' }),
+      B('discipline_appeals_enabled', 'Autoriser les contestations', false),
+      CH('discipline_appeals_channel', 'Salon des contestations', { dep: 'discipline_appeals_enabled' }),
+      N('discipline_appeals_days', 'Délai pour contester (jours)', 7, 1, 90, { dep: 'discipline_appeals_enabled' })
+    ]
   }
 ];
 MODULES.splice(MODULES.findIndex(m => m.id === 'welcome') + 1, 0, cardModule('welcome'), cardModule('goodbye'));
@@ -691,6 +721,7 @@ function readField(f, raw) {
     case 'perms': return Array.isArray(raw) ? raw.filter(k => sec.PERM_KEYS.includes(k)) : f.def;
     case 'members': return Array.isArray(raw) ? raw.map(String) : [];
     case 'schedules': return Array.isArray(raw) ? raw : [];
+    case 'tiers': return Array.isArray(raw) ? raw : [];
     case 'hexcolor': return typeof raw === 'string' && /^#[0-9a-f]{6}$/i.test(raw) ? raw.toLowerCase() : '';
     case 'optnumber': return raw === null || raw === undefined || raw === '' || !Number.isFinite(Number(raw)) ? '' : Number(raw);
     case 'color': return Number.isInteger(raw) ? '#' + raw.toString(16).padStart(6, '0') : (f.def || '#ffffff');
@@ -816,6 +847,20 @@ function checkField(f, v, cur, ctx) {
         out.push({ level, roleId });
       }
       return { value: out };
+    }
+    case 'tiers': {
+      if (!Array.isArray(v) || v.length > 20) return bad('20 paliers maximum');
+      const out = [];
+      for (const r of v) {
+        const strikes = Math.round(Number(r?.strikes));
+        const action = String(r?.action || '');
+        const duration = Math.max(0, Math.round(Number(r?.duration) || 0));
+        if (!Number.isFinite(strikes) || strikes < 1 || strikes > 50) return bad('nombre de strikes invalide (1 à 50)');
+        if (!['timeout', 'kick', 'ban', 'quarantine'].includes(action)) return bad('sanction invalide');
+        if (action === 'timeout' && (duration < 1 || duration > 40320)) return bad('durée de timeout invalide (28 jours maximum)');
+        out.push({ strikes, action, duration: action === 'kick' ? 0 : duration });
+      }
+      return { value: out.sort((a, b) => a.strikes - b.strikes) };
     }
     case 'time': {
       const t = String(v ?? '');
@@ -1807,6 +1852,51 @@ async function route(req, res, { client }, url) {
     }
   }
 
+  /* ---------- Modération (À traiter, Infractions, Sanctions, Staff, Surveillance, Conflits) ---------- */
+  const modm = p.match(/^\/api\/guilds\/(\d+)\/mod\/(queue|infractions|sanctions|staff|watchlist|conflicts)(?:\/([\w.%-]+))?(?:\/(resolve|dismiss|revoke))?$/);
+  if (modm) {
+    if (!sess.guilds.some(g => g.id === modm[1])) return J(403, { error: 'forbidden' });
+    const mGuild = client.guilds.cache.get(modm[1]);
+    if (!mGuild) return J(404, { error: 'bot_absent' });
+    let mBody = {};
+    if (req.method === 'POST' || req.method === 'PUT') { try { mBody = await readBody(req); } catch { return J(400, { error: 'invalid' }); } }
+    try {
+      const r = await require('./modApi').handle({ guild: mGuild, user: sess.user, method: req.method, section: modm[2], sub: modm[3], action: modm[4], query: url.searchParams, body: mBody });
+      if (r.code === 200 && req.method !== 'GET') console.log(`[WebDashboard] ${sess.user.username} : modération/${modm[2]}${modm[3] ? '/' + modm[3] : ''} (${req.method}) sur ${mGuild.name}`);
+      return J(r.code, r.body);
+    } catch (e) {
+      console.error('[WebDashboard] modération :', e.message);
+      return J(500, { error: 'mod' });
+    }
+  }
+
+  /* ---------- Radar : journal des décisions de protection ---------- */
+  const radm = p.match(/^\/api\/guilds\/(\d+)\/radar$/);
+  if (radm) {
+    if (!sess.guilds.some(g => g.id === radm[1])) return J(403, { error: 'forbidden' });
+    if (!client.guilds.cache.has(radm[1])) return J(404, { error: 'bot_absent' });
+    if (req.method !== 'GET') return J(405, { error: 'method' });
+    return J(200, require('./radarLog').resume(radm[1], url.searchParams.get('range') === '7d' ? '7d' : '24h'));
+  }
+
+  /* ---------- Captcha : création des rôles / publication du panneau ---------- */
+  const capm = p.match(/^\/api\/guilds\/(\d+)\/captcha\/(setup-roles|publish)$/);
+  if (capm) {
+    if (!sess.guilds.some(g => g.id === capm[1])) return J(403, { error: 'forbidden' });
+    const cGuild = client.guilds.cache.get(capm[1]);
+    if (!cGuild) return J(404, { error: 'bot_absent' });
+    if (req.method !== 'POST') return J(405, { error: 'method' });
+    try {
+      const cm = require('./captchaSetup');
+      const r = capm[2] === 'publish' ? await cm.publish(cGuild, sess.user) : await cm.setupRoles(cGuild, sess.user);
+      if (r.code === 200) console.log(`[WebDashboard] ${sess.user.username} : captcha/${capm[2]} sur ${cGuild.name}`);
+      return J(r.code, r.body);
+    } catch (e) {
+      console.error('[WebDashboard] captcha :', e.message);
+      return J(500, { error: 'captcha' });
+    }
+  }
+
   const m = p.match(/^\/api\/guilds\/(\d+)(?:\/(meta)|\/modules\/(\w+)|\/preview\/(welcome|goodbye)|\/card-bg\/(welcome|goodbye)|\/(activity)|\/honeypot\/(generate|regenerate|refresh)|\/honeypot-media\/(banner|thumbnail))?$/);
   if (!m) return J(404, { error: 'not_found' });
   const [, guildId, isMeta, modId, previewKind, bgKind, isActivity, hpAction, hpMediaKind] = m;
@@ -2005,7 +2095,7 @@ async function route(req, res, { client }, url) {
   }
 
   if (!isMeta && !modId && req.method === 'GET') {
-    const modules = MODULES.map(mod => {
+    const modules = MODULES.filter(mod => !mod.internal).map(mod => {
       const v = readValues(mod, guildId);
       return { id: mod.id, name: mod.name, group: mod.group, desc: mod.desc, enabled: mod.toggle ? !!v[mod.toggle] : null };
     });

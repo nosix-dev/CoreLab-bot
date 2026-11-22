@@ -76,6 +76,8 @@ function obtenirConfigGuilde(idGuilde) {
             captcha_timeout_minutes: 5,
             captcha_max_attempts: 3,
             captcha_kick_on_fail: true,
+            captcha_difficulty: 'standard',
+            captcha_exempt_roles: [],
             tag_role_enabled: false,
             tag_role_id: null,
             signalement_enabled: false,
@@ -162,6 +164,8 @@ function obtenirConfigGuilde(idGuilde) {
     if (config.captcha_timeout_minutes === undefined) config.captcha_timeout_minutes = 5;
     if (config.captcha_max_attempts === undefined) config.captcha_max_attempts = 3;
     if (config.captcha_kick_on_fail === undefined) config.captcha_kick_on_fail = true;
+    if (config.captcha_difficulty === undefined) config.captcha_difficulty = 'standard';
+    if (config.captcha_exempt_roles === undefined) config.captcha_exempt_roles = [];
     if (config.tag_role_enabled === undefined) config.tag_role_enabled = false;
     if (config.tag_role_id === undefined) config.tag_role_id = null;
     if (config.signalement_enabled === undefined) config.signalement_enabled = false;
