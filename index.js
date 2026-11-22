@@ -1364,6 +1364,7 @@ require('./src/commands/anime').registerAnime(client);
 registerStarboardHandlers(client);
 registerModmailHandler(client);
 registerAntiScamHandler(client);
+try { require('./src/handlers/automodRules').registerAutomodRules(client); } catch (e) { console.error('❌ AutomodRules:', e.message); }
 registerNightModeHandler(client);
 registerSensitivePermsHandler(client);
 registerNetworkAlertsHandler(client);

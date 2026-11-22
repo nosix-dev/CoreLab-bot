@@ -14,6 +14,7 @@ const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { obtenirConfigGuilde, persister } = require('./config');
 const { dossierPersistant } = require('./persistentPath');
 const sec = require('./securityStore');
+const AM = require('./automodStore');
 
 const DISCORD = 'https://discord.com/api/v10';
 const ADMIN = 0x8n;
@@ -332,7 +333,14 @@ const MODULES = [
       B('anti_ghostping_enabled', 'Détection des ghost pings', false),
       B('anti_bot_enabled', 'Anti-bot (refuser les bots non autorisés)', false, { section: 'Comptes' }),
       B('anti_alt_enabled', 'Anti-alt (comptes trop récents)', false),
-      N('anti_alt_min_days', 'Âge minimum anti-alt (jours)', 7, 1, 365, { dep: 'anti_alt_enabled' })
+      N('anti_alt_min_days', 'Âge minimum anti-alt (jours)', 7, 1, 365, { dep: 'anti_alt_enabled' }),
+      // Page « Automodération » du dashboard (règles, automod intelligent, liens, nouveaux membres, limite)
+      { key: 'automod_rules', label: 'Règles', type: 'amrules', def: [], hidden: true },
+      { key: 'automod_smart', label: 'Automod intelligent', type: 'amsmart', def: {}, hidden: true },
+      { key: 'automod_links', label: 'Filtre de liens', type: 'amlinks', def: {}, hidden: true },
+      { key: 'automod_newmembers', label: 'Nouveaux membres', type: 'amnewm', def: {}, hidden: true },
+      { key: 'automod_ratelimit', label: 'Limite de publication', type: 'amrate', def: {}, hidden: true },
+      { key: 'automod_stats', label: 'Statistiques', type: 'amstats', def: {}, hidden: true }
     ]
   },
   {
@@ -694,7 +702,7 @@ function readValues(mod, guildId) {
   const src = source(mod, guildId), out = {};
   for (const f of mod.fields) {
     const key = mod.store === 'rankup' ? f.key : f.key;
-    out[f.key] = f.type === 'logevents' ? readLogEvents(src) : readField(f, getPath(src, key));
+    out[f.key] = f.type === 'logevents' ? readLogEvents(src) : f.type.startsWith('am') ? AM.read(f.type, src) : readField(f, getPath(src, key));
   }
   return out;
 }
@@ -780,6 +788,8 @@ function checkField(f, v, cur, ctx) {
       }
       return { value: out };
     }
+    case 'amrules': case 'amsmart': case 'amlinks': case 'amnewm': case 'amrate': return AM.check(f.type, v, cur, ctx);
+    case 'amstats': return bad('lecture seule');
     case 'logevents': {
       if (!v || typeof v !== 'object' || Array.isArray(v)) return bad('format invalide');
       const out = {};
@@ -1976,6 +1986,7 @@ async function route(req, res, { client }, url) {
         if ((f.emptyDelete && v === '') || (f.type === 'bool' && f.delWhen !== undefined && v === f.delWhen)) delPath(dest, f.key);
         else setPath(dest, f.key, v);
       }
+      if (mod.id === 'automod' && staged.some(([f]) => f.type.startsWith('am'))) AM.syncFlags(dest);
       if (mod.preview) { const ck = `${mod.preview}_card`; if (dest[ck] && !Object.keys(dest[ck]).length) delete dest[ck]; }
       await commit(mod, guildId);
       console.log(`[WebDashboard] ${sess.user.username} a modifié « ${mod.id} » sur ${guild.name} (${staged.length} réglage(s))`);
