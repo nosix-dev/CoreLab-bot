@@ -227,10 +227,37 @@ async function acteurRecent(guild, actionType, targetId = null, attenteMax = 900
   return trouve || null;
 }
 
+// ── Sanctions faites directement dans Discord (clic droit : timeout, expulser, bannir) ──
+// Elles ne passent pas par le bot : on les ajoute à l'historique de la page Infractions du dashboard.
+// Les sanctions faites par le bot lui-même (commandes, discipline…) sont déjà enregistrées ailleurs : on les ignore ici.
+function enregistrerSanctionDiscord(entry, guild) {
+  const botId = guild.client?.user?.id;
+  if (!entry.executorId || entry.executorId === botId) return;
+  const cible = entry.target;
+  if (!entry.targetId || cible?.bot) return;
+  let type = null, raison = entry.reason || '';
+  if (entry.action === AuditLogEvent.MemberKick) type = 'kick';
+  else if (entry.action === AuditLogEvent.MemberBanAdd) type = 'ban';
+  else if (entry.action === AuditLogEvent.MemberUpdate) {
+    const ch = (entry.changes || []).find(c => c.key === 'communication_disabled_until');
+    const fin = ch && ch.new ? Date.parse(ch.new) : 0;
+    if (!fin || fin <= Date.now()) return; // timeout retiré ou aucun changement de timeout
+    type = 'timeout';
+    const min = Math.max(1, Math.round((fin - Date.now()) / 60000));
+    const duree = min >= 1440 ? `${Math.round(min / 1440)} j` : min >= 60 ? `${Math.round(min / 60)} h` : `${min} min`;
+    raison = `${raison || 'Aucune raison'} (${duree})`;
+  }
+  if (!type) return;
+  const membre = cible && cible.id ? cible : { id: String(entry.targetId), username: null };
+  const modo = entry.executor && entry.executor.id ? entry.executor : { id: String(entry.executorId), username: null };
+  require('./sanctionsLog').enregistrer(guild.id, { type, member: membre, moderator: modo, reason: raison });
+}
+
 // ── Enregistrement ─────────────────────────────────────────────────────────
 function enregistrerEntreeDiscord(entry, guild) {
   if (!guild?.id) return;
   memoriser(guild.id, entry);
+  try { enregistrerSanctionDiscord(entry, guild); } catch (e) { console.error('[Audit] sanction Discord :', e.message); }
   const nomAction = AuditLogEvent[entry.action] || String(entry.action);
   const cible = entry.target;
   ajouter(guild.id, {
