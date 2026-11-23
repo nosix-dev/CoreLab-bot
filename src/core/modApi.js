@@ -71,6 +71,7 @@ async function queueAction(guild, user, id, action) {
   }
   const r = reports.decider(guild.id, [id], action, { id: user.id, name: user.username });
   if (r.error === 'not_found') return ko(404, 'not_found');
+  if (!r.error) require('./reportNotify').notifierSignaleurs(guild, action, r.decided).catch(() => {});
   return r.error ? ko(400, r.error) : ok(r);
 }
 

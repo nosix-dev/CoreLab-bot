@@ -79,9 +79,11 @@ const report = makeCommand('report', '🚩 Signaler un membre au staff', data =>
     name: 'Raison',
     value: raison.slice(0, 1000)
   }).setColor(0xff0000).setThumbnail(membre.displayAvatarURL()).setTimestamp();
-  await channel.send(toCV2Payload({
-    embeds: [embed]
-  })).catch(() => {});
+  // Embed classique (pas de conteneur Components V2) : les 3 premiers champs s'affichent côte à côte
+  await channel.send({
+    embeds: [embed],
+    allowedMentions: { parse: [] }
+  }).catch(() => {});
   return interaction.reply({
     content: '✅ Signalement envoyé au staff. Merci !',
     flags: MessageFlags.Ephemeral

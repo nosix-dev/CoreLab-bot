@@ -1843,6 +1843,7 @@ async function route(req, res, { client }, url) {
         const r = rep.decider(rGuild.id, ids, b.action, { id: sess.user.id, name: sess.user.username });
         if (r.error === 'invalid') return J(400, r);
         if (r.error) return J(404, r);
+        require('./reportNotify').notifierSignaleurs(rGuild, b.action, r.decided).catch(() => {});
         return J(200, r);
       }
       return J(405, { error: 'method' });

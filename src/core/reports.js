@@ -200,8 +200,10 @@ function decider(gid, ids, action, by) {
   const g = serveur(gid);
   const set = new Set(ids);
   let n = 0;
+  const decided = [];
   for (const r of g.reports) {
     if (!set.has(r.id) || r.status !== 'open') continue;
+    decided.push({ reporterId: r.reporter.id, targetId: r.target.id, targetName: r.target.name, reason: r.reason });
     r.status = status;
     r.decidedAt = Date.now();
     r.decidedBy = by.id;
@@ -210,7 +212,10 @@ function decider(gid, ids, action, by) {
   }
   if (!n) return { error: 'not_found' };
   sauver();
-  return { ok: true, count: n };
+  const res = { ok: true, count: n };
+  // liste des signalements traités, pour prévenir les signaleurs (non énumérable : absente de la réponse JSON)
+  Object.defineProperty(res, 'decided', { value: decided, enumerable: false });
+  return res;
 }
 
 // Tous les signalements ouverts d'un membre.
