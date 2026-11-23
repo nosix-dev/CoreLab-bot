@@ -119,7 +119,7 @@ async function appliquer(guild, modo, body) {
       const r = reports.decider(guild.id, ids, 'resolve', { id: modo.id, name: modo.username });
       if (r.ok) {
         traites = r.count;
-        require('./reportNotify').notifierSignaleurs(guild, 'resolve', r.decided).catch(() => {});
+        require('./reportNotify').notifierSignaleurs(guild, 'resolve', r.decided, { label: LIBELLE[action], duree }).catch(() => {});
       }
     }
   }
