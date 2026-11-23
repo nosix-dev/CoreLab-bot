@@ -1,0 +1,52 @@
+{
+  "channelId": "1513697900050387045",
+  "version": "5.5.39",
+  "date": "2026-11-23",
+  "mention": false,
+  "titre": "📌 Mise a jour 5.5.39 — Signalements : activité, sanctions et MP (5.5.39)",
+  "couleur": "#e8510d",
+  "article": {
+    "label": "Changelog",
+    "emoji": "📜",
+    "url": "https://corelab-4cn.pages.dev/docs#p-changelog"
+  },
+  "banner": {
+    "ligne1": "SIGNALEMENTS",
+    "ligne2": "ACTIVITÉ ET SANCTIONS",
+    "commandes": ["/report"]
+  },
+  "intro": "Les **signalements** font un grand pas : le bot garde l'**activité des 5 dernières minutes** du membre signalé, tu peux le **sanctionner depuis le dashboard**, et le signaleur reçoit la réponse **en MP** avec la sanction donnée.",
+  "modifications": {
+    "🚩 Activité du membre signalé": [
+      "[+] Avec **/report**, le bot enregistre ce que le membre signalé a fait dans les **5 minutes** avant le signalement : messages envoyés, **modifiés** (avant → après) et **supprimés**, avec le salon et l'heure.",
+      "[+] Sont aussi gardés : connexions et déconnexions en vocal, changements de pseudo et réactions ajoutées.",
+      "[+] Même un message supprimé avant le signalement reste lisible dans le dossier.",
+      "[+] Le message posté dans le salon des signalements affiche un résumé de cette activité.",
+      "[i] L'activité est copiée dans le signalement seulement quand il est envoyé, puis effacée automatiquement 30 jours après son traitement."
+    ],
+    "⚙️ Dashboard": [
+      "[+] Dans **Signalements**, chaque signalement a un bouton **Activité** qui ouvre la chronologie du membre signalé.",
+      "[~] Les anciens signalements n'ont pas d'activité enregistrée : le bouton n'apparaît pas pour eux."
+    ],
+    "🔨 Sanctions depuis le dashboard": [
+      "[+] Bouton **Sanctionner ce membre** dans chaque dossier : **Avertir**, **Timeout**, **Mute**, **Expulser** ou **Bannir**, avec une raison.",
+      "[+] **Timeout** : durée au choix de 1 minute à 28 jours.",
+      "[+] **Bannir** : option pour supprimer les messages de la dernière heure, des dernières 24 h ou des 7 derniers jours. Un membre qui a déjà quitté le serveur peut quand même être banni.",
+      "[+] Case pour **marquer les signalements du membre comme traités** en même temps : les signaleurs sont prévenus en MP.",
+      "[+] Chaque sanction est enregistrée avec le nom du modérateur dans les pages **Infractions** et **Sanctions**, et la raison apparaît dans le journal d'audit Discord.",
+      "[+] Le membre sanctionné reçoit un MP avec la raison (s'il accepte les MP).",
+      "[i] Les droits du modérateur sont vérifiés : permission Discord correspondante et rôle plus haut que celui du membre. Le propriétaire du serveur, le bot et soi-même ne peuvent pas être sanctionnés."
+    ],
+    "📩 Réponse au signaleur": [
+      "[~] Le message « Signalement traité » est envoyé **en MP** au signaleur et n'est plus posté dans le salon des signalements.",
+      "[+] Le MP indique la **sanction** donnée au membre signalé : avertissement, timeout avec sa durée, mute, expulsion ou bannissement.",
+      "[i] La sanction apparaît quand elle est appliquée depuis le dashboard avec la case « marquer les signalements comme traités » cochée. Si les MP du signaleur sont fermés, rien n'est envoyé dans le salon."
+    ]
+  },
+  "pied": "Ajoute CoreLab sur tes autres serveurs.",
+  "support": {
+    "label": "Inviter le bot",
+    "emoji": "🚀",
+    "url": "https://discord.com/oauth2/authorize?client_id=1403513450273177772&scope=bot%20applications.commands&permissions=8"
+  }
+}
