@@ -9,6 +9,7 @@ const {
 } = require('../core/config');
 const { buildProtectPayload } = require('../core/protectCard');
 const reportsStore = require('../core/reports');
+const activityTrail = require('../core/activityTrail');
 const {
   toCV2Payload
 } = require("../core/componentsV2");
@@ -50,12 +51,15 @@ const report = makeCommand('report', '🚩 Signaler un membre au staff', data =>
       flags: MessageFlags.Ephemeral
     });
   }
+  // Ce que le membre signalé vient de faire (5 dernières minutes), copié dans le signalement
+  const activite = activityTrail.recent(interaction.guild.id, membre.id);
   const saved = reportsStore.ajouter(interaction.guild.id, {
     reporter: { id: interaction.user.id, name: interaction.member?.displayName || interaction.user.username, avatar: interaction.user.displayAvatarURL({ size: 64 }) },
     target: { id: membre.id, name: interaction.guild.members.cache.get(membre.id)?.displayName || membre.username, avatar: membre.displayAvatarURL({ size: 64 }) },
     reason: raison,
     channelId: interaction.channel?.id,
-    channelName: interaction.channel?.name
+    channelName: interaction.channel?.name,
+    activity: activite
   });
   if (saved.error === 'duplicate') {
     return interaction.reply({
@@ -78,6 +82,9 @@ const report = makeCommand('report', '🚩 Signaler un membre au staff', data =>
   }, {
     name: 'Raison',
     value: raison.slice(0, 1000)
+  }, {
+    name: 'Activité du membre',
+    value: activityTrail.resume(activite)
   }).setColor(0xff0000).setThumbnail(membre.displayAvatarURL()).setTimestamp();
   // Embed classique (pas de conteneur Components V2) : les 3 premiers champs s'affichent côte à côte
   await channel.send({

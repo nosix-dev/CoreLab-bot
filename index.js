@@ -1366,6 +1366,7 @@ client.on('guildCreate', async guild => {
 });
 console.log('Lancement CoreLab (JavaScript)...');
 registerLogHandlers(client);
+require('./src/core/activityTrail').enregistrer(client); // mémoire des 5 dernières minutes d'activité (signalements)
 registerWelcomeImageHandler(client);
 registerWelcomeHandler(client);
 registerProtectionSetupHandler(client);

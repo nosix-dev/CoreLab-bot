@@ -9,6 +9,7 @@ const { fichierPersistant } = require('./persistentPath');
 const FILE = fichierPersistant('reports.json');
 const MAX_PAR_SERVEUR = 2000;
 const DONE = ['resolved', 'dismissed'];
+const ACTIVITE_GARDEE_MS = 30 * 24 * 3600 * 1000; // l'activité copiée dans un signalement traité est effacée après 30 jours
 
 const DEFAUTS = {
   group_enabled: true,        // détecter les regroupements de signalements sur un même membre
@@ -69,7 +70,7 @@ function majReglages(gid, body) {
   return { ok: true, settings: next };
 }
 
-function ajouter(gid, { reporter, target, reason, channelId, channelName }) {
+function ajouter(gid, { reporter, target, reason, channelId, channelName, activity }) {
   const g = serveur(gid);
   const s = reglages(gid);
   if (s.block_duplicates && g.reports.some(r => r.status === 'open' && r.reporter.id === reporter.id && r.target.id === target.id)) {
@@ -85,7 +86,13 @@ function ajouter(gid, { reporter, target, reason, channelId, channelName }) {
     channelId: channelId || null,
     channelName: channelName || null
   };
+  // Activité du membre signalé sur les 5 minutes avant le signalement (messages envoyés / modifiés / supprimés…).
+  // Tableau vide = rien enregistré ; absent = ancien signalement, créé avant cette fonction.
+  if (Array.isArray(activity)) r.activity = activity.slice(-30);
   g.reports.push(r);
+  // On allège les signalements traités depuis longtemps (le contenu des messages n'est pas gardé indéfiniment)
+  const limiteActivite = Date.now() - ACTIVITE_GARDEE_MS;
+  for (const x of g.reports) if (x.activity && DONE.includes(x.status) && (x.decidedAt || x.ts) < limiteActivite) delete x.activity;
   if (g.reports.length > MAX_PAR_SERVEUR) {
     // on supprime d'abord les plus anciens déjà traités
     const surplus = g.reports.length - MAX_PAR_SERVEUR;
@@ -175,6 +182,7 @@ function dossiers(guild, { status = '', q = '' } = {}) {
           channel: r.channelName,
           decidedBy: r.decidedByName || null,
           decidedAt: r.decidedAt || null,
+          activity: Array.isArray(r.activity) ? r.activity : null,
           reporter: { ...nomMembre(guild, r.reporter), trust: s.trust_enabled ? confiance(gid, r.reporter.id) : null }
         }))
     });
