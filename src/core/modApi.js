@@ -2,6 +2,7 @@
 //   queue        À traiter           GET + POST :id/(resolve|dismiss)
 //   infractions  Infractions         GET + DELETE :id
 //   sanctions    Sanctions           GET + POST :id/revoke
+//   punish       Sanction depuis un dossier POST {member, action, reason, minutes, deleteSeconds, resolve}
 //   staff        Équipe de modération GET
 //   watchlist    Surveillance        GET, POST, DELETE :id, PUT settings   (handlers/surveillance.js)
 //   conflicts    Conflits            GET, PUT settings                      (handlers/surveillance.js)
@@ -248,6 +249,12 @@ async function handle({ guild, user, method, section, sub, action, query, body }
       if (method === 'GET' && !sub) return sanctions(guild, query);
       if (method === 'POST' && sub && action === 'revoke') return leverSanction(guild, user, decodeURIComponent(sub));
       return ko(405, 'method');
+    case 'punish': {
+      if (method !== 'POST' || sub) return ko(405, 'method');
+      const r = await require('./dashboardSanction').appliquer(guild, user, body || {});
+      if (r.error) return ko(r.error === 'forbidden' ? 403 : r.error === 'member_not_found' ? 404 : 400, r.error, r.reason);
+      return ok(r);
+    }
     case 'staff':
       return method === 'GET' && !sub ? staff(guild, query) : ko(405, 'method');
     case 'watchlist': return surveillance(guild, user, method, sub, body);

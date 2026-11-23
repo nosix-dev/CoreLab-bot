@@ -1854,7 +1854,7 @@ async function route(req, res, { client }, url) {
   }
 
   /* ---------- Modération (À traiter, Infractions, Sanctions, Staff, Surveillance, Conflits) ---------- */
-  const modm = p.match(/^\/api\/guilds\/(\d+)\/mod\/(queue|infractions|sanctions|staff|watchlist|conflicts)(?:\/([\w.%-]+))?(?:\/(resolve|dismiss|revoke))?$/);
+  const modm = p.match(/^\/api\/guilds\/(\d+)\/mod\/(queue|infractions|sanctions|staff|watchlist|conflicts|punish)(?:\/([\w.%-]+))?(?:\/(resolve|dismiss|revoke))?$/);
   if (modm) {
     if (!sess.guilds.some(g => g.id === modm[1])) return J(403, { error: 'forbidden' });
     const mGuild = client.guilds.cache.get(modm[1]);
