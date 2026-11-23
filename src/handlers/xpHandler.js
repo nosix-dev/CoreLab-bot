@@ -38,7 +38,8 @@ async function grantXp(member, cfg, gained, source = 'message') {
   await applyRoleRewards(member, cfg, afterLevel);
   const channel = cfg.xp_level_channel_id ? guild.channels.cache.get(String(cfg.xp_level_channel_id)) : null;
   if (!channel?.isTextBased?.()) return;
-  const badge = isFounder(member.id) ? 'Founder' : isPremium(member.id) ? 'Premium' : '';
+  const supporter = require('../core/supporter').info(member.id);
+  const badge = [isFounder(member.id) ? 'Founder' : isPremium(member.id) ? 'Premium' : '', supporter ? supporter.texte : ''].filter(Boolean).join(' · ');
 
   // Message simple (mention du membre) + carte verte générée en pièce jointe
   const allowedMentions = {
@@ -51,6 +52,7 @@ async function grantXp(member, cfg, gained, source = 'message') {
       guildId: member.guild?.id,
       username: member.user.username,
       badge,
+      supporter: !!supporter,
       level: afterLevel,
       totalXp: after,
       gainedXp: gained,
@@ -89,13 +91,14 @@ function registerXpHandler(client) {
       if (!cfg.xp_enabled) return;
       if ((cfg.xp_ignored_channels || []).includes(message.channel.id)) return;
       const key = `${message.guild.id}-${message.author.id}`;
-      const cooldown = (cfg.xp_cooldown ?? 60) * 1000;
+      const supporterLib = require('../core/supporter');
+      const cooldown = (cfg.xp_cooldown ?? 60) * 1000 * supporterLib.cooldownFacteur(message.author.id);
       const now = Date.now();
       if (cooldowns.has(key) && now - cooldowns.get(key) < cooldown) return;
       cooldowns.set(key, now);
       const min = cfg.xp_min ?? 15;
       const max = cfg.xp_max ?? 25;
-      const gained = Math.floor(Math.random() * (max - min + 1)) + min;
+      const gained = Math.round((Math.floor(Math.random() * (max - min + 1)) + min) * supporterLib.xpMultiplicateur(message.author.id));
       await grantXp(message.member, cfg, gained);
     } catch (e) {
       console.error('Erreur du système XP :', e.message);

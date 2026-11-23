@@ -363,6 +363,8 @@ const allDefinedCommands = [makeCommand('premium', 'Découvrez les avantages de 
     .setTitle('📊 Niveau & Mascotte')
     .setDescription(`Niveau **${level.level}** · **${xp.toLocaleString('fr-FR')} XP**`)
     .setColor(0xE8510D);
+  const sup = require('../core/supporter').info(userId);
+  if (sup) embed.addFields({ name: 'Badge', value: `${sup.label} · **${sup.votes}** votes · +10 % d'XP`, inline: false });
   if (diamant) {
     const stage = getStage(diamant);
     embed.addFields(
@@ -398,7 +400,7 @@ const allDefinedCommands = [makeCommand('premium', 'Découvrez les avantages de 
     const entries = top.map(([id, xp]) => {
       const m = members.get?.(id) || interaction.guild.members.cache.get(id);
       return {
-        name: m?.displayName || m?.user?.username || `Membre ${id.slice(-4)}`,
+        name: (m?.displayName || m?.user?.username || `Membre ${id.slice(-4)}`) + (require('../core/supporter').info(id) ? ` [${require('../core/supporter').info(id).texte}]` : ''),
         xp,
         level: getLevelFromXp(xp).level
       };

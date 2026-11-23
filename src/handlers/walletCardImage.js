@@ -236,6 +236,7 @@ async function generateWalletCardImage(opts) {
     currencyName = 'Scarabée',
     isFounder    = false,
     isPremium    = false,
+    supporterLabel = null,
     goalAmount   = 1000000,
     weekDelta    = null,
     monthPct     = null,
@@ -250,6 +251,7 @@ async function generateWalletCardImage(opts) {
     const pills = [];
     if (isFounder) pills.push({ text: 'Fondateur', tone: 'accent' });
     else if (isPremium) pills.push({ text: 'Premium', tone: 'accent' });
+    if (supporterLabel) pills.push({ text: supporterLabel, tone: 'accent' });
     if (weekDelta != null) pills.push({ text: `Semaine ${formatSigned(weekDelta)}`, tone: weekDelta >= 0 ? 'ok' : 'bad' });
     if (monthPct != null) pills.push({ text: `Mois ${formatSignedPct(monthPct)}`, tone: monthPct >= 0 ? 'ok' : 'bad' });
     return cc.renderCompact({

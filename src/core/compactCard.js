@@ -38,7 +38,7 @@ async function renderCompact(spec) {
 // Pré-charge les emojis d'icône au démarrage (cartes synchrones : niveau, config, classement…)
 function warmEmojis(extra = []) {
   try {
-    require('./cardEmoji').preloadEmojis(['⬆️', '⭐', '⚙️', '🏆', ...extra]).catch(() => { });
+    require('./cardEmoji').preloadEmojis(['⬆️', '⭐', '⚙️', '🏆', '💎', '🌟', '👑', ...extra]).catch(() => { });
   } catch { /* les icônes apparaîtront dès qu'elles seront en cache */ }
 }
 warmEmojis();
@@ -52,6 +52,7 @@ function levelUpSpec(o) {
   const ratio = o.neededXp > 0 ? Math.max(0, Math.min(1, o.currentXp / o.neededXp)) : 0;
   return {
     guildId: o.guildId,
+    ...(o.supporter ? { theme: 'orange' } : {}), // carte dorée pour les Supporters
     title: '⬆️ Level up',
     sub: o.badge ? `${o.username}  ·  ${o.badge}` : o.username,
     blocks: [

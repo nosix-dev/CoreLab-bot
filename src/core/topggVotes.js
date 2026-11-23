@@ -36,6 +36,13 @@ function utilisateur(id) {
     return donnees.users[cle];
 }
 
+// Lecture seule : ne crée jamais d'entrée (utilisé pour afficher le badge Supporter partout).
+function lire(id) {
+    return donnees.users[String(id)] || null;
+}
+
+let clientRef = null;
+
 function jourParis(ts) {
     return new Date(ts).toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' });
 }
@@ -59,6 +66,7 @@ function bonusSerie(u) {
 // Enregistre un vote reçu du webhook.
 function enregistrerVote(userId, isWeekend = false, now = Date.now()) {
     const u = utilisateur(userId);
+    const palierAvant = require('./supporter').palierPour(u.totalVotes);
     if (serieActive(u, now)) {
         if (jourParis(now) !== jourParis(u.lastVoteAt)) u.streak += 1;
     } else {
@@ -71,12 +79,17 @@ function enregistrerVote(userId, isWeekend = false, now = Date.now()) {
     u.reminderSent = false;
     if (u.totalVotes >= VOTES_BADGE) u.badge = true;
     sauver();
+    const palierApres = require('./supporter').palierPour(u.totalVotes);
+    if (palierApres && palierApres.id !== palierAvant?.id) {
+        require('./supporter').onPalier(clientRef, String(userId), palierApres).catch(() => {});
+    }
     return u;
 }
 
 // Récompense en attente → montant d'XP à créditer (sans rien modifier).
 function xpAPayer(u) {
-    return u.pending * (XP_PAR_VOTE + bonusSerie(u));
+    const bonusSupporter = u.badge ? require('./supporter').XP_BONUS_PAR_VOTE : 0;
+    return u.pending * (XP_PAR_VOTE + bonusSerie(u) + bonusSupporter);
 }
 
 function marquerRecupere(userId) {
@@ -85,6 +98,15 @@ function marquerRecupere(userId) {
     u.pending = 0;
     sauver();
     return payes;
+}
+
+// Meilleurs voteurs (total de votes).
+function topVoteurs(n = 5) {
+    return Object.entries(donnees.users)
+        .filter(([, u]) => u.totalVotes > 0)
+        .sort((a, b) => b[1].totalVotes - a[1].totalVotes)
+        .slice(0, n)
+        .map(([id, u]) => ({ id, votes: u.totalVotes }));
 }
 
 function basculerRappel(userId) {
@@ -150,6 +172,7 @@ function handleWebhook(req, res) {
 
 // ── Rappels (MP quand le vote est de nouveau possible) ────────────────────
 function demarrer(client) {
+    clientRef = client;
     const LIEN = `https://top.gg/bot/${client.user?.id || process.env.CLIENT_ID || ''}/vote`;
     setInterval(async () => {
         if (!client.isReady()) return;
@@ -178,7 +201,7 @@ function demarrer(client) {
 }
 
 module.exports = {
-    utilisateur, enregistrerVote, xpAPayer, marquerRecupere, basculerRappel, peutRevoterA,
+    utilisateur, lire, topVoteurs, enregistrerVote, xpAPayer, marquerRecupere, basculerRappel, peutRevoterA,
     estWeekend, serieActive, bonusSerie, handleWebhook, demarrer,
     XP_PAR_VOTE, VOTES_BADGE, COOLDOWN_VOTE_MS, GRACE_SERIE_MS,
 };

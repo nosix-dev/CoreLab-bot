@@ -467,6 +467,7 @@ async function runEco(interaction, sub) {
       currencyName: settings.currencyName,
       isFounder: isFounder(target.id),
       isPremium: isPremium(target.id),
+      supporterLabel: require('../core/supporter').info(target.id)?.texte || null,
       goalAmount: settings.goalAmount,
       weekDelta,
       monthPct,
@@ -516,14 +517,15 @@ async function runEco(interaction, sub) {
     }
     const { level, bonus } = getLevelBonus(interaction.guild.id, interaction.user.id);
     const base = Math.floor(Math.random() * (settings.workMax - settings.workMin + 1)) + settings.workMin;
-    const gained = Math.round(base * (1 + bonus));
+    const bonusSup = require('../core/supporter').salaireBonus(interaction.user.id);
+    const gained = Math.round(base * (1 + bonus + bonusSup));
     const job = WORK_JOBS[Math.floor(Math.random() * WORK_JOBS.length)];
     account.wallet += gained;
     account.lastWork = now;
     saveEconomy();
     const embed = new EmbedBuilder()
       .setTitle('💼 Travail terminé')
-      .setDescription(`${interaction.user} ${job} et a gagné **${formatMoney(gained, settings)}** !${bonus > 0 ? `\n✨ Bonus niveau ${level} : +${Math.round(bonus * 100)}%` : ''}`)
+      .setDescription(`${interaction.user} ${job} et a gagné **${formatMoney(gained, settings)}** !${bonus > 0 ? `\n✨ Bonus niveau ${level} : +${Math.round(bonus * 100)}%` : ''}${bonusSup > 0 ? `\n💎 Bonus Supporter : +${Math.round(bonusSup * 100)}%` : ''}`)
       .setColor(0xE8510D);
     return interaction.reply(await gp(interaction, { embeds: [embed] }));
   }
@@ -877,7 +879,9 @@ async function runEco(interaction, sub) {
         flags: MessageFlags.Ephemeral
       });
     }
-    const cost = settings.wheelCost * tours;
+    // Supporter : 1 tour offert par jour (le 1er tour de la commande)
+    const tourOffert = require('../core/supporter').roueOfferteDispo(interaction.user.id, account, now);
+    const cost = settings.wheelCost * (tourOffert ? tours - 1 : tours);
     if (account.wallet < cost) {
       return interaction.reply({
         content: `❌ Il te faut **${formatMoney(cost, settings)}** pour ${tours > 1 ? `${tours} tours` : 'un tour'} (portefeuille : ${formatMoney(account.wallet, settings)}).`,
@@ -888,6 +892,7 @@ async function runEco(interaction, sub) {
     // Le paiement et les tirages sont enregistrés AVANT l'animation : impossible de dépenser deux fois.
     account.wallet -= cost;
     account.lastSpin = now;
+    if (tourOffert) account.freeSpinAt = now;
     const results = [];
     for (let n = 0; n < tours; n++) {
       const item = rollItem();
@@ -926,7 +931,7 @@ async function runEco(interaction, sub) {
     const userName = interaction.user.displayName ?? interaction.user.username;
     // Nom de fichier unique à chaque image : avec toujours « roue.png », Discord pouvait afficher
     // l'ancienne et la nouvelle image ensemble (carte dupliquée) après la modification du message.
-    const startText = `**${userName}** lance la roue${tours > 1 ? ` (${tours} tours)` : ''}...`;
+    const startText = `**${userName}** lance la roue${tours > 1 ? ` (${tours} tours)` : ''}...${tourOffert ? '\n💎 Tour offert Supporter !' : ''}`;
 
     // Réponse publique tout de suite (la génération du GIF peut dépasser les 3 s autorisées par Discord).
     await interaction.deferReply();
