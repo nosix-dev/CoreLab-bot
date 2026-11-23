@@ -433,10 +433,72 @@ function pourDashboard(guildId, { type, q, before, limit = 50, actor, action, fr
   };
 }
 
+// ── Filet de sécurité : timeout / ban faits dans Discord ──────────────────
+// Si Discord n'envoie pas l'entrée du journal d'audit (permission « Voir les logs du serveur » manquante, etc.),
+// la sanction serait absente de la page Infractions. On la détecte donc aussi via les événements classiques.
+const DELAI_FILET_MS = 3500;
+const dernierTimeout = new Map(); // guildId:membreId -> fin du dernier timeout vu
+
+function dureeLisible(ms) {
+  const min = Math.max(1, Math.round(ms / 60000));
+  return min >= 1440 ? `${Math.round(min / 1440)} j` : min >= 60 ? `${Math.round(min / 60)} h` : `${min} min`;
+}
+
+async function enregistrerFilet(guild, type, user, raison) {
+  try {
+    const sanctions = require('./sanctionsLog');
+    if (!user?.id || user.bot) return;
+    if (sanctions.recente(guild.id, user.id, type, 25000)) return; // déjà enregistré (journal d'audit ou commande du bot)
+    let modo = null;
+    try { // retrouver l'auteur dans le journal d'audit (si la permission existe)
+      const evenement = type === 'ban' ? AuditLogEvent.MemberBanAdd : AuditLogEvent.MemberUpdate;
+      const logs = await guild.fetchAuditLogs({ type: evenement, limit: 6 });
+      const e = logs.entries.find(x => String(x.targetId) === String(user.id) && Date.now() - x.createdTimestamp < 30000);
+      if (e) { modo = e.executor || null; if (e.reason && !/\(\d+ (min|h|j)\)$/.test(raison)) raison = `${e.reason} ${raison}`.trim(); }
+    } catch { /* pas de permission : auteur inconnu */ }
+    if (modo?.id && modo.id === guild.client?.user?.id) return; // sanction du bot lui-même, déjà gérée ailleurs
+    if (sanctions.recente(guild.id, user.id, type, 25000)) return; // l'entrée d'audit est arrivée pendant ce temps
+    sanctions.enregistrer(guild.id, {
+      type, member: user.user || user,
+      moderator: modo?.id ? modo : { id: '0', username: 'Inconnu' },
+      reason: raison || 'Aucune raison'
+    });
+  } catch (e) { console.error('[Audit] filet sanction :', e.message); }
+}
+
+function installerFilet(client) {
+  client.on('guildMemberUpdate', (ancien, nouveau) => {
+    try {
+      const cle = `${nouveau.guild.id}:${nouveau.id}`;
+      const fin = nouveau.communicationDisabledUntilTimestamp || 0;
+      const avant = ancien?.partial ? (dernierTimeout.get(cle) || 0) : (ancien?.communicationDisabledUntilTimestamp || 0);
+      if (fin > Date.now()) dernierTimeout.set(cle, fin); else dernierTimeout.delete(cle);
+      if (fin <= Date.now() || fin === avant) return; // pas de nouveau timeout
+      const raison = `Aucune raison (${dureeLisible(fin - Date.now())})`;
+      setTimeout(() => { enregistrerFilet(nouveau.guild, 'timeout', nouveau, raison); }, DELAI_FILET_MS).unref?.();
+    } catch (e) { console.error('[Audit] filet timeout :', e.message); }
+  });
+  client.on('guildBanAdd', ban => {
+    try {
+      const raison = ban.reason || '';
+      setTimeout(() => { enregistrerFilet(ban.guild, 'ban', ban.user, raison); }, DELAI_FILET_MS).unref?.();
+    } catch (e) { console.error('[Audit] filet ban :', e.message); }
+  });
+  // Prévient dans la console si le bot ne peut pas lire le journal d'audit quelque part
+  client.once('clientReady', () => {
+    for (const g of client.guilds.cache.values()) {
+      if (!g.members.me?.permissions.has(PermissionFlagsBits.ViewAuditLog)) {
+        console.warn(`[Audit] Permission « Voir les logs du serveur » manquante sur ${g.name} : les bans, kicks et timeouts faits dans Discord n'apparaîtront pas (ou sans auteur) dans Infractions.`);
+      }
+    }
+  });
+}
+
 function installer(client) {
   client.on('guildAuditLogEntryCreate', (entry, guild) => {
     try { enregistrerEntreeDiscord(entry, guild); } catch (e) { console.error('[Audit] entrée ignorée :', e.message); }
   });
+  installerFilet(client);
   purger();
   setInterval(purger, 6 * 3600 * 1000).unref?.();
 }

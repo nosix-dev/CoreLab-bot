@@ -47,6 +47,12 @@ function lister(guildId) {
   return Array.isArray(db[String(guildId)]) ? db[String(guildId)] : [];
 }
 
+// Vrai si une sanction de ce type a déjà été enregistrée pour ce membre dans les `ms` dernières millisecondes.
+function recente(guildId, memberId, type, ms = 20000) {
+  const depuis = Date.now() - ms;
+  return lister(guildId).some(e => e.type === type && e.member?.id === String(memberId) && e.ts >= depuis);
+}
+
 // Retire une entrée (identifiée par sa date et le membre concerné). Retourne true si elle existait.
 function retirer(guildId, ts, memberId) {
   try {
@@ -78,4 +84,4 @@ function marquerLevee(guildId, ts, memberId, par) {
   } catch (e) { console.error('[sanctionsLog]', e.message); return false; }
 }
 
-module.exports = { enregistrer, lister, retirer, marquerLevee };
+module.exports = { enregistrer, lister, recente, retirer, marquerLevee };
