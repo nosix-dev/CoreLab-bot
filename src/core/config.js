@@ -30,6 +30,9 @@ function obtenirConfigGuilde(idGuilde) {
             anti_phishing: false,
             anti_scam_image: false,
             anti_scam_ai: false,
+            anti_token_enabled: false,
+            dangerous_files_enabled: false,
+            compromised_account_enabled: false,
             anti_bot_enabled: false,
             anti_alt_enabled: false,
             anti_alt_min_days: 7,
@@ -214,6 +217,9 @@ function obtenirConfigGuilde(idGuilde) {
     if (config.anti_link_enabled === undefined) config.anti_link_enabled = false;
     if (config.anti_nuke_enabled === undefined) config.anti_nuke_enabled = false;
     if (config.anti_perm_escalation_enabled === undefined) config.anti_perm_escalation_enabled = false;
+    if (config.anti_token_enabled === undefined) config.anti_token_enabled = false;
+    if (config.dangerous_files_enabled === undefined) config.dangerous_files_enabled = false;
+    if (config.compromised_account_enabled === undefined) config.compromised_account_enabled = false;
     if (!Array.isArray(config.perm_guard_whitelist)) config.perm_guard_whitelist = [];
     if (config.anti_nuke_threshold === undefined) config.anti_nuke_threshold = 3;
     if (config.anti_nuke_window_seconds === undefined) config.anti_nuke_window_seconds = 10;

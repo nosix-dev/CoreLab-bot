@@ -60,6 +60,9 @@ const MODULES = [
   { key: 'anti_phishing', kind: 'toggle', label: 'Anti-phishing', on: c => c.anti_phishing,         sub: () => 'liens frauduleux' },
   { key: 'anti_scam_image', kind: 'toggle', label: 'Anti-arnaque (OCR)', on: c => c.anti_scam_image, sub: () => 'images suspectes' },
   { key: 'anti_scam_ai', kind: 'toggle', label: 'Anti-arnaque IA', on: c => c.anti_scam_ai, sub: () => 'analyse intelligente' },
+  { key: 'anti_token_enabled', kind: 'toggle', label: 'Anti-token', on: c => c.anti_token_enabled, sub: () => 'tokens et secrets' },
+  { key: 'dangerous_files_enabled', kind: 'toggle', label: 'Fichiers dangereux', on: c => c.dangerous_files_enabled, sub: () => '.exe, scripts, macros' },
+  { key: 'compromised_account_enabled', kind: 'toggle', label: 'Compte piraté', on: c => c.compromised_account_enabled, sub: () => 'spam multi-salons' },
   { key: 'dm_lock_enabled', kind: 'toggle', label: 'Fermeture des MP', on: c => c.dm_lock_enabled,   sub: () => 'MP des membres fermés' },
   { key: 'auth_double_detection_enabled', kind: 'toggle', label: 'Compte double', on: c => c.auth_double_detection_enabled, sub: () => 'détection des doublons' },
   { key: 'logs',       kind: 'config', label: 'Logs',            on: c => !!(c.protection_log_channel_id || c.protection_setup_channel_id || c.log_channel_id), sub: () => 'salon de journal' },
@@ -502,7 +505,7 @@ const PAGE_SIZE = 5; // limite Discord : 40 composants par message
 
 const TABS = [
   { key: 'arrivees',   label: 'Arrivées',   mods: ['raidmode', 'captcha', 'minage', 'anti_bot_enabled', 'anti_alt_enabled', 'auth', 'auth_double_detection_enabled'] },
-  { key: 'protection', label: 'Protection', mods: ['antispam', 'antieveryone', 'anti_link_enabled', 'anti_ghostping_enabled', 'anti_phishing', 'anti_scam_image', 'anti_scam_ai', 'dm_lock_enabled'] },
+  { key: 'protection', label: 'Protection', mods: ['antispam', 'antieveryone', 'anti_link_enabled', 'anti_ghostping_enabled', 'anti_phishing', 'anti_scam_image', 'anti_scam_ai', 'anti_token_enabled', 'dangerous_files_enabled', 'compromised_account_enabled', 'dm_lock_enabled'] },
   { key: 'attaques',   label: 'Attaques',   mods: ['anti_nuke_enabled', 'anti_perm_escalation_enabled', 'antiddos', 'antiddosvoice', 'honeypot'] },
   { key: 'moderation', label: 'Modération', mods: ['logs', 'sanctions', 'signalement', 'transparence', 'tagrole'] }
 ];
@@ -510,7 +513,7 @@ const TABS = [
 const MODULE_ICONS = {
   raidmode: '🚨', captcha: '🔐', minage: '⏳', anti_bot_enabled: '🤖', anti_alt_enabled: '👤', auth: '🪪',
   auth_double_detection_enabled: '👥', antispam: '🚫', antieveryone: '🔕', anti_link_enabled: '🔗',
-  anti_ghostping_enabled: '👻', anti_phishing: '🎣', anti_scam_image: '🖼️', anti_scam_ai: '🧠',
+  anti_ghostping_enabled: '👻', anti_phishing: '🎣', anti_scam_image: '🖼️', anti_scam_ai: '🧠', anti_token_enabled: '🔐', dangerous_files_enabled: '🚫', compromised_account_enabled: '🚨',
   dm_lock_enabled: '📪', anti_nuke_enabled: '💣', anti_perm_escalation_enabled: '🔑', antiddos: '🌊',
   antiddosvoice: '🔊', honeypot: '🍯', logs: '📜', sanctions: '⚖️', signalement: '🚩', transparence: '📖', tagrole: '🏷️'
 };

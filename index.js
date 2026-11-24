@@ -273,6 +273,7 @@ const {
 const {
   registerAntiScamHandler
 } = require('./src/handlers/antiScam');
+const { registerAccountGuardHandler } = require('./src/handlers/accountGuard');
 const { registerNightModeHandler } = require('./src/handlers/nightMode');
 const { registerSensitivePermsHandler } = require('./src/handlers/sensitivePerms');
 const { registerNetworkAlertsHandler } = require('./src/handlers/networkAlerts');
@@ -1365,6 +1366,7 @@ client.on('guildCreate', async guild => {
   }
 });
 console.log('Lancement CoreLab (JavaScript)...');
+registerAccountGuardHandler(client); // avant les logs : le secret est rendu muet de façon synchrone
 registerLogHandlers(client);
 require('./src/core/activityTrail').enregistrer(client); // mémoire des 5 dernières minutes d'activité (signalements)
 registerWelcomeImageHandler(client);

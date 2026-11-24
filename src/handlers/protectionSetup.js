@@ -158,7 +158,10 @@ const TOGGLES = {
     { key: 'anti_ghost', label: 'Anti-Ghostping', desc: 'Mentions supprimées', get: c => c.anti_ghostping_enabled, set: (c, v) => { c.anti_ghostping_enabled = v; } },
     { key: 'anti_phishing', label: 'Anti-phishing', desc: 'Liens frauduleux', get: c => c.anti_phishing, set: (c, v) => { c.anti_phishing = v; } },
     { key: 'anti_scam', label: 'Anti-arnaque (OCR)', desc: 'Images d\'arnaque (crypto…)', get: c => c.anti_scam_image, set: (c, v) => { c.anti_scam_image = v; } },
-    { key: 'anti_scam_ai', label: 'Anti-arnaque IA', desc: 'Analyse intelligente (Gemini)', get: c => c.anti_scam_ai, set: (c, v) => { c.anti_scam_ai = v; } }
+    { key: 'anti_scam_ai', label: 'Anti-arnaque IA', desc: 'Analyse intelligente (Gemini)', get: c => c.anti_scam_ai, set: (c, v) => { c.anti_scam_ai = v; } },
+    { key: 'anti_token', label: 'Anti-token', desc: 'Tokens, clés et secrets', get: c => c.anti_token_enabled, set: (c, v) => { c.anti_token_enabled = v; } },
+    { key: 'dangerous_files', label: 'Fichiers dangereux', desc: '.exe, .bat, .scr, macros…', get: c => c.dangerous_files_enabled, set: (c, v) => { c.dangerous_files_enabled = v; } },
+    { key: 'compromised_account', label: 'Compte piraté', desc: 'Spam de liens multi-salons', get: c => c.compromised_account_enabled, set: (c, v) => { c.compromised_account_enabled = v; } }
   ],
   4: [
     { key: 'double', label: 'Compte double', desc: 'Détection des doublons', get: c => c.auth_double_detection_enabled, set: (c, v) => { c.auth_double_detection_enabled = v; } }
@@ -305,7 +308,7 @@ function buildPage(guild, page) {
 // Récapitulatif : état de tous les modules + actions finales
 const RECAP_GROUPS = [
   { title: '🚨 Anti-raid & accès', keys: ['raidmode', 'antiddos', 'antiddosvoice', 'captcha', 'minage', 'anti_bot_enabled', 'anti_alt_enabled', 'dm_lock_enabled', 'auth', 'auth_double_detection_enabled'] },
-  { title: '🧹 Anti-abus', keys: ['antispam', 'antieveryone', 'anti_link_enabled', 'anti_nuke_enabled', 'anti_ghostping_enabled', 'anti_phishing', 'anti_scam_image', 'anti_scam_ai'] },
+  { title: '🧹 Anti-abus', keys: ['antispam', 'antieveryone', 'anti_link_enabled', 'anti_nuke_enabled', 'anti_ghostping_enabled', 'anti_phishing', 'anti_scam_image', 'anti_scam_ai', 'anti_token_enabled', 'dangerous_files_enabled', 'compromised_account_enabled'] },
   { title: '🗂️ Modération & suivi', keys: ['logs', 'signalement', 'sanctions', 'transparence', 'tagrole', 'honeypot'] }
 ];
 
@@ -344,6 +347,9 @@ function applyRecommended(cfg) {
   cfg.antieveryone = true;
   cfg.anti_phishing = true;
   cfg.anti_scam_image = true;
+  cfg.anti_token_enabled = true;
+  cfg.dangerous_files_enabled = true;
+  cfg.compromised_account_enabled = true;
   cfg.anti_nuke_enabled = true;
   cfg.raidmode_enabled = true;
   cfg.anti_ddos_enabled = true;
