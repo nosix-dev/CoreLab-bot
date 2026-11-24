@@ -128,6 +128,19 @@ function egal(a, b) {
     return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
+// Nouveau format top.gg (webhooks v1) : en-tête x-topgg-signature = "t=<timestamp>,v1=<hmac sha256 hex>"
+// calculé sur "<timestamp>.<corps brut>" avec le secret du webhook (whs_...).
+function signatureValide(entete, corps, secret) {
+    const parts = {};
+    String(entete || '').split(',').forEach(x => {
+        const i = x.indexOf('=');
+        if (i > 0) parts[x.slice(0, i).trim()] = x.slice(i + 1).trim();
+    });
+    if (!parts.t || !parts.v1) return false;
+    const attendu = crypto.createHmac('sha256', secret).update(`${parts.t}.${corps}`).digest('hex');
+    return egal(parts.v1, attendu);
+}
+
 function handleWebhook(req, res) {
     const secret = process.env.TOPGG_WEBHOOK_AUTH;
     console.log(`[TopGG] Requête webhook reçue (${req.method} ${req.url}).`);
@@ -135,24 +148,32 @@ function handleWebhook(req, res) {
         console.error('[TopGG] TOPGG_WEBHOOK_AUTH absent : webhook refusé.');
         res.writeHead(503); return res.end();
     }
-    const recu = req.headers.authorization || '';
-    if (!egal(recu, secret)) {
-        console.error(`[TopGG] Authorization refusée (en-tête ${recu ? 'présent mais différent' : 'absent'}). En-têtes reçus : ${Object.keys(req.headers).join(', ')}`);
-        res.writeHead(401); return res.end();
-    }
     let corps = '';
     req.on('data', c => {
         corps += c;
         if (corps.length > 20000) { res.writeHead(413); res.end(); req.destroy(); }
     });
     req.on('end', () => {
+        // Authentification : ancien format (Authorization) OU nouveau format (signature HMAC)
+        const recu = req.headers.authorization || '';
+        const signature = req.headers['x-topgg-signature'] || '';
+        const okAuth = !!recu && egal(recu, secret);
+        const okSignature = !!signature && signatureValide(signature, corps, secret);
+        if (!okAuth && !okSignature) {
+            console.error(`[TopGG] Authentification refusée (Authorization ${recu ? 'présent mais différent' : 'absent'}, signature ${signature ? 'invalide' : 'absente'}). Vérifie que TOPGG_WEBHOOK_AUTH = le secret du webhook top.gg. En-têtes reçus : ${Object.keys(req.headers).join(', ')}`);
+            res.writeHead(401); return res.end();
+        }
         let p;
         try { p = JSON.parse(corps); } catch { console.error('[TopGG] JSON invalide :', corps.slice(0, 300)); res.writeHead(400); return res.end(); }
         console.log('[TopGG] Payload :', corps.slice(0, 500));
 
-        // Ancien format : { type, user, isWeekend } — format alternatif : { type, data: { user: { platform_id } } }
+        // Ancien format : { type, user, isWeekend } — nouveau format : { type, data: { user: { platform_id }, weight } }
         const userId = String(p?.user || p?.data?.user?.platform_id || p?.data?.user?.id || '');
         const type = String(p?.type || '');
+        if (type === 'webhook.test' && !/^\d{5,25}$/.test(userId)) {
+            console.log('[TopGG] Test reçu : webhook OK.');
+            res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('OK');
+        }
         if (!/^\d{5,25}$/.test(userId)) {
             console.error('[TopGG] Utilisateur introuvable dans le payload.');
             res.writeHead(400); return res.end();
