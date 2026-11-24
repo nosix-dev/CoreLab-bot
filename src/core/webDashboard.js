@@ -224,9 +224,13 @@ const MODULES = [
       T('welcome_appearance.title', 'Titre du message de bienvenue', 256, { section: 'Apparence (Premium)', premium: true, emptyDelete: true, hint: 'Vide = titre par défaut. Variables : {user.mention} {user.name} {server.name} {server.member_count}' }),
       L('welcome_appearance.description', 'Texte du message de bienvenue', 1500, { premium: true, emptyDelete: true, hint: 'Variables : {user.mention} {user.name} {user.id} {user.joined_at} {server.name} {server.member_count}' }),
       { key: 'welcome_appearance.color', label: 'Couleur du message de bienvenue', type: 'color', def: '#e8510d', premium: true },
+      S('welcome_appearance.cardStyle', 'Style de la carte de bienvenue', 'banniere', O(['banniere', 'Image de bannière'], ['classique', 'Carte classique']), { premium: true, emptyDelete: true, delValue: 'banniere', hint: 'Classique = carte « verre fumé » générée par le bot. Bannière = ton image personnalisée en grand en bas du message (sans image, la carte classique est utilisée).' }),
+      { key: 'welcome_appearance.buttons', label: 'Boutons avec lien (bienvenue)', type: 'linkbuttons', def: [], premium: true, hint: '5 boutons maximum. Avec une description, le bouton s’affiche sur sa propre ligne à droite du texte.' },
       T('goodbye_appearance.title', 'Titre du message d’au revoir', 256, { premium: true, emptyDelete: true }),
       L('goodbye_appearance.description', 'Texte du message d’au revoir', 1500, { premium: true, emptyDelete: true }),
-      { key: 'goodbye_appearance.color', label: 'Couleur du message d’au revoir', type: 'color', def: '#e8510d', premium: true }
+      { key: 'goodbye_appearance.color', label: 'Couleur du message d’au revoir', type: 'color', def: '#e8510d', premium: true },
+      S('goodbye_appearance.cardStyle', 'Style de la carte d’au revoir', 'banniere', O(['banniere', 'Image de bannière'], ['classique', 'Carte classique']), { premium: true, emptyDelete: true, delValue: 'banniere', hint: 'Classique = carte « verre fumé » générée par le bot. Bannière = ton image personnalisée en grand en bas du message (sans image, la carte classique est utilisée).' }),
+      { key: 'goodbye_appearance.buttons', label: 'Boutons avec lien (au revoir)', type: 'linkbuttons', def: [], premium: true, hint: '5 boutons maximum. Avec une description, le bouton s’affiche sur sa propre ligne à droite du texte.' }
     ]
   },
   {
@@ -722,6 +726,7 @@ function readField(f, raw) {
     case 'members': return Array.isArray(raw) ? raw.map(String) : [];
     case 'schedules': return Array.isArray(raw) ? raw : [];
     case 'tiers': return Array.isArray(raw) ? raw : [];
+    case 'linkbuttons': return Array.isArray(raw) ? raw.slice(0, 5).map(b => ({ label: String(b?.label || ''), url: String(b?.url || ''), description: String(b?.description || '') })) : [];
     case 'hexcolor': return typeof raw === 'string' && /^#[0-9a-f]{6}$/i.test(raw) ? raw.toLowerCase() : '';
     case 'optnumber': return raw === null || raw === undefined || raw === '' || !Number.isFinite(Number(raw)) ? '' : Number(raw);
     case 'color': return Number.isInteger(raw) ? '#' + raw.toString(16).padStart(6, '0') : (f.def || '#ffffff');
@@ -845,6 +850,22 @@ function checkField(f, v, cur, ctx) {
         if (!roleId) return bad('choisis un rôle pour chaque niveau');
         if (!old.has(roleId)) { const e = roleCheck(roleId); if (e) return bad(e); }
         out.push({ level, roleId });
+      }
+      return { value: out };
+    }
+    case 'linkbuttons': {
+      if (!Array.isArray(v) || v.length > 5) return bad('5 boutons maximum');
+      const out = [];
+      for (let n = 0; n < v.length; n++) {
+        const label = String(v[n]?.label || '').trim();
+        const url = String(v[n]?.url || '').trim();
+        const description = String(v[n]?.description || '').trim();
+        if (!label && !url && !description) continue; // ligne vide ignorée
+        if (!label) return bad(`bouton ${n + 1} : texte manquant`);
+        if (!/^https?:\/\/\S+$/i.test(url) || url.length > 512) return bad(`bouton ${n + 1} : lien invalide (il doit commencer par https://)`);
+        const b = { label: label.slice(0, 80), url };
+        if (description) b.description = description.slice(0, 200);
+        out.push(b);
       }
       return { value: out };
     }

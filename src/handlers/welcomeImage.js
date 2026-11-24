@@ -75,7 +75,8 @@ function applyPlaceholders(text, member, { mentionAsName = false } = {}) {
 function buildWelcomeContainer(member, { includeImage = true, glassBuffer = null } = {}) {
     const cfg = getGuildConfig(member.guild.id);
     const appearance = cfg.welcome_appearance || {};
-    const found = includeImage ? findWelcomeImageFile(member.guild.id) : null;
+    // Style « classique » (Premium) : on ignore l'image de bannière et on garde la carte générée
+    const found = includeImage && appearance.cardStyle !== 'classique' ? findWelcomeImageFile(member.guild.id) : null;
 
     const title = applyPlaceholders(appearance.title, member, { mentionAsName: true }) || `Bienvenue sur ${member.guild.name} !`;
     const description = applyPlaceholders(appearance.description, member) ||
@@ -203,7 +204,7 @@ function registerWelcomeImageHandler(client) {
 
             // Pas d'image perso → carte de bienvenue en verre fumé (avatar, n° de membre, ancienneté du compte)
             let glassBuffer = null;
-            if (!findWelcomeImageFile(member.guild.id)) {
+            if (cfg.welcome_appearance?.cardStyle === 'classique' || !findWelcomeImageFile(member.guild.id)) {
                 glassBuffer = await renderWelcomeCard({
                     guildId: member.guild.id,
                     kind: 'welcome',

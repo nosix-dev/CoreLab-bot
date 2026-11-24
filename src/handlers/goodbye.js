@@ -61,7 +61,8 @@ function applyPlaceholders(text, member) {
 function buildGoodbyeContainer(member, { includeImage = true, glassBuffer = null } = {}) {
     const cfg = getGuildConfig(member.guild.id);
     const appearance = cfg.goodbye_appearance || {};
-    const found = includeImage ? findGoodbyeImageFile(member.guild.id) : null;
+    // Style « classique » (Premium) : on ignore l'image de bannière et on garde la carte générée
+    const found = includeImage && appearance.cardStyle !== 'classique' ? findGoodbyeImageFile(member.guild.id) : null;
 
     const title = applyPlaceholders(appearance.title, member) || `Au revoir, ${member.user.username}...`;
     const description = applyPlaceholders(appearance.description, member) ||
@@ -129,7 +130,7 @@ function registerGoodbyeHandler(client) {
             if (!channel?.isTextBased?.()) return;
 
             let glassBuffer = null;
-            if (!findGoodbyeImageFile(member.guild.id)) {
+            if (cfg.goodbye_appearance?.cardStyle === 'classique' || !findGoodbyeImageFile(member.guild.id)) {
                 glassBuffer = await renderWelcomeCard({
                     guildId: member.guild.id,
                     kind: 'goodbye',

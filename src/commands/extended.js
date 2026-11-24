@@ -888,7 +888,12 @@ async function executePanneau(interaction) {
           couleurLabel,
           couleurHexLabel
         } = buildCouleurLabelComponents(appearance.color);
-        modal.addLabelComponents(titreLabel, messageLabel, couleurLabel, couleurHexLabel);
+        const styleSelect = new StringSelectMenuBuilder().setCustomId('cardstyle').setRequired(false).setMinValues(0).setMaxValues(1).addOptions(
+          new StringSelectMenuOptionBuilder().setLabel('Image de bannière').setValue('banniere').setDefault(appearance.cardStyle !== 'classique'),
+          new StringSelectMenuOptionBuilder().setLabel('Carte classique').setValue('classique').setDefault(appearance.cardStyle === 'classique')
+        );
+        const styleLabel = new LabelBuilder().setLabel('Style de la carte').setDescription('Classique = carte générée · Bannière = ton image en bas').setStringSelectMenuComponent(styleSelect);
+        modal.addLabelComponents(titreLabel, messageLabel, couleurLabel, couleurHexLabel, styleLabel);
         await i.showModal(modal);
         try {
           const modalSubmit = await i.awaitModalSubmit({
@@ -910,6 +915,8 @@ async function executePanneau(interaction) {
           if (titre) gcfg[key].title = titre;
           if (message) gcfg[key].description = message;
           if (couleur !== undefined) gcfg[key].color = couleur;
+          let styleChoisi; try { styleChoisi = modalSubmit.fields.getStringSelectValues('cardstyle')[0]; } catch { /* inchangé */ }
+          if (styleChoisi === 'classique') gcfg[key].cardStyle = 'classique'; else if (styleChoisi === 'banniere') delete gcfg[key].cardStyle;
           persist('config');
           await modalSubmit.reply({
             content: isWelcome ? '✅ Message de bienvenue personnalisé !' : '✅ Message d\'au revoir personnalisé !',
