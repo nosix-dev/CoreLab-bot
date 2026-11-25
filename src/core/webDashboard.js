@@ -20,6 +20,7 @@ const DISCORD = 'https://discord.com/api/v10';
 const ADMIN = 0x8n;
 const MANAGE_GUILD = 0x20n;
 const TEXT_CHANNEL_TYPES = [0, 5];
+const ANN_SEND_LAST = new Map(); // anti-spam de l'envoi immédiat d'annonces (utilisateur + serveur)
 const CATEGORY_TYPE = 4;
 const MAX_LIST = 25;
 const previewBusy = new Map(); // userId → horodatage du dernier rendu d'aperçu (-1 = rendu en cours)
@@ -1500,6 +1501,82 @@ async function route(req, res, { client }, url) {
       return J(200, { ok: true, enabled: cfg.serverstats_enabled, categoryId: cfg.serverstats_category_id, counters: next });
     }
     return J(405, { error: 'method' });
+  }
+
+  // ---------- Envoi immédiat d'une annonce (sans toucher à la programmation) ----------
+  //   POST /api/guilds/:id/announcements/send-now     { message, channelId, image?: dataURL, announcementId? }
+  //   POST /api/guilds/:id/announcements/:annId/send  (envoie l'annonce enregistrée, image comprise)
+  const annSend = p.match(/^\/api\/guilds\/(\d+)\/announcements\/(?:(send-now)|([\w-]{1,40})\/send)$/);
+  if (annSend) {
+    const [, guildId, isNow, annId] = annSend;
+    if (req.method !== 'POST') return J(405, { error: 'method' });
+    if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return J(404, { error: 'bot_absent' });
+    const { getGuildBucket } = require('./config');
+    const list = getGuildBucket(guildId, 'scheduled', []);
+
+    const lastKey = `${sess.user.id}:${guildId}`;
+    if (Date.now() - (ANN_SEND_LAST.get(lastKey) || 0) < 3000) return J(429, { error: 'too_fast' });
+
+    let body = {};
+    try { body = await readBody(req, isNow ? 12 * 1024 * 1024 : 2000); } catch (e) {
+      return e && e.message === 'trop gros' ? J(413, { error: 'too_big' }) : J(400, { error: 'invalid' });
+    }
+
+    let message, channelId, files = [];
+    const savedFile = entry => (entry && entry.imagePath && fs.existsSync(entry.imagePath)) ? [entry.imagePath] : [];
+    if (annId) {
+      const entry = list.find(e => String(e.id) === annId);
+      if (!entry) return J(404, { error: 'not_found_announcement' });
+      message = String(entry.message || '').trim();
+      channelId = String(entry.channelId || '');
+      files = savedFile(entry);
+    } else {
+      if (!body || typeof body !== 'object' || Array.isArray(body)) return J(400, { error: 'invalid', reason: 'Données invalides.' });
+      message = typeof body.message === 'string' ? body.message.trim() : '';
+      channelId = String(body.channelId || '');
+      if (typeof body.image === 'string' && body.image) {
+        const head = /^data:image\/(?:png|jpeg|gif|webp);base64,/i.exec(body.image.slice(0, 60));
+        if (!head) return J(400, { error: 'invalid_image' });
+        const buf = Buffer.from(body.image.slice(head[0].length), 'base64');
+        if (buf.length > 8 * 1024 * 1024) return J(413, { error: 'too_big' });
+        const ext = sniffImage(buf);
+        if (!ext) return J(400, { error: 'invalid_image' });
+        files = [{ attachment: buf, name: `annonce.${ext}` }];
+      } else if (typeof body.announcementId === 'string' && /^[\w-]{1,40}$/.test(body.announcementId)) {
+        files = savedFile(list.find(e => String(e.id) === body.announcementId));
+      }
+    }
+    if (!message || message.length > 1900) return J(400, { error: 'invalid', reason: 'Le message doit faire entre 1 et 1 900 caractères.' });
+    const channel = guild.channels.cache.get(channelId);
+    if (!channel || !TEXT_CHANNEL_TYPES.includes(channel.type)) return J(400, { error: 'invalid', reason: 'Choisis un salon textuel de ce serveur.' });
+    const perms = guild.members.me ? channel.permissionsFor(guild.members.me) : null;
+    const need = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages];
+    if (files.length) need.push(PermissionFlagsBits.AttachFiles);
+    if (!perms || !perms.has(need)) return J(403, { error: 'missing_permissions' });
+
+    // Mentions autorisées : calculées ici à partir du texte (on ne fait pas confiance au client)
+    const roleIds = [...new Set([...message.matchAll(/<@&(\d{17,20})>/g)].map(m => m[1]))].filter(id => guild.roles.cache.has(id));
+    const wantsEveryone = /(^|\s)@(everyone|here)(?=\s|$|[.,!?;:])/.test(message);
+    const canPingAll = perms.has(PermissionFlagsBits.MentionEveryone);
+    const warnings = [];
+    if (wantsEveryone && !canPingAll) warnings.push('everyone');
+    if (roleIds.some(id => !guild.roles.cache.get(id).mentionable) && !canPingAll) warnings.push('roles');
+
+    ANN_SEND_LAST.set(lastKey, Date.now());
+    try {
+      const sent = await channel.send({
+        content: message,
+        files,
+        allowedMentions: { parse: wantsEveryone ? ['users', 'everyone'] : ['users'], roles: roleIds }
+      });
+      console.log(`[WebDashboard] ${sess.user.username} a envoyé une annonce immédiate sur ${guild.name} (#${channel.name})`);
+      return J(200, { ok: true, messageId: sent.id, warnings });
+    } catch (e) {
+      console.error('[WebDashboard] Envoi immédiat impossible:', e.message);
+      return J(502, { error: 'send_failed', reason: 'Discord a refusé le message.' });
+    }
   }
 
   // ---------- Annonces programmées (même stockage que /planifier) ----------
