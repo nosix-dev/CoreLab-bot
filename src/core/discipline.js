@@ -32,13 +32,17 @@ const MIN = 60 * 1000;
 const COULEUR = 0xE8510D;
 const P = PermissionFlagsBits;
 
-const LIBELLE = { timeout: 'Exclusion temporaire', kick: 'Expulsion', ban: 'Bannissement', quarantine: 'Quarantaine' };
-const POIDS = { ban: 4, kick: 3, quarantine: 2, timeout: 1 };
+const LIBELLE = { warn: 'Avertissement', timeout: 'Exclusion temporaire', kick: 'Expulsion', ban: 'Bannissement', quarantine: 'Quarantaine', strip_roles: 'Retrait des rôles' };
+const POIDS = { ban: 4, kick: 3, quarantine: 2, strip_roles: 1.5, timeout: 1, warn: 0.5 };
+// Sanctions sans durée (le champ « durée » n'a pas de sens)
+const SANS_DUREE = a => a === 'kick' || a === 'warn' || a === 'strip_roles';
 const PERM_BOT = {
   timeout: [P.ModerateMembers, 'Exclure temporairement des membres'],
   kick: [P.KickMembers, 'Expulser des membres'],
   ban: [P.BanMembers, 'Bannir des membres'],
-  quarantine: [P.ManageRoles, 'Gérer les rôles']
+  quarantine: [P.ManageRoles, 'Gérer les rôles'],
+  strip_roles: [P.ManageRoles, 'Gérer les rôles'],
+  warn: [P.ViewChannel, 'Voir les salons']
 };
 const SALONS_CONCERNES = [ChannelType.GuildText, ChannelType.GuildVoice, ChannelType.GuildAnnouncement, ChannelType.GuildStageVoice, ChannelType.GuildForum, ChannelType.GuildCategory, ChannelType.GuildMedia].filter(t => t !== undefined);
 // Quarantaine = lecture seule : le membre voit les salons mais ne peut ni écrire, ni réagir, ni parler.
@@ -138,7 +142,7 @@ async function apresStrike(guild, userId, { reason = 'Aucune raison', warnDate =
     if (palier) {
       const dernier = liste[liste.length - 1];
       cas = creerCas(guild.id, {
-        uid, action: palier.action, duration: palier.action === 'kick' ? 0 : Number(palier.duration) || 0,
+        uid, action: palier.action, duration: SANS_DUREE(palier.action) ? 0 : Number(palier.duration) || 0,
         strikes: n, reason: String(reason).slice(0, 500), warnDate: warnDate || dernier?.date || null
       });
     }
@@ -186,7 +190,7 @@ async function mpStrike(guild, membre, { n, reason, cas, cfg }) {
   if (jours) embed.setFooter({ text: `Un strike expire au bout de ${jours} jour${jours > 1 ? 's' : ''}.` });
   const components = [];
   if (cas) {
-    embed.addFields({ name: 'Sanction', value: `${LIBELLE[cas.action]}${cas.action === 'kick' ? '' : ` · ${dureeTexte(cas.duration)}`}`, inline: true });
+    embed.addFields({ name: 'Sanction', value: `${LIBELLE[cas.action]}${SANS_DUREE(cas.action) ? '' : ` · ${dureeTexte(cas.duration)}`}`, inline: true });
     if (cfg.discipline_appeals_enabled === true && cfg.discipline_appeals_channel) {
       const j = Math.max(1, Number(cfg.discipline_appeals_days) || 7);
       embed.setDescription(`Tu peux contester cette sanction avec le bouton ci-dessous, pendant ${j} jour${j > 1 ? 's' : ''}.`);
@@ -241,6 +245,12 @@ async function appliquerCas(guild, cas, { par }) {
     } else if (cas.action === 'quarantine') {
       const r = await mettreEnQuarantaine(guild, membre, cas, cfg, raison);
       if (r) return echec(r);
+    } else if (cas.action === 'strip_roles') {
+      const haut = guild.members.me.roles.highest.position;
+      const retirables = membre.roles.cache.filter(r => r.id !== guild.id && !r.managed && r.position < haut);
+      if (!retirables.size) return echec('aucun rôle ne peut être retiré (rôles au-dessus de celui du bot ou gérés par une intégration).');
+      cas.removedRoles = [...retirables.keys()];
+      await membre.roles.remove(cas.removedRoles, raison);
     }
   } catch (e) {
     return echec(`Discord a refusé : ${e.message}`);
@@ -250,6 +260,12 @@ async function appliquerCas(guild, cas, { par }) {
   cas.appliedAt = Date.now();
   cas.by = par ? String(par).slice(0, 80) : null;
   sauver();
+
+  // Avertissement / retrait des rôles : pas de ligne dans l'historique des sanctions, seulement le log du staff
+  if (cas.action === 'warn' || cas.action === 'strip_roles') {
+    await logStaff(guild, `⚖️ ${LIBELLE[cas.action]} automatique`, `<@${cas.uid}> — **${LIBELLE[cas.action]}** (${cas.strikes} strikes)\n**Raison :** ${cas.reason}${cas.removedRoles?.length ? `\n**Rôles retirés :** ${cas.removedRoles.map(id => `<@&${id}>`).join(' ')}` : ''}`);
+    return true;
+  }
 
   // Historique (page Sanctions du dashboard) + carte dans le salon des infractions
   try {
@@ -261,7 +277,7 @@ async function appliquerCas(guild, cas, { par }) {
   try {
     await require('./infractionLogger').journaliserInfraction(guild, {
       type: cas.action, target: membre.user, moderator: guild.client.user, reason: raison,
-      duration: cas.action === 'kick' ? undefined : dureeTexte(cas.duration)
+      duration: SANS_DUREE(cas.action) ? undefined : dureeTexte(cas.duration)
     });
   } catch (e) { console.error('[Sanctions] carte :', e.message); }
   return true;
@@ -364,7 +380,7 @@ async function demanderValidation(guild, cas, membre) {
     .addFields(
       { name: 'Membre', value: `${membre} (\`${membre.id}\`)`, inline: true },
       { name: 'Strikes actifs', value: String(cas.strikes), inline: true },
-      { name: 'Durée', value: cas.action === 'kick' ? '—' : dureeTexte(cas.duration), inline: true },
+      { name: 'Durée', value: SANS_DUREE(cas.action) ? '—' : dureeTexte(cas.duration), inline: true },
       { name: 'Dernier motif', value: String(cas.reason).slice(0, 1000) || '—' }
     )
     .setFooter({ text: `Dossier ${cas.id}` })
@@ -421,6 +437,7 @@ async function leverCas(guild, cas, par) {
     if (cas.action === 'ban') await guild.bans.remove(cas.uid, raison).catch(() => {});
     else if (cas.action === 'timeout') { const m = await fetchMembre(guild, cas.uid); if (m) await m.timeout(null, raison); }
     else if (cas.action === 'quarantine') await libererQuarantaine(guild, cas.uid, raison);
+    else if (cas.action === 'strip_roles' && cas.removedRoles?.length) { const m = await fetchMembre(guild, cas.uid); if (m) await m.roles.add(cas.removedRoles.filter(id => guild.roles.cache.has(id)), raison); }
     delete srv(guild.id).bans[cas.uid];
   } catch (e) { return `Discord a refusé : ${e.message}`; }
   if (cas.logTs) sanctionsLog.marquerLevee(guild.id, cas.logTs, cas.uid, par);
@@ -553,7 +570,7 @@ async function elementsFile(guild) {
       items.push({
         id: `valid_${cas.id}`, type: 'Validation', status: 'open', ts: cas.ts, title: `${LIBELLE[cas.action]} à valider`,
         member: membre, avatar: membre.avatar, reason: cas.reason,
-        description: `${cas.strikes} strike${cas.strikes > 1 ? 's' : ''} · ${cas.action === 'kick' ? 'expulsion' : dureeTexte(cas.duration)}`
+        description: `${cas.strikes} strike${cas.strikes > 1 ? 's' : ''} · ${cas.action === 'kick' ? 'expulsion' : cas.action === 'warn' ? 'avertissement' : cas.action === 'strip_roles' ? 'retrait des rôles' : dureeTexte(cas.duration)}`
       });
     }
     if (cas.appeal && cas.appeal.status === 'open') {

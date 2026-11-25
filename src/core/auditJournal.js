@@ -394,9 +394,13 @@ function debutJourParis(dateStr) {
 }
 
 // Page de résultats au format attendu par le dashboard : { entries, next, actions }
-function pourDashboard(guildId, { type, q, before, limit = 50, actor, action, from, to } = {}) {
+function pourDashboard(guildId, { type, q, before, limit = 50, actor, target, channel, role, roleName, action, from, to } = {}) {
   const recherche = String(q || '').trim().toLowerCase();
   const auteur = String(actor || '').trim().toLowerCase().replace(/^@/, '');
+  const cible = String(target || '').trim().toLowerCase().replace(/^@/, '');
+  const salonId = String(channel || '').trim();
+  const roleId = String(role || '').trim();
+  const roleNom = String(roleName || '').trim().toLowerCase();
   const avant = Number(before) || Infinity;
   const max = Math.min(Math.max(Number(limit) || 50, 1), 100);
   const debut = debutJourParis(from);
@@ -410,6 +414,9 @@ function pourDashboard(guildId, { type, q, before, limit = 50, actor, action, fr
     if (debut !== null && e.ts < debut) continue;
     if (fin !== null && e.ts >= fin) continue;
     if (auteur && ![e.actorTag, e.actorId, e.targetLabel, e.targetId].some(v => String(v || '').toLowerCase().includes(auteur))) continue;
+    if (cible && ![e.targetLabel, e.targetId].some(v => String(v || '').toLowerCase().includes(cible))) continue;
+    if (salonId && String(e.channelId || '') !== salonId) continue;
+    if (roleId && !(String(e.targetId || '') === roleId || String(e.details || '').includes(roleId) || (roleNom && (String(e.targetLabel || '').toLowerCase() === roleNom || String(e.details || '').toLowerCase().includes('@' + roleNom))))) continue;
     if (recherche && ![n.titre, e.actorTag, e.targetLabel, e.channelName, e.content, e.details, e.reason].some(v => String(v || '').toLowerCase().includes(recherche))) continue;
     tout.push({ e, n });
   }

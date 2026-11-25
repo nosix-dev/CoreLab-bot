@@ -4,7 +4,7 @@
 // automod_ratelimit, automod_stats). Les règles qui existaient déjà dans le bot restent liées à leur
 // interrupteur historique (/protect) : le dashboard et /protect affichent donc toujours la même chose.
 
-const ACTIONS = ['delete', 'warn', 'timeout', 'alert'];
+const ACTIONS = ['delete', 'warn', 'timeout', 'kick', 'ban', 'alert'];
 // Règle du dashboard → réglage historique du bot qui l'applique déjà
 const FLAG = { scam_image: 'anti_scam_image', phishing: 'anti_phishing', spam: 'antispam', mentions: 'antieveryone' };
 const BASE = [
@@ -14,7 +14,13 @@ const BASE = [
   { id: 'caps', name: 'Majuscules abusives', desc: 'Supprime les messages écrits presque entièrement en majuscules.', action: 'delete', heat: 1 },
   { id: 'mentions', name: 'Mentions de masse', desc: 'Bloque les messages qui mentionnent beaucoup de membres ou @everyone.', action: 'timeout', heat: 3 },
   { id: 'invites', name: 'Invitations Discord', desc: 'Supprime les invitations vers d’autres serveurs.', action: 'delete', heat: 1 },
-  { id: 'phishing', name: 'Phishing et faux Nitro', desc: 'Supprime les faux cadeaux Nitro, faux liens Steam et domaines imitant Discord.', action: 'delete', heat: 3 }
+  { id: 'phishing', name: 'Phishing et faux Nitro', desc: 'Supprime les faux cadeaux Nitro, faux liens Steam et domaines imitant Discord.', action: 'delete', heat: 3 },
+  { id: 'emoji_spam', name: 'Emojis en excès', desc: 'Supprime les messages remplis d’emojis (8 ou plus).', action: 'delete', heat: 1 },
+  { id: 'zalgo', name: 'Texte zalgo', desc: 'Supprime le texte déformé par des accents empilés.', action: 'delete', heat: 1 },
+  { id: 'newlines', name: 'Retours à la ligne en excès', desc: 'Supprime les messages qui sautent 15 lignes ou plus pour noyer le salon.', action: 'delete', heat: 1 },
+  { id: 'role_pings', name: 'Pings de rôles abusifs', desc: 'Bloque les messages qui mentionnent 3 rôles ou plus.', action: 'delete', heat: 2 },
+  { id: 'duplicates', name: 'Messages dupliqués', desc: 'Supprime les messages dont la même ligne est répétée 3 fois ou plus.', action: 'delete', heat: 1 },
+  { id: 'many_links', name: 'Liens en excès', desc: 'Supprime les messages contenant 5 liens ou plus.', action: 'delete', heat: 1 }
 ];
 const MAX_RULES = 40;
 const SHORTENERS = ['bit.ly', 'tinyurl.com', 'cutt.ly', 'is.gd', 'goo.gl', 't.co', 'ow.ly', 'rebrand.ly', 'shorturl.at', 'rb.gy'];
@@ -22,7 +28,13 @@ const SHORTENERS = ['bit.ly', 'tinyurl.com', 'cutt.ly', 'is.gd', 'goo.gl', 't.co
 const TESTS = {
   insults: t => /(?<![\p{L}\p{N}])(?:connard|connasse|salope|enfoir[ée]|pute|fdp|ntm|encul[ée]|abruti|d[ée]bile|idiot|merde)s?(?![\p{L}\p{N}])/iu.test(t),
   caps: t => { const l = t.replace(/[^A-Za-zÀ-ÿ]/g, ''); if (l.length < 10) return false; return l.replace(/[^A-ZÀ-Ý]/g, '').length / l.length > 0.7; },
-  invites: t => /(discord\.gg|discord(?:app)?\.com\/invite)\/\w+/i.test(t)
+  invites: t => /(discord\.gg|discord(?:app)?\.com\/invite)\/\w+/i.test(t),
+  emoji_spam: t => (t.match(/\p{Extended_Pictographic}|<a?:\w+:\d+>/gu) || []).length >= 8,
+  zalgo: t => /[\u0300-\u036f]{3,}/.test(t),
+  newlines: t => (t.match(/\n/g) || []).length >= 15,
+  role_pings: t => (t.match(/<@&\d+>/g) || []).length >= 3,
+  duplicates: t => { const m = {}; for (const l of t.split(/\n/).map(x => x.trim().toLowerCase()).filter(x => x.length > 3)) { m[l] = (m[l] || 0) + 1; if (m[l] >= 3) return true; } return false; },
+  many_links: t => (t.match(/https?:\/\/\S+/gi) || []).length >= 5
 };
 function customHit(r, t) {
   const p = String(r.pattern || '');
@@ -49,13 +61,13 @@ function readRules(cfg) {
     return {
       id: b.id, name: b.name, desc: b.desc,
       enabled: FLAG[b.id] ? !!cfg[FLAG[b.id]] : s.enabled === true,
-      action: act(s.action, b.action), heat: clampInt(s.heat, 0, 10, b.heat),
+      action: act(s.action, b.action), heat: clampInt(s.heat, 0, 10, b.heat), timeout_min: clampInt(s.timeout_min, 1, 40320, 10),
       ex_channels: idList(s.ex_channels), ex_roles: idList(s.ex_roles)
     };
   });
   for (const s of saved) {
     if (!s || !s.custom || BASE.some(b => b.id === s.id)) continue;
-    out.push({ id: String(s.id), name: String(s.name || 'Règle'), desc: String(s.desc || ''), custom: true, type: s.type === 'regex' ? 'regex' : 'words', pattern: String(s.pattern || ''), enabled: s.enabled === true, action: act(s.action, 'delete'), heat: clampInt(s.heat, 0, 10, 1), ex_channels: idList(s.ex_channels), ex_roles: idList(s.ex_roles) });
+    out.push({ id: String(s.id), name: String(s.name || 'Règle'), desc: String(s.desc || ''), custom: true, type: s.type === 'regex' ? 'regex' : 'words', pattern: String(s.pattern || ''), enabled: s.enabled === true, action: act(s.action, 'delete'), heat: clampInt(s.heat, 0, 10, 1), timeout_min: clampInt(s.timeout_min, 1, 40320, 10), ex_channels: idList(s.ex_channels), ex_roles: idList(s.ex_roles) });
   }
   return out;
 }
@@ -98,7 +110,7 @@ function check(type, v, cur, ctx) {
       const ex_channels = idList(r.ex_channels), ex_roles = idList(r.ex_roles);
       if (!ex_channels.every(chanOk)) return bad('salon exclu introuvable');
       if (!ex_roles.every(roleOk)) return bad('rôle exclu introuvable');
-      const o = { id, enabled: r.enabled === true, action: act(r.action, 'delete'), heat: clampInt(r.heat, 0, 10, 1), ex_channels, ex_roles };
+      const o = { id, enabled: r.enabled === true, action: act(r.action, 'delete'), heat: clampInt(r.heat, 0, 10, 1), timeout_min: clampInt(r.timeout_min, 1, 40320, 10), ex_channels, ex_roles };
       if (!isBase) {
         o.custom = true; o.name = String(r.name || '').trim().slice(0, 60); o.desc = String(r.desc || '').slice(0, 200);
         o.type = r.type === 'regex' ? 'regex' : 'words'; o.pattern = String(r.pattern || '').slice(0, 1000);

@@ -416,7 +416,7 @@ const MODULES = [
       TZ('night_tz', 'Fuseau horaire'),
       DY('night_days', 'Nuits concernées'),
       B('night_slowmode', 'Mode lent', false),
-      NS('night_slowmode_delay', 'Délai entre deux messages (secondes)', 10, [5, 10, 15, 30, 60, 120, 300]),
+      NS('night_slowmode_delay', 'Délai entre deux messages (secondes)', 10, [5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600]),
       CHS('night_slowmode_channels', 'Salons'),
       B('night_block_links', 'Liens des nouveaux membres', false),
       B('night_block_media', 'Images et fichiers des nouveaux membres', false),
@@ -880,9 +880,9 @@ function checkField(f, v, cur, ctx) {
         const action = String(r?.action || '');
         const duration = Math.max(0, Math.round(Number(r?.duration) || 0));
         if (!Number.isFinite(strikes) || strikes < 1 || strikes > 50) return bad('nombre de strikes invalide (1 à 50)');
-        if (!['timeout', 'kick', 'ban', 'quarantine'].includes(action)) return bad('sanction invalide');
+        if (!['warn', 'timeout', 'kick', 'ban', 'quarantine', 'strip_roles'].includes(action)) return bad('sanction invalide');
         if (action === 'timeout' && (duration < 1 || duration > 40320)) return bad('durée de timeout invalide (28 jours maximum)');
-        out.push({ strikes, action, duration: action === 'kick' ? 0 : duration });
+        out.push({ strikes, action, duration: ['kick', 'warn', 'strip_roles'].includes(action) ? 0 : duration });
       }
       return { value: out.sort((a, b) => a.strikes - b.strikes) };
     }
@@ -1193,11 +1193,58 @@ async function route(req, res, { client }, url) {
         type: url.searchParams.get('type') || '', q: url.searchParams.get('q') || '',
         before: url.searchParams.get('before'), limit: url.searchParams.get('limit'),
         actor: url.searchParams.get('actor') || '', action: url.searchParams.get('action') || '',
+        target: url.searchParams.get('target') || '', channel: url.searchParams.get('channel') || '',
+        role: url.searchParams.get('role') || '',
+        roleName: client.guilds.cache.get(au[1])?.roles.cache.get(url.searchParams.get('role') || '')?.name || '',
         from: url.searchParams.get('from') || '', to: url.searchParams.get('to') || ''
       }));
     } catch (e) {
       console.error('[WebDashboard] audit :', e.message);
       return J(500, { error: 'audit' });
+    }
+  }
+
+  /* ---------- Liste des membres (sélecteur du dashboard) : recherche par pseudo / ID, ou résolution d'une liste d'ID ---------- */
+  const memr = p.match(/^\/api\/guilds\/(\d+)\/members$/);
+  if (memr) {
+    if (req.method !== 'GET') return J(405, { error: 'method' });
+    if (!sess.guilds.some(g => g.id === memr[1])) return J(403, { error: 'forbidden' });
+    const mg = client.guilds.cache.get(memr[1]);
+    if (!mg) return J(404, { error: 'bot_absent' });
+    try {
+      const bots = url.searchParams.get('bots') === '1';
+      const ser = m => ({
+        id: m.id, username: m.user.username, display_name: m.displayName,
+        avatar: m.displayAvatarURL({ extension: 'png', size: 64 }), bot: !!m.user.bot
+      });
+      const ids = String(url.searchParams.get('ids') || '').split(',').map(x => x.trim()).filter(x => /^\d{17,20}$/.test(x)).slice(0, 50);
+      if (ids.length) {
+        const found = await Promise.all(ids.map(id => mg.members.cache.get(id) || mg.members.fetch(id).catch(() => null)));
+        return J(200, { members: found.filter(Boolean).map(ser) });
+      }
+      const q = String(url.searchParams.get('q') || '').trim().replace(/^@/, '').slice(0, 60);
+      const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit'), 10) || 25, 1), 25);
+      const ok = m => m && (bots || !m.user.bot);
+      const low = q.toLowerCase();
+      let list = [];
+      if (/^\d{17,20}$/.test(q)) {
+        const m = mg.members.cache.get(q) || await mg.members.fetch(q).catch(() => null);
+        if (ok(m)) list.push(m);
+      } else {
+        const name = m => [m.displayName, m.user.username, m.user.globalName || ''].map(x => x.toLowerCase());
+        const match = m => !low || name(m).some(x => x.includes(low));
+        const rang = m => (name(m).some(x => x === low) ? 0 : name(m).some(x => x.startsWith(low)) ? 1 : 2);
+        list = [...mg.members.cache.values()].filter(m => ok(m) && match(m));
+        if (list.length < limit) { // le cache peut être partiel : compléter via Discord (préfixe du pseudo)
+          const more = await mg.members.fetch(low ? { query: low, limit } : { limit: 100 }).catch(() => null);
+          if (more) for (const m of more.values()) if (ok(m) && match(m) && !list.some(x => x.id === m.id)) list.push(m);
+        }
+        list.sort((a, b) => (low ? rang(a) - rang(b) : 0) || a.displayName.localeCompare(b.displayName, 'fr'));
+      }
+      return J(200, { members: list.slice(0, limit).map(ser) });
+    } catch (e) {
+      console.error('[WebDashboard] membres :', e.message);
+      return J(500, { error: 'members' });
     }
   }
 

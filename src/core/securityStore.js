@@ -20,13 +20,20 @@ const PERM_FLAGS = {
   kick_members: PermissionFlagsBits.KickMembers,
   moderate_members: PermissionFlagsBits.ModerateMembers,
   manage_messages: PermissionFlagsBits.ManageMessages,
-  mention_everyone: PermissionFlagsBits.MentionEveryone
+  mention_everyone: PermissionFlagsBits.MentionEveryone,
+  view_audit_log: PermissionFlagsBits.ViewAuditLog,
+  manage_nicknames: PermissionFlagsBits.ManageNicknames,
+  manage_emojis_and_stickers: PermissionFlagsBits.ManageGuildExpressions || PermissionFlagsBits.ManageEmojisAndStickers,
+  manage_events: PermissionFlagsBits.ManageEvents,
+  manage_threads: PermissionFlagsBits.ManageThreads
 };
 const PERM_LABELS = {
   administrator: 'Administrateur', manage_guild: 'Gérer le serveur', manage_roles: 'Gérer les rôles',
   manage_channels: 'Gérer les salons', manage_webhooks: 'Gérer les webhooks', ban_members: 'Bannir des membres',
   kick_members: 'Expulser des membres', moderate_members: 'Exclure temporairement',
-  manage_messages: 'Gérer les messages', mention_everyone: 'Mentionner @everyone'
+  manage_messages: 'Gérer les messages', mention_everyone: 'Mentionner @everyone',
+  view_audit_log: 'Voir le journal d’audit', manage_nicknames: 'Gérer les pseudos',
+  manage_emojis_and_stickers: 'Gérer les emojis et stickers', manage_events: 'Gérer les événements', manage_threads: 'Gérer les fils'
 };
 const PERM_KEYS = Object.keys(PERM_FLAGS);
 const PERM_DEF = ['administrator', 'manage_guild', 'manage_roles', 'manage_channels', 'manage_webhooks', 'ban_members'];

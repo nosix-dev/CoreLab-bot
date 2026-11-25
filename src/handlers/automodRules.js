@@ -72,13 +72,24 @@ async function appliquer(message, cfg, { id, name, action, heat: pts, timeoutMin
     try { await message.delete(); deleted = true; done.push('message supprimé'); } catch (e) { diagSuppression(message, e); }
   }
   if (action === 'warn') { addWarn(message, name); done.push('avertissement'); }
+  let removed = false;
+  if (action === 'kick' || action === 'ban') {
+    const m = message.member, ban = action === 'ban', label = ban ? 'bannissement' : 'expulsion', raison = `Automodération : ${name}`;
+    try {
+      if (ban ? m.bannable : m.kickable) {
+        if (ban) await message.guild.members.ban(m.id, { reason: raison }); else await m.kick(raison);
+        removed = true; done.push(label);
+        try { require('../core/sanctionsLog').enregistrer(message.guild.id, { type: action, member: m, moderator: message.client.user, reason: raison }); } catch { /* historique facultatif */ }
+      } else done.push(`${label} impossible (rôle du membre au-dessus de celui du bot)`);
+    } catch (e) { done.push(`${label} refusé par Discord`); }
+  }
   let timeoutMs = action === 'timeout' ? (timeoutMin || 10) * 60 * 1000 : 0;
   const total = addHeat(key, pts);
   if (!timeoutMs && total >= HEAT_SEUIL) { timeoutMs = HEAT_TIMEOUT_MS; heat.delete(key); done.push(`heat ${total}/${HEAT_SEUIL}`); }
-  if (timeoutMs && message.member?.moderatable) {
+  if (timeoutMs && !removed && message.member?.moderatable) {
     await message.member.timeout(timeoutMs, `Automodération : ${name}`).then(() => done.push(`exclusion ${Math.round(timeoutMs / 60000)} min`)).catch(() => {});
   }
-  if (deleted || action === 'warn' || timeoutMs) {
+  if ((deleted || action === 'warn' || timeoutMs) && !removed) {
     const note = await message.channel.send({ content: `${message.author}, ton message a été retiré par l’automodération (${name}).` }).catch(() => null);
     if (note) setTimeout(() => note.delete().catch(() => {}), 6000);
   }
@@ -107,7 +118,7 @@ async function traiter(message) {
   if (text) {
     for (const r of AM.readRules(cfg)) {
       if (!r.enabled || AM.FLAG[r.id] || exclu(r, message)) continue;
-      if (AM.matchRule(r, text)) { await appliquer(message, cfg, { id: r.id, name: r.name, action: r.action, heat: r.heat }); return; }
+      if (AM.matchRule(r, text)) { await appliquer(message, cfg, { id: r.id, name: r.name, action: r.action, heat: r.heat, timeoutMin: r.timeout_min }); return; }
     }
   }
 
