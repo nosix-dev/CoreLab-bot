@@ -1503,6 +1503,55 @@ async function route(req, res, { client }, url) {
   }
 
   // ---------- Annonces programmées (même stockage que /planifier) ----------
+  // ---------- Image d'une annonce (envoyée depuis le PC) ----------
+  const annImg = p.match(/^\/api\/guilds\/(\d+)\/announcements\/([\w-]{1,40})\/image$/);
+  if (annImg) {
+    const [, guildId, annId] = annImg;
+    if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
+    if (!client.guilds.cache.get(guildId)) return J(404, { error: 'bot_absent' });
+    const { getGuildBucket, setGuildBucket } = require('./config');
+    const { dossierPersistant } = require('./persistentPath');
+    const DIR = dossierPersistant('src/data/scheduled_images', 'scheduled_images');
+    const list = getGuildBucket(guildId, 'scheduled', []);
+    const entry = list.find(e => String(e.id) === annId);
+    if (!entry) return J(404, { error: 'not_found_announcement' });
+    const removeOld = keep => {
+      if (entry.imagePath && entry.imagePath !== keep && fs.existsSync(entry.imagePath)) {
+        try { fs.unlinkSync(entry.imagePath); } catch { }
+      }
+    };
+    if (req.method === 'GET') {
+      if (!entry.imagePath || !fs.existsSync(entry.imagePath)) return J(404, { error: 'image_not_found' });
+      const type = ({ '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' })[path.extname(entry.imagePath).toLowerCase()];
+      if (!type) return J(404, { error: 'image_not_found' });
+      res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff', ...cors(ORIGIN) });
+      return res.end(fs.readFileSync(entry.imagePath));
+    }
+    if (req.method === 'POST') {
+      let buf;
+      try { buf = await readRaw(req, 8 * 1024 * 1024); } catch (e) {
+        if (e.message === 'trop gros') return J(413, { error: 'too_big' });
+        throw e;
+      }
+      const ext = sniffImage(buf);
+      if (!ext) return J(400, { error: 'invalid_image' });
+      fs.mkdirSync(DIR, { recursive: true });
+      const file = path.join(DIR, `${guildId}_${entry.id}_${Date.now()}.${ext}`);
+      fs.writeFileSync(file, buf);
+      removeOld(file);
+      entry.imagePath = file;
+      setGuildBucket(guildId, 'scheduled', list);
+      return J(200, { ok: true, hasImage: true });
+    }
+    if (req.method === 'DELETE') {
+      removeOld(null);
+      entry.imagePath = null;
+      setGuildBucket(guildId, 'scheduled', list);
+      return J(200, { ok: true, hasImage: false });
+    }
+    return J(405, { error: 'method' });
+  }
+
   const ann = p.match(/^\/api\/guilds\/(\d+)\/announcements(?:\/([\w-]{1,40}))?$/);
   if (ann) {
     const [, guildId, annId] = ann;
