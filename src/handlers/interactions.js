@@ -30,6 +30,8 @@ const {
   getGuildConfig
 } = require('../core/config');
 const { canOpenPanel, canClaimPanel } = require('../core/ticketPanels');
+const ticketLifecycle = require('../core/ticketLifecycle');
+const { getTicketSettings } = require('../core/ticketSettings');
 const {
   store,
   persist
@@ -67,6 +69,7 @@ const {
   buildTicketReasonButtons,
   buildTicketActionRow,
   createTicketChannel,
+  ticketOpenBlockReason,
   buildFormModal,
   buildFormManagerRows,
   pendingForms,
@@ -137,6 +140,8 @@ async function openDashboardTicket(interaction, panelId, reasonValue) {
   if (!panel || !reason) {
     return interaction.reply({ content: '❌ Ce panneau ou ce motif n’est plus disponible.', flags: MessageFlags.Ephemeral });
   }
+  const blocked = ticketOpenBlockReason(cfg, interaction.user.id);
+  if (blocked) return interaction.reply({ content: blocked, flags: MessageFlags.Ephemeral });
   if (!canOpenPanel(panel, interaction.member)) {
     return interaction.reply({ content: '❌ Tu n’as pas le rôle requis pour ouvrir ce ticket.', flags: MessageFlags.Ephemeral });
   }
@@ -174,11 +179,10 @@ function ticketEditContext(interaction, cfg) {
   const isOpener = meta.openerId === interaction.user.id
     || topic.startsWith(`Ticket de ${interaction.user.tag} |`);
   const panelId = meta.panelId || topic.match(/(?:^|\|\s*)Panneau:\s*([^|]+)/)?.[1]?.trim();
-  const staffRoleIds = cfg.ticket_panels?.[panelId]?.staffRoleIds || [];
   return {
     meta,
     isTicket,
-    canEdit: isOpener || canClaimPanel(interaction.member, { staffRoleIds })
+    canEdit: isOpener || ticketLifecycle.isTicketStaff(interaction.member, cfg, channel)
   };
 }
 
@@ -512,6 +516,8 @@ async function handleTicketComponent(interaction) {
     const cfg = getGuildConfig(interaction.guild.id);
     const panelId = String(panelChannelId);
     const panel = cfg.ticket_panels?.[panelId];
+    const blocked = ticketOpenBlockReason(cfg, interaction.user.id);
+    if (blocked) return interaction.reply({ content: blocked, flags: MessageFlags.Ephemeral });
     if (panel && !canOpenPanel(panel, interaction.member)) {
       return interaction.reply({ content: '❌ Tu n’as pas le rôle requis pour ouvrir ce ticket.', flags: MessageFlags.Ephemeral });
     }
@@ -592,41 +598,55 @@ async function handleTicketComponent(interaction) {
   }
 
   // ── Fermer le ticket ─────────────────────────────────
+  // Si des raisons de fermeture sont configurées, le staff en choisit une
+  // (ou écrit la sienne). L'auteur du ticket ferme directement.
   if (id === 'ticket_close_btn') {
     const cfg = getGuildConfig(interaction.guild.id);
-    cfg.ticket_open_count = Math.max(0, (cfg.ticket_open_count || 1) - 1);
-    persist('config');
-    pushEvent({
-      icon: '🎫',
-      tag: 'tag-sys',
-      text: `Ticket fermé par ${interaction.user.tag}`,
-      server: interaction.guild.name
-    });
+    const settings = getTicketSettings(cfg);
+    const isStaff = ticketLifecycle.isTicketStaff(interaction.member, cfg, interaction.channel);
+    if (isStaff && settings.closeReasons.length) {
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId('ticket_close_reason_select')
+        .setPlaceholder('Raison de la fermeture')
+        .addOptions([
+          ...settings.closeReasons.slice(0, 24).map((label, i) => ({ label: label.slice(0, 100), value: `r${i}` })),
+          { label: 'Autre raison…', value: 'custom', emoji: '✏️' }
+        ]);
+      return interaction.reply({
+        content: '🔒 Choisis la raison de fermeture :',
+        components: [new ActionRowBuilder().addComponents(menu)],
+        flags: MessageFlags.Ephemeral
+      });
+    }
     await interaction.reply('🔒 Suppression dans 5 secondes...');
-    const channel = interaction.channel;
-    const closer = interaction.user;
-    setTimeout(async () => {
-      // 1) Transcription + log (ne bloque jamais la suppression en cas d'erreur)
-      try {
-        await sendTicketClosedLog({
-          channel,
-          closer,
-          cfg
-        });
-      } catch (e) {
-        console.error('[Ticket] Échec de la transcription :', e);
-      }
-      // 2) Nettoyage des métadonnées + suppression du salon
-      try {
-        if (cfg.ticket_meta?.[channel.id]) {
-          delete cfg.ticket_meta[channel.id];
-          persist('config');
-        }
-      } catch { }
-      try {
-        await channel.delete('Ticket fermé');
-      } catch { }
-    }, 5000);
+    await ticketLifecycle.closeTicket(interaction.channel, { closer: interaction.user });
+    return;
+  }
+
+  // ── Faire remonter le ticket (rôle d'escalade) ───────
+  if (id === 'ticket_escalate_btn') {
+    const cfg = getGuildConfig(interaction.guild.id);
+    if (!ticketLifecycle.isTicketStaff(interaction.member, cfg, interaction.channel)) {
+      return interaction.reply({ content: '❌ Seul le staff peut faire remonter un ticket.', flags: MessageFlags.Ephemeral });
+    }
+    await interaction.deferUpdate();
+    try {
+      const result = await ticketLifecycle.escalateTicket(interaction.channel, interaction.member);
+      if (result.error) return interaction.followUp({ content: result.error, flags: MessageFlags.Ephemeral });
+      const rows = interaction.message.components.map(row => {
+        const r = ActionRowBuilder.from(row);
+        r.components.forEach(c => { if (c.data.custom_id === 'ticket_escalate_btn') c.setLabel('Remonté').setDisabled(true); });
+        return r;
+      });
+      await interaction.message.edit({ components: rows }).catch(() => {});
+      await interaction.channel.send({
+        content: `⏫ Ticket remonté par ${interaction.user} → ${result.role}`,
+        allowedMentions: { roles: [result.role.id] }
+      });
+    } catch (e) {
+      console.error('[Ticket] escalade :', e.message);
+      return interaction.followUp({ content: '❌ Impossible de faire remonter le ticket. Vérifie les permissions du bot.', flags: MessageFlags.Ephemeral });
+    }
     return;
   }
 
@@ -634,16 +654,18 @@ async function handleTicketComponent(interaction) {
   if (id === 'ticket_claim_btn') {
     const member = interaction.member;
     const config = getGuildConfig(interaction.guild.id);
-    const panelId = config.ticket_meta?.[interaction.channel.id]?.panelId;
-    const panelRoles = config.ticket_panels?.[panelId]?.staffRoleIds || [];
-    const isStaff = canClaimPanel(member, { staffRoleIds: panelRoles });
+    const isStaff = ticketLifecycle.isTicketStaff(member, config, interaction.channel);
     if (!isStaff) {
       return interaction.reply({
         content: '❌ Seul le staff peut prendre en charge un ticket.',
         flags: MessageFlags.Ephemeral
       });
     }
-    const disabledRow = buildTicketActionRow(true, interaction.user.username);
+    const ticketSet = getTicketSettings(config);
+    const disabledRow = buildTicketActionRow(true, interaction.user.username, {
+      escalate: !!ticketSet.escalationRoleId,
+      escalated: !!config.ticket_meta?.[interaction.channel.id]?.escalated
+    });
     try {
       await interaction.update({
         components: [disabledRow]
@@ -1395,6 +1417,31 @@ async function routeTicketInteraction(interaction) {
     }
     if (interaction.isStringSelectMenu() && interaction.customId.startsWith('ticket_panel_select:')) {
       return openDashboardTicket(interaction, interaction.customId.split(':')[1], interaction.values[0]);
+    }
+    if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_close_reason_select') {
+      const cfg = getGuildConfig(interaction.guild.id);
+      if (!ticketLifecycle.isTicketStaff(interaction.member, cfg, interaction.channel)) {
+        return interaction.reply({ content: '❌ Seul le staff peut fermer avec une raison.', flags: MessageFlags.Ephemeral });
+      }
+      const value = interaction.values[0];
+      if (value === 'custom') {
+        const modal = new ModalBuilder().setCustomId('ticket_close_reason_modal').setTitle('Fermer le ticket');
+        modal.addComponents(new ActionRowBuilder().addComponents(
+          new TextInputBuilder().setCustomId('reason').setLabel('Raison de la fermeture').setStyle(TextInputStyle.Paragraph).setMaxLength(200).setRequired(true)
+        ));
+        return interaction.showModal(modal);
+      }
+      const reason = getTicketSettings(cfg).closeReasons[Number(value.slice(1))] || null;
+      await interaction.update({ content: `🔒 Fermeture : **${reason || '—'}**`, components: [] });
+      await interaction.channel.send(`🔒 Ticket fermé par ${interaction.user}${reason ? ` — ${reason}` : ''}. Suppression dans 5 secondes...`);
+      await ticketLifecycle.closeTicket(interaction.channel, { closer: interaction.user, reason });
+      return;
+    }
+    if (interaction.isModalSubmit() && interaction.customId === 'ticket_close_reason_modal') {
+      const reason = interaction.fields.getTextInputValue('reason')?.trim().slice(0, 200) || null;
+      await interaction.reply(`🔒 Ticket fermé par ${interaction.user}${reason ? ` — ${reason}` : ''}. Suppression dans 5 secondes...`);
+      await ticketLifecycle.closeTicket(interaction.channel, { closer: interaction.user, reason });
+      return;
     }
     if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_edit_reason_select') {
       return handleTicketReasonEditSelect(interaction);

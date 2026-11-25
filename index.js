@@ -580,6 +580,7 @@ client.once('clientReady', async () => {
     console.error('❌ Erreur sync commandes:', e.message);
   }
   startTasks(client);
+  require('./src/core/ticketLifecycle').startTicketAutoClose(client);
   startEventLoop(client);
   try { require('./src/core/dashboardServer').start(client); } catch (e) { console.error('❌ Dashboard:', e.message); }
   startCombat();

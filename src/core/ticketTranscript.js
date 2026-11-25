@@ -319,7 +319,7 @@ function guessOpenerId(channel, messages) {
   return m ? m[1] : null;
 }
 
-async function sendTicketClosedLog({ channel, closer, cfg }) {
+async function sendTicketClosedLog({ channel, closer, cfg, reason = null }) {
   const guild = channel.guild;
   const { html, messages } = await generateTranscriptHtml(channel);
   const meta = cfg?.ticket_meta?.[channel.id] || {};
@@ -360,7 +360,8 @@ async function sendTicketClosedLog({ channel, closer, cfg }) {
             { name: 'Motif', value: String(raison).slice(0, 1024), inline: true },
             { name: 'Fermé par', value: closer?.tag || closer?.username || 'Inconnu', inline: true },
             { name: 'Ouvert le', value: `<t:${ouvertLe}:F>`, inline: true },
-            { name: 'Messages', value: String(messages.length), inline: true }
+            { name: 'Messages', value: String(messages.length), inline: true },
+            ...(reason ? [{ name: 'Raison de fermeture', value: String(reason).slice(0, 1024), inline: false }] : [])
           )
           .setTimestamp();
         const files = panel?.transcriptsEnabled === false
@@ -378,7 +379,8 @@ async function sendTicketClosedLog({ channel, closer, cfg }) {
   if (openerId) {
     try {
       const opener = await channel.client.users.fetch(openerId);
-      await opener.send(require('./ticketRating').buildClosedTicketMessage({ guild, closer, numero: identifiant, raison, ouvertLe, openerId }));
+      const ratingEnabled = require('./ticketSettings').getTicketSettings(cfg).ratingEnabled;
+      await opener.send(require('./ticketRating').buildClosedTicketMessage({ guild, closer, numero: identifiant, raison, ouvertLe, openerId, motif: reason, withRating: ratingEnabled }));
       envoye = true;
     } catch (e) {
       // MP fermés ou bot bloqué : on ignore

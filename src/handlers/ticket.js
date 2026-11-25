@@ -30,6 +30,7 @@ const {
   store,
   persist
 } = require('../core/data');
+const ticketSettings = require('../core/ticketSettings');
 
 // ────────────────────────────────────────────────
 // Stockage local de l'image des formulaires autonomes (/form)
@@ -593,14 +594,32 @@ function buildTicketEditButton() {
     .setEmoji('✏️')
     .setStyle(ButtonStyle.Secondary);
 }
-function buildTicketActionRow(claimEnabled, claimedBy = null) {
+// opts.escalate : affiche « Faire remonter » (rôle d'escalade configuré)
+// opts.escalated : le ticket a déjà été remonté (bouton désactivé)
+function buildTicketActionRow(claimEnabled, claimedBy = null, opts = {}) {
   const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('ticket_close_btn').setLabel('Fermer le ticket').setEmoji('🔒').setStyle(ButtonStyle.Danger));
   if (claimEnabled) {
     const claimBtn = new ButtonBuilder().setCustomId('ticket_claim_btn').setEmoji('🖐️').setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary).setLabel(claimedBy ? `Pris en charge par ${claimedBy}` : 'Prendre en charge').setDisabled(!!claimedBy);
     row.addComponents(claimBtn);
   }
+  if (opts.escalate) {
+    row.addComponents(new ButtonBuilder()
+      .setCustomId('ticket_escalate_btn')
+      .setEmoji('⏫')
+      .setStyle(ButtonStyle.Secondary)
+      .setLabel(opts.escalated ? 'Remonté' : 'Faire remonter')
+      .setDisabled(!!opts.escalated));
+  }
   row.addComponents(buildTicketEditButton());
   return row;
+}
+
+// Message d'erreur si le membre ne peut pas ouvrir de ticket (module coupé, blacklist), sinon null
+function ticketOpenBlockReason(cfg, userId) {
+  const settings = ticketSettings.getTicketSettings(cfg);
+  if (!settings.enabled) return '❌ Les tickets sont désactivés sur ce serveur pour le moment.';
+  if (ticketSettings.isBlacklisted(settings, userId)) return '❌ Tu ne peux pas ouvrir de ticket sur ce serveur.';
+  return null;
 }
 
 async function ensureTicketEditButtons(client) {
@@ -671,8 +690,14 @@ async function createTicketChannel(interaction, reasonLabel, reasonValue, answer
       flags: MessageFlags.Ephemeral
     });
   }
+  const blocked = ticketOpenBlockReason(cfg, user.id);
+  if (blocked) return interaction.followUp({ content: blocked, flags: MessageFlags.Ephemeral });
+  const settings = ticketSettings.getTicketSettings(cfg);
+  const globalStaff = ticketSettings.globalStaffRoleIds(settings).filter(roleId => guild.roles.cache.has(roleId));
+  const staffRoleIds = [...new Set([...(panel?.staffRoleIds || []), ...globalStaff])];
+  const nextNumber = (cfg.ticket_seq || 0) + 1;
   const channel = await guild.channels.create({
-    name: `ticket-${user.username.toLowerCase()}-${reasonValue}`.slice(0, 100),
+    name: ticketSettings.buildTicketChannelName(settings, { number: nextNumber, user, type: reasonValue }),
     type: ChannelType.GuildText,
     parent: category.id,
     topic: `Ticket de ${user.tag} | ${reasonLabel}${panel ? ` | Panneau: ${chKey}` : ''}`,
@@ -685,7 +710,7 @@ async function createTicketChannel(interaction, reasonLabel, reasonValue, answer
     }, {
       id: guild.members.me.id,
       allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
-    }, ...(panel?.staffRoleIds || []).map(roleId => ({ id: roleId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] }))],
+    }, ...staffRoleIds.map(roleId => ({ id: roleId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] }))],
     reason: `Ticket créé par ${user.tag}`
   });
   if (!cfg.ticket_counts) cfg.ticket_counts = {};
@@ -720,7 +745,7 @@ async function createTicketChannel(interaction, reasonLabel, reasonValue, answer
   await channel.send(toCV2Payload({
     content: `${user}`,
     embeds: [recap],
-    components: [buildTicketActionRow(claimEnabled)]
+    components: [buildTicketActionRow(claimEnabled, null, { escalate: !!settings.escalationRoleId })]
   }));
   await interaction.followUp({
     content: `✅ Ticket créé → ${channel}`,
@@ -759,6 +784,7 @@ module.exports = {
   buildTicketReasonButtons,
   buildCloseButtonRow,
   buildTicketActionRow,
+  ticketOpenBlockReason,
   ensureTicketEditButtons,
   createTicketChannel,
   buildFormModal,

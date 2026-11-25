@@ -680,140 +680,6 @@ function readBody(req, limit = 60000) {
   });
 }
 
-/* ---------- Créateur d'embeds : validation + envoi (POST /api/guilds/:id/embeds/publish) ---------- */
-const EMBED_HTTPS = /^https:\/\/\S+$/;
-
-// Transforme le message envoyé par le dashboard en message Discord valide (ou renvoie { error }).
-function construireMessageEmbed(msg) {
-  if (!msg || typeof msg !== 'object' || Array.isArray(msg)) return { error: 'Message invalide.' };
-  const txt = v => (typeof v === 'string' ? v.trim() : '');
-  const content = txt(msg.content);
-  if (content.length > 2000) return { error: 'Le texte du message dépasse 2 000 caractères.' };
-
-  const out = { embeds: [], components: [] };
-  if (content) out.content = content;
-  let chars = 0;
-
-  const e = Array.isArray(msg.embeds) ? msg.embeds[0] : null;
-  if (e && typeof e === 'object') {
-    const emb = {};
-    const author = txt(e.author && e.author.name);
-    const title = txt(e.title);
-    const description = txt(e.description);
-    const footer = txt(e.footer && e.footer.text);
-    const image = txt(e.image && e.image.url);
-    const thumb = txt(e.thumbnail && e.thumbnail.url);
-
-    if (author) {
-      if (author.length > 256) return { error: 'Auteur : 256 caractères maximum.' };
-      emb.author = { name: author }; chars += author.length;
-    }
-    if (title) {
-      if (title.length > 256) return { error: 'Titre : 256 caractères maximum.' };
-      emb.title = title; chars += title.length;
-    }
-    if (description) {
-      if (description.length > 4096) return { error: 'Description : 4 096 caractères maximum.' };
-      emb.description = description; chars += description.length;
-    }
-    if (footer) {
-      if (footer.length > 2048) return { error: 'Pied de page : 2 048 caractères maximum.' };
-      emb.footer = { text: footer }; chars += footer.length;
-    }
-    if (image) {
-      if (!EMBED_HTTPS.test(image) || image.length > 2000) return { error: 'L’image doit être une URL https valide.' };
-      emb.image = { url: image };
-    }
-    if (thumb) {
-      if (!EMBED_HTTPS.test(thumb) || thumb.length > 2000) return { error: 'La miniature doit être une URL https valide.' };
-      emb.thumbnail = { url: thumb };
-    }
-
-    const fields = [];
-    for (const f of (Array.isArray(e.fields) ? e.fields.slice(0, 25) : [])) {
-      const name = txt(f && f.name), value = txt(f && f.value);
-      if (!name || !value) continue;
-      if (name.length > 256) return { error: 'Nom de champ : 256 caractères maximum.' };
-      if (value.length > 1024) return { error: 'Valeur de champ : 1 024 caractères maximum.' };
-      fields.push({ name, value, inline: !!f.inline });
-      chars += name.length + value.length;
-    }
-    if (fields.length) emb.fields = fields;
-
-    emb.color = Number.isInteger(e.color) && e.color >= 0 && e.color <= 0xFFFFFF ? e.color : 0;
-    if (e.timestamp) {
-      const d = new Date(e.timestamp);
-      if (!isNaN(d.getTime())) emb.timestamp = d.toISOString();
-    }
-    if (author || title || description || footer || image || thumb || fields.length) out.embeds.push(emb);
-  }
-
-  // Boutons : uniquement des boutons « lien » (style 5), 5 maximum, une seule rangée.
-  const row = Array.isArray(msg.components) ? msg.components[0] : null;
-  const btns = row && Array.isArray(row.components) ? row.components.slice(0, 5) : [];
-  const comps = [];
-  for (const b of btns) {
-    const label = txt(b && b.label), url = txt(b && b.url);
-    if (!label || !url) continue;
-    if (label.length > 80) return { error: 'Bouton : 80 caractères maximum pour le texte.' };
-    if (!EMBED_HTTPS.test(url) || url.length > 512) return { error: 'Les boutons doivent pointer vers une URL https valide.' };
-    const btn = { type: 2, style: 5, label, url };
-    const emName = txt(b.emoji && b.emoji.name);
-    if (emName) {
-      const custom = /^<(a?):(\w{2,32}):(\d{17,20})>$/.exec(emName);
-      btn.emoji = custom ? { id: custom[3], name: custom[2], animated: !!custom[1] } : { name: emName.slice(0, 32) };
-    }
-    comps.push(btn);
-  }
-  if (comps.length) out.components.push({ type: 1, components: comps });
-
-  if (!out.content && !out.embeds.length) return { error: 'Ajoute du texte ou un embed avant de publier.' };
-  if (chars > 6000) return { error: 'L’embed dépasse 6 000 caractères au total.' };
-  return { message: out };
-}
-
-async function publierEmbedDashboard(guild, user, body) {
-  const bad = reason => ({ code: 400, body: { error: 'invalid', reason } });
-  const channelId = String((body && body.channelId) || '');
-  if (!/^\d{17,20}$/.test(channelId)) return bad('Choisis le salon de publication.');
-
-  const member = await guild.members.fetch(user.id).catch(() => null);
-  if (!member || (!member.permissions.has(ADMIN) && !member.permissions.has(MANAGE_GUILD))) {
-    return { code: 403, body: { error: 'forbidden' } };
-  }
-
-  const channel = guild.channels.cache.get(channelId);
-  if (!channel || !TEXT_CHANNEL_TYPES.includes(channel.type)) return bad('Ce salon est introuvable ou n’est pas un salon textuel.');
-
-  const built = construireMessageEmbed(body && body.message);
-  if (built.error) return bad(built.error);
-
-  const need = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks];
-  const me = guild.members.me || await guild.members.fetchMe().catch(() => null);
-  const botPerms = me ? channel.permissionsFor(me) : null;
-  if (!botPerms || !botPerms.has(need)) {
-    return { code: 403, body: { error: 'bot_perms', reason: 'Le bot n’a pas les permissions « Voir le salon », « Envoyer des messages » et « Intégrer des liens » dans ce salon.' } };
-  }
-  const userPerms = channel.permissionsFor(member);
-  if (!userPerms || !userPerms.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
-    return { code: 403, body: { error: 'forbidden', reason: 'Tu n’as pas accès à ce salon.' } };
-  }
-
-  // Les mentions @everyone / @rôle ne partent que si la personne a le droit de les utiliser sur le serveur.
-  const canPing = member.permissions.has(PermissionFlagsBits.MentionEveryone);
-  let sent;
-  try {
-    sent = await channel.send({ ...built.message, allowedMentions: canPing ? { parse: ['everyone', 'roles'] } : { parse: [] } });
-  } catch (e) {
-    if (e && (e.code === 50013 || e.code === 50001)) {
-      return { code: 403, body: { error: 'bot_perms', reason: 'Discord refuse l’envoi : vérifie les permissions du bot dans ce salon.' } };
-    }
-    if (e && e.code === 50035) return bad('Discord a refusé le message (format ou lien invalide).');
-    throw e;
-  }
-  return { code: 200, body: { ok: true, messageId: sent.id, url: sent.url } };
-}
-
 /* ---------- Accès aux données (config du bot ou Rankup) ---------- */
 function rankupApi() { try { return require('../commands/rankup').dashboard || null; } catch { return null; } }
 function source(mod, guildId) {
@@ -1636,6 +1502,127 @@ async function route(req, res, { client }, url) {
     return J(405, { error: 'method' });
   }
 
+  // ---------- Annonces programmées (même stockage que /planifier) ----------
+  const ann = p.match(/^\/api\/guilds\/(\d+)\/announcements(?:\/([\w-]{1,40}))?$/);
+  if (ann) {
+    const [, guildId, annId] = ann;
+    if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return J(404, { error: 'bot_absent' });
+    const { getGuildBucket, setGuildBucket } = require('./config');
+    const MAX_ANNONCES = 20;
+    const REPEATS = { once: 0, day: 86400000, week: 604800000, month: 0 };
+    const list = getGuildBucket(guildId, 'scheduled', []);
+    const view = e => ({
+      id: String(e.id),
+      message: e.message || '',
+      channelId: String(e.channelId || ''),
+      nextRun: e.nextRun,
+      repeat: e.repeat || 'custom',
+      intervalMs: Number(e.intervalMs) || 0,
+      intervalValue: e.intervalValue ?? null,
+      intervalUnit: e.intervalUnit ?? null,
+      hasImage: !!e.imagePath,
+      paused: !!e.paused,
+      lastRun: e.lastRun || null
+    });
+    const validate = (body, isNew) => {
+      if (!body || typeof body !== 'object' || Array.isArray(body)) return { error: 'Données invalides.' };
+      const message = typeof body.message === 'string' ? body.message.trim() : '';
+      if (!message || message.length > 1900) return { error: 'Le message doit faire entre 1 et 1 900 caractères.' };
+      const channelId = String(body.channelId || '');
+      if (!guild.channels.cache.some(ch => ch.id === channelId && TEXT_CHANNEL_TYPES.includes(ch.type))) {
+        return { error: 'Choisis un salon textuel de ce serveur.' };
+      }
+      const nextRun = Number(body.nextRun);
+      if (!Number.isFinite(nextRun) || nextRun > Date.now() + 366 * 86400000) return { error: 'Date du premier envoi invalide.' };
+      if (isNew && nextRun < Date.now() - 60000) return { error: 'Le premier envoi doit être dans le futur.' };
+      const repeat = String(body.repeat || 'once');
+      if (!(repeat in REPEATS) && !(repeat === 'custom' && !isNew)) return { error: 'Répétition invalide.' };
+      return { data: {
+        message, channelId, nextRun: Math.round(nextRun), repeat,
+        intervalMs: REPEATS[repeat],
+        dayOfMonth: repeat === 'month' ? new Date(nextRun).getDate() : undefined,
+        paused: body.paused === true
+      } };
+    };
+    let body = null;
+    if (req.method === 'POST' || req.method === 'PUT') {
+      try { body = await readBody(req, 20000); } catch { return J(400, { error: 'invalid' }); }
+    }
+    if (!annId && req.method === 'GET') {
+      return J(200, { announcements: list.map(view).sort((a, b) => a.nextRun - b.nextRun), max: MAX_ANNONCES });
+    }
+    if (!annId && req.method === 'POST') {
+      if (list.length >= MAX_ANNONCES) return J(400, { error: 'invalid', reason: `${MAX_ANNONCES} annonces maximum.` });
+      const r = validate(body, true);
+      if (r.error) return J(400, { error: 'invalid', reason: r.error });
+      const entry = { id: `${Date.now()}`, ...r.data, imagePath: null, createdBy: sess.user.id, source: 'dashboard' };
+      if (entry.dayOfMonth === undefined) delete entry.dayOfMonth;
+      list.push(entry);
+      setGuildBucket(guildId, 'scheduled', list);
+      return J(201, { announcement: view(entry) });
+    }
+    const idx = list.findIndex(e => String(e.id) === annId);
+    if (idx < 0) return J(404, { error: 'not_found_announcement' });
+    if (req.method === 'PUT') {
+      const r = validate(body, false);
+      if (r.error) return J(400, { error: 'invalid', reason: r.error });
+      const old = list[idx];
+      // Une ancienne entrée /planifier garde son intervalle si on ne change pas la répétition
+      const keepLegacy = !old.repeat && body.repeat === 'custom';
+      if (body.repeat === 'custom' && !keepLegacy) return J(400, { error: 'invalid', reason: 'Répétition invalide.' });
+      const entry = { ...old, ...r.data };
+      if (keepLegacy) { delete entry.repeat; entry.intervalMs = old.intervalMs; }
+      if (entry.dayOfMonth === undefined) delete entry.dayOfMonth;
+      if (entry.nextRun < Date.now() - 60000) return J(400, { error: 'invalid', reason: 'Le prochain envoi doit être dans le futur.' });
+      list[idx] = entry;
+      setGuildBucket(guildId, 'scheduled', list);
+      return J(200, { announcement: view(entry) });
+    }
+    if (req.method === 'DELETE') {
+      const [removed] = list.splice(idx, 1);
+      if (removed?.imagePath && fs.existsSync(removed.imagePath)) { try { fs.unlinkSync(removed.imagePath); } catch { } }
+      setGuildBucket(guildId, 'scheduled', list);
+      return J(200, { ok: true });
+    }
+    return J(405, { error: 'method' });
+  }
+
+  const ts = p.match(/^\/api\/guilds\/(\d+)\/ticket-settings$/);
+  if (ts) {
+    const guildId = ts[1];
+    if (!sess.guilds.some(g => g.id === guildId)) return J(403, { error: 'forbidden' });
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return J(404, { error: 'bot_absent' });
+    const cfg = obtenirConfigGuilde(guildId);
+    const { getTicketSettings, normalizeTicketSettings } = require('./ticketSettings');
+    if (req.method === 'GET') return J(200, { settings: getTicketSettings(cfg), logChannelId: String(cfg.ticket_channel_id || '') });
+    if (req.method === 'PUT') {
+      let body;
+      try { body = await readBody(req, 200000); } catch { return J(400, { error: 'invalid' }); }
+      const result = normalizeTicketSettings(body && body.settings, guild);
+      if (result.error) return J(400, { error: 'invalid', reason: result.error });
+      const logChannelId = typeof body.logChannelId === 'string' ? body.logChannelId.trim() : '';
+      if (logChannelId && !guild.channels.cache.some(ch => ch.id === logChannelId && TEXT_CHANNEL_TYPES.includes(ch.type))) {
+        return J(400, { error: 'invalid', reason: 'Le salon des transcriptions et logs doit être un salon textuel de ce serveur.' });
+      }
+      cfg.ticket_channel_id = logChannelId || null;
+      // Complète le pseudo des membres ajoutés à la blacklist (cache uniquement, sans appel réseau)
+      for (const entry of result.settings.blacklist) {
+        if (!entry.tag) {
+          const member = guild.members.cache.get(entry.id);
+          if (member) entry.tag = member.user.tag;
+        }
+      }
+      cfg.ticket_settings = result.settings;
+      persister('configuration');
+      console.log(`[WebDashboard] ${sess.user.username} a modifié les réglages des tickets sur ${guild.name}`);
+      return J(200, { ok: true, settings: result.settings, logChannelId: logChannelId });
+    }
+    return J(405, { error: 'method' });
+  }
+
   const tp = p.match(/^\/api\/guilds\/(\d+)\/ticket-panels(?:\/([a-f0-9]{16}|\d{17,20})(?:\/(publish|image))?)?$/i);
   const rules = p.match(/^\/api\/guilds\/(\d+)\/rules$/);
   if (rules) {
@@ -2100,25 +2087,6 @@ async function route(req, res, { client }, url) {
     } catch (e) {
       console.error('[WebDashboard] captcha :', e.message);
       return J(500, { error: 'captcha' });
-    }
-  }
-
-  /* ---------- Créateur d'embeds : publication d'un message dans un salon ---------- */
-  const embm = p.match(/^\/api\/guilds\/(\d+)\/embeds\/publish$/);
-  if (embm) {
-    if (!sess.guilds.some(g => g.id === embm[1])) return J(403, { error: 'forbidden' });
-    const eGuild = client.guilds.cache.get(embm[1]);
-    if (!eGuild) return J(404, { error: 'bot_absent' });
-    if (req.method !== 'POST') return J(405, { error: 'method' });
-    let eBody;
-    try { eBody = await readBody(req); } catch { return J(400, { error: 'invalid', reason: 'Requête illisible ou trop volumineuse.' }); }
-    try {
-      const r = await publierEmbedDashboard(eGuild, sess.user, eBody);
-      if (r.code === 200) console.log(`[WebDashboard] ${sess.user.username} : embed publié sur ${eGuild.name}`);
-      return J(r.code, r.body);
-    } catch (e) {
-      console.error('[WebDashboard] embeds/publish :', e.message);
-      return J(500, { error: 'embeds_publish' });
     }
   }
 

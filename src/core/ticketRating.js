@@ -38,7 +38,7 @@ function buildRatingRow(guildId, openerId, numero, choisi = null) {
 }
 
 // Message envoyé en MP à la personne qui a ouvert le ticket
-function buildClosedTicketMessage({ guild, closer, numero, raison, ouvertLe, openerId }) {
+function buildClosedTicketMessage({ guild, closer, numero, raison, ouvertLe, openerId, motif = null, withRating = true }) {
   const embed = new EmbedBuilder()
     .setColor(0xE91E63)
     .setTitle(`🔒 Ton ticket sur ${guild.name} est fermé`)
@@ -46,11 +46,11 @@ function buildClosedTicketMessage({ guild, closer, numero, raison, ouvertLe, ope
       `🎫 **Ticket :** #${numero} · ${String(raison || '—').slice(0, 100)}`,
       `🕐 **Ouvert le :** <t:${ouvertLe}:f>`,
       `🔒 **Fermé par :** <@${closer.id}>`,
-      `✏️ **Motif :** —`,
-    ].join('\n') + `${SEPARATEUR_NOTE}Comment ça s'est passé ? Note l'aide reçue.`);
+      `✏️ **Motif :** ${motif ? String(motif).slice(0, 200) : '—'}`,
+    ].join('\n') + (withRating ? `${SEPARATEUR_NOTE}Comment ça s'est passé ? Note l'aide reçue.` : ''));
   return {
     embeds: [embed],
-    components: [buildRatingRow(guild.id, openerId, numero)],
+    components: withRating ? [buildRatingRow(guild.id, openerId, numero)] : [],
     allowedMentions: { parse: [] },
   };
 }
