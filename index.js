@@ -1394,6 +1394,7 @@ registerNicknameGuardHandler(client);
 registerPartnershipAutoHandler(client);
 registerBotRoleHandler(client);
 registerAutoRoleHandler(client);
+require('./src/handlers/boostHandler').registerBoostHandler(client); // remerciements de boost, niveaux, rôle des boosters
 require('./src/handlers/joinRequest').registerJoinRequestHandler(client);
 registerBumpReminderHandler(client);
 require('./src/commands/blacklist').registerBlacklistHandler(client);
