@@ -84,10 +84,30 @@ function getStarDisplay(guild, cfg) {
   }
   return e.display;
 }
+const stripVS = t => String(t || '').replace(/\uFE0F/g, '');
 function reactionMatchesStarboard(reaction, cfg) {
   const e = getStarEmoji(cfg);
   if (e.id) return String(reaction.emoji.id) === String(e.id);
-  return reaction.emoji.name === e.name;
+  return stripVS(reaction.emoji.name) === stripVS(e.name);
+}
+
+// ── Filtres supplémentaires (dashboard web) ──
+// starboard_content_filter : 'all' (défaut) | 'media' (image/vidéo requise) | 'text' (aucune pièce jointe)
+// starboard_max_age_days   : âge maximum du message (vide = illimité)
+// starboard_ignored_roles  : les messages de ces rôles ne montent jamais
+function hasMedia(message) {
+  if (message.attachments?.some(a => /^(image|video)\//.test(a.contentType || ''))) return true;
+  return !!message.embeds?.some(e => e.image?.url || e.video?.url || e.thumbnail?.url);
+}
+function passesExtraFilters(message, cfg) {
+  const mode = cfg.starboard_content_filter;
+  if (mode === 'media' && !hasMedia(message)) return false;
+  if (mode === 'text' && (message.attachments?.size || 0) > 0) return false;
+  const days = Number(cfg.starboard_max_age_days);
+  if (Number.isFinite(days) && days > 0 && Date.now() - message.createdTimestamp > days * 86400000) return false;
+  const roles = cfg.starboard_ignored_roles;
+  if (Array.isArray(roles) && roles.length && message.member?.roles?.cache?.some(r => roles.includes(r.id))) return false;
+  return true;
 }
 // Salon de destination (repost_channel_id = ancien réglage, gardé pour compatibilité)
 function getDestChannelId(cfg) {
@@ -184,6 +204,18 @@ function buildStarboardDashboard(guild) {
   }, {
     name: 'Retrait si sous le seuil',
     value: on(cfg.starboard_remove_on_unstar),
+    inline: true
+  }, {
+    name: 'Messages acceptés',
+    value: ({ media: '🖼️ Image / vidéo uniquement', text: '💬 Texte uniquement' })[cfg.starboard_content_filter] || '📨 Tous les messages',
+    inline: true
+  }, {
+    name: 'Âge maximum',
+    value: Number(cfg.starboard_max_age_days) > 0 ? `**${cfg.starboard_max_age_days}** jour(s)` : 'Illimité',
+    inline: true
+  }, {
+    name: 'Rôles ignorés',
+    value: (cfg.starboard_ignored_roles || []).length ? cfg.starboard_ignored_roles.map(id => `<@&${id}>`).join(', ') : 'Aucun',
     inline: true
   }, {
     name: 'Salons ignorés',
@@ -601,6 +633,7 @@ async function handleStarboardReactionChange(reaction, user) {
     if (message.channel.id === String(destId)) return;
     if ((cfg.starboard_ignored_channels || []).includes(message.channel.id)) return;
     if (cfg.starboard_ignore_nsfw && message.channel.nsfw) return;
+    if (!passesExtraFilters(message, cfg)) return;
     const count = await countEffectiveStars(reaction, cfg, message.author?.id);
     if (count >= cfg.starboard_threshold) {
       await upsertStarboardPost(guild, cfg, message, count);

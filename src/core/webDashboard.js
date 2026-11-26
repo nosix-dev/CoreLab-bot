@@ -318,8 +318,16 @@ const MODULES = [
     fields: [
       B('starboard_enabled', 'Activer le starboard', false),
       CH('starboard_channel_id', 'Salon du starboard', { dep: 'starboard_enabled' }),
+      // Emoji du starboard : tous les emojis Unicode + ceux du serveur. Vide = cœur par défaut du bot.
+      { key: 'starboard_emoji_raw', label: 'Emoji du starboard', type: 'emoji', def: '', emptyDelete: true, customFlag: 'starboard_emoji_customized',
+        hint: 'L’emoji sur lequel les membres réagissent. Vide = cœur par défaut de CoreLab.', dep: 'starboard_enabled',
+        after: (dest, v) => { const c = parseCustomEmoji(v); dest.starboard_emoji_customized = !!v; dest.starboard_emoji_id = c ? c.id : null; if (!v) delete dest.starboard_emoji_raw; } },
       N('starboard_threshold', 'Nombre de réactions requises', 3, 1, 100, { dep: 'starboard_enabled' }),
+      S('starboard_content_filter', 'Messages acceptés', 'all', O(['all', 'Tous les messages'], ['media', 'Uniquement les messages avec image / vidéo'], ['text', 'Uniquement les messages texte (sans pièce jointe)']), { dep: 'starboard_enabled', delValue: 'all' }),
+      { key: 'starboard_max_age_days', label: 'Âge maximum du message (jours)', type: 'optnumber', min: 1, max: 365, def: '', emptyDelete: true, dep: 'starboard_enabled',
+        hint: 'Les messages plus vieux ne peuvent plus entrer dans le starboard. Vide = pas de limite.' },
       CHS('starboard_ignored_channels', 'Salons ignorés', { dep: 'starboard_enabled' }),
+      ROS('starboard_ignored_roles', 'Rôles ignorés', { dep: 'starboard_enabled', assign: false, hint: 'Les messages des membres ayant l’un de ces rôles ne montent jamais dans le starboard.' }),
       B('starboard_allow_self_star', 'Compter la réaction de l’auteur', true, { dep: 'starboard_enabled' }),
       B('starboard_ignore_nsfw', 'Ignorer les salons NSFW', false, { dep: 'starboard_enabled' }),
       B('starboard_remove_on_unstar', 'Retirer le message si les réactions repassent sous le seuil', true, { dep: 'starboard_enabled' })
@@ -737,11 +745,24 @@ function premiumOk(userId) {
   try { return !!require('./premium').estPremiumCustomisation(userId); } catch { return false; }
 }
 
+/* ---------- Emoji du starboard ---------- */
+function parseCustomEmoji(v) {
+  const m = /^<(a?):(\w{2,32}):(\d{17,20})>$/.exec(String(v || ''));
+  return m ? { animated: !!m[1], name: m[2], id: m[3] } : null;
+}
+// Emoji unicode (y compris drapeaux, claviers, teintes, séquences ZWJ) : refuse le texte ordinaire.
+const UNICODE_EMOJI_RE = /^[\p{Extended_Pictographic}\p{Emoji_Component}\p{Regional_Indicator}\u{E0020}-\u{E007F}]+$/u;
+function validEmoji(v) {
+  const s = String(v || '');
+  if (!s || s.length > 40 || /^[0-9#*\uFE0F]+$/.test(s)) return false;
+  return UNICODE_EMOJI_RE.test(s);
+}
+
 /* ---------- Lecture d'un champ ---------- */
 function readField(f, raw) {
   switch (f.type) {
     case 'bool': return raw === undefined || raw === null ? !!f.def : raw !== false;
-    case 'text': case 'longtext': return typeof raw === 'string' ? raw : (f.def || '');
+    case 'text': case 'longtext': case 'emoji': return typeof raw === 'string' ? raw : (f.def || '');
     case 'number': { const n = Number(raw); return raw === null || raw === undefined || !Number.isFinite(n) ? f.def : n; }
     case 'select': return typeof raw === 'string' && raw ? raw : f.def;
     case 'channel': case 'category': case 'role': return raw ? String(raw) : '';
@@ -767,6 +788,7 @@ function readValues(mod, guildId) {
   const src = source(mod, guildId), out = {};
   for (const f of mod.fields) {
     const key = mod.store === 'rankup' ? f.key : f.key;
+    if (f.customFlag && !getPath(src, f.customFlag)) { out[f.key] = ''; continue; } // emoji jamais personnalisé = valeur par défaut
     out[f.key] = f.type === 'logevents' ? readLogEvents(src) : f.type.startsWith('am') ? AM.read(f.type, src) : readField(f, getPath(src, key));
   }
   return out;
@@ -797,6 +819,17 @@ function checkField(f, v, cur, ctx) {
       const s = String(v ?? '');
       if (!f.options.some(o => o.v === s) && s !== cur) return bad('choix invalide');
       return { value: f.delValue !== undefined && s === f.delValue ? '' : s };
+    }
+    case 'emoji': {
+      const s = String(v ?? '').trim();
+      if (!s) return { value: '' };
+      const c = parseCustomEmoji(s);
+      if (c) {
+        const cc = parseCustomEmoji(cur);
+        if ((!cc || cc.id !== c.id) && !ctx.guild.emojis.cache.has(c.id)) return bad('cet emoji n’existe pas sur ce serveur');
+        return { value: s };
+      }
+      return validEmoji(s) ? { value: s } : bad('emoji invalide');
     }
     case 'hexcolor': {
       if (v === '' || v == null) return { value: '' };
@@ -2469,7 +2502,8 @@ async function route(req, res, { client }, url) {
       premium: premiumOk(sess.user.id),
       channels: guild.channels.cache.filter(c => TEXT_CHANNEL_TYPES.includes(c.type)).map(c => ({ id: c.id, name: c.name })).sort(byName),
       categories: guild.channels.cache.filter(c => c.type === CATEGORY_TYPE).map(c => ({ id: c.id, name: c.name })).sort(byName),
-      roles: guild.roles.cache.filter(r => r.id !== guild.id).map(r => ({ id: r.id, name: r.name, ok: !roleProblem(guild, r) })).sort(byName)
+      roles: guild.roles.cache.filter(r => r.id !== guild.id).map(r => ({ id: r.id, name: r.name, ok: !roleProblem(guild, r) })).sort(byName),
+      emojis: guild.emojis.cache.filter(e => e.available !== false).map(e => ({ id: e.id, name: e.name, animated: !!e.animated })).sort(byName)
     });
   }
 
@@ -2513,10 +2547,15 @@ async function route(req, res, { client }, url) {
       for (const [f, v] of staged) {
         if ((f.emptyDelete && v === '') || (f.type === 'bool' && f.delWhen !== undefined && v === f.delWhen)) delPath(dest, f.key);
         else setPath(dest, f.key, v);
+        if (f.after) f.after(dest, v);
       }
       if (mod.id === 'automod' && staged.some(([f]) => f.type.startsWith('am'))) AM.syncFlags(dest);
       if (mod.preview) { const ck = `${mod.preview}_card`; if (dest[ck] && !Object.keys(dest[ck]).length) delete dest[ck]; }
       await commit(mod, guildId);
+      // Le message d'explication du salon photos cite l'emoji, le seuil et le salon : on le met à jour s'il est publié.
+      if (mod.id === 'starboard' && staged.some(([f]) => ['starboard_emoji_raw', 'starboard_threshold', 'starboard_channel_id'].includes(f.key))) {
+        try { const c = obtenirConfigGuilde(guildId); if (c.photo_channel_id && c.starboard_notice_message_id) require('../handlers/starboard').publishNotice(guild).catch(() => { }); } catch { /* facultatif */ }
+      }
       console.log(`[WebDashboard] ${sess.user.username} a modifié « ${mod.id} » sur ${guild.name} (${staged.length} réglage(s))`);
       return J(200, { ok: true, values: readValues(mod, guildId) });
     }
