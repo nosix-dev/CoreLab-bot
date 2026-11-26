@@ -124,6 +124,7 @@ function registerGoodbyeHandler(client) {
         try {
             if (member.user.bot) return;
             const cfg = getGuildConfig(member.guild.id);
+            if (cfg.goodbye_enabled === false) return;
             const channelId = cfg.goodbye_channel_id;
             if (!channelId) return;
             const channel = member.guild.channels.cache.get(String(channelId));

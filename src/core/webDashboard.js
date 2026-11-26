@@ -211,27 +211,51 @@ const MODULES = [
   /* ---------- Membres ---------- */
   {
     id: 'welcome', name: '👋 Bienvenue & départs', group: 'Membres', toggle: null,
-    desc: 'Messages d’arrivée et de départ, MP de bienvenue, rôles d’arrivée.',
+    desc: 'Messages d’arrivée, de départ et de boost, MP de bienvenue, rôles d’arrivée.',
     fields: [
-      CH('welcome_channel_id', 'Salon de bienvenue', { section: 'Salons', hint: 'Sans salon, aucun message de bienvenue.' }),
-      CH('goodbye_channel_id', 'Salon d’au revoir'),
-      B('welcome_dm_enabled', 'Envoyer un MP de bienvenue', true, { section: 'Message privé' }),
-      L('welcome_dm_message', 'Texte du MP', 1000, { dep: 'welcome_dm_enabled' }),
-      B('send_rules_dm', 'Envoyer le règlement en MP', false),
-      L('rules_dm_text', 'Texte du règlement en MP', 1500, { dep: 'send_rules_dm' }),
-      RO('member_role_id', 'Rôle membre (après le règlement)', { section: 'Rôles' }),
-      RO('member_role_id_2', 'Second rôle membre'),
-      N('min_account_age_days', 'Âge minimum du compte (jours)', 0, 0, 365, { hint: '0 = désactivé. Les comptes plus récents sont expulsés.' }),
-      T('welcome_appearance.title', 'Titre du message de bienvenue', 256, { section: 'Apparence (Premium)', premium: true, emptyDelete: true, hint: 'Vide = titre par défaut. Variables : {user.mention} {user.name} {server.name} {server.member_count}' }),
-      L('welcome_appearance.description', 'Texte du message de bienvenue', 1500, { premium: true, emptyDelete: true, hint: 'Variables : {user.mention} {user.name} {user.id} {user.joined_at} {server.name} {server.member_count}' }),
-      { key: 'welcome_appearance.color', label: 'Couleur du message de bienvenue', type: 'color', def: '#e8510d', premium: true },
+      /* ----- Message de bienvenue ----- */
+      B('welcome_enabled', 'Envoyer un message de bienvenue', true, { section: 'Message de bienvenue' }),
+      CH('welcome_channel_id', 'Salon de bienvenue', { hint: 'Sans salon, aucun message de bienvenue.' }),
+      T('welcome_appearance.title', 'Titre', 256, { premium: true, emptyDelete: true, hint: 'Vide = titre par défaut. Variables : {user.mention} {user.name} {server.name} {server.member_count}' }),
+      L('welcome_appearance.description', 'Message', 1500, { premium: true, emptyDelete: true, hint: 'Variables : {user.mention} {user.name} {user.id} {user.joined_at} {server.name} {server.member_count} {rules} {roles}' }),
+      T('welcome_appearance.footer', 'Pied de message', 200, { emptyDelete: true, hint: 'Petite ligne en bas du message. Mêmes variables que le message. Vide = aucun pied.' }),
+      { key: 'welcome_appearance.color', label: 'Couleur', type: 'color', def: '#e8510d', premium: true },
+      B('welcome_appearance.showAvatar', 'Afficher l’avatar du membre', true),
+      B('welcome_appearance.showMemberCount', 'Afficher le nombre de membres', true, { hint: 'Dans le message par défaut et sur la carte de bienvenue.' }),
+      CH('welcome_rules_channel_id', 'Salon des règles', { hint: 'Cité dans le message par défaut et par la variable {rules}.' }),
+      CH('welcome_roles_channel_id', 'Salon des rôles', { hint: 'Cité dans le message par défaut et par la variable {roles}.' }),
       S('welcome_appearance.cardStyle', 'Style de la carte de bienvenue', 'banniere', O(['banniere', 'Image de bannière'], ['classique', 'Carte classique']), { premium: true, emptyDelete: true, delValue: 'banniere', hint: 'Classique = carte « verre fumé » générée par le bot. Bannière = ton image personnalisée en grand en bas du message (sans image, la carte classique est utilisée).' }),
       { key: 'welcome_appearance.buttons', label: 'Boutons avec lien (bienvenue)', type: 'linkbuttons', def: [], premium: true, hint: '5 boutons maximum. Avec une description, le bouton s’affiche sur sa propre ligne à droite du texte.' },
-      T('goodbye_appearance.title', 'Titre du message d’au revoir', 256, { premium: true, emptyDelete: true }),
-      L('goodbye_appearance.description', 'Texte du message d’au revoir', 1500, { premium: true, emptyDelete: true }),
-      { key: 'goodbye_appearance.color', label: 'Couleur du message d’au revoir', type: 'color', def: '#e8510d', premium: true },
+      B('welcome_dm_enabled', 'Envoyer aussi un message privé', true, { section: 'Message privé' }),
+      L('welcome_dm_message', 'Message privé', 1000, { dep: 'welcome_dm_enabled', hint: 'Variables : {user.mention} {user.name} {server.name} {server.member_count}' }),
+      B('send_rules_dm', 'Envoyer le règlement en MP', false),
+      L('rules_dm_text', 'Texte du règlement en MP', 1500, { dep: 'send_rules_dm' }),
+
+      /* ----- Message de départ ----- */
+      B('goodbye_enabled', 'Dire au revoir quand quelqu’un part', true, { section: 'Message de départ' }),
+      CH('goodbye_channel_id', 'Salon d’au revoir', { hint: 'Sans salon, aucun message de départ.' }),
+      T('goodbye_appearance.title', 'Titre', 256, { premium: true, emptyDelete: true }),
+      L('goodbye_appearance.description', 'Message', 1500, { premium: true, emptyDelete: true, hint: 'Variables : {user.mention} {user.name} {user.id} {user.joined_at} {server.name} {server.member_count}' }),
+      { key: 'goodbye_appearance.color', label: 'Couleur', type: 'color', def: '#e8510d', premium: true },
       S('goodbye_appearance.cardStyle', 'Style de la carte d’au revoir', 'banniere', O(['banniere', 'Image de bannière'], ['classique', 'Carte classique']), { premium: true, emptyDelete: true, delValue: 'banniere', hint: 'Classique = carte « verre fumé » générée par le bot. Bannière = ton image personnalisée en grand en bas du message (sans image, la carte classique est utilisée).' }),
-      { key: 'goodbye_appearance.buttons', label: 'Boutons avec lien (au revoir)', type: 'linkbuttons', def: [], premium: true, hint: '5 boutons maximum. Avec une description, le bouton s’affiche sur sa propre ligne à droite du texte.' }
+      { key: 'goodbye_appearance.buttons', label: 'Boutons avec lien (au revoir)', type: 'linkbuttons', def: [], premium: true, hint: '5 boutons maximum. Avec une description, le bouton s’affiche sur sa propre ligne à droite du texte.' },
+
+      /* ----- Boosts ----- */
+      B('boost_enabled', 'Remercier les membres qui boostent', false, { section: 'Boosts' }),
+      CH('boost_channel_id', 'Salon des boosts', { hint: 'Reçoit les remerciements et les annonces de niveau.' }),
+      T('boost_title', 'Titre', 256, { dep: 'boost_enabled', emptyDelete: true, hint: 'Vide = « Serveur boosté ! ». Variables : {user.name} {server.name} {boost_count} {boost_level}' }),
+      L('boost_message', 'Message', 1500, { dep: 'boost_enabled', emptyDelete: true, hint: 'Vide = message par défaut. Variables : {user.mention} {user.name} {user.id} {server.name} {server.member_count} {boost_count} {boost_level}' }),
+      B('boost_levelup_enabled', 'Annoncer les nouveaux niveaux de boost', true),
+      L('boost_levelup_message', 'Message de montée de niveau', 1500, { dep: 'boost_levelup_enabled', emptyDelete: true, hint: 'Vide = message par défaut. Variables : {server.name} {server.member_count} {boost_count} {boost_level}' }),
+      RO('boost_role_id', 'Rôle des boosters', { hint: 'Donné quand un membre booste, retiré quand il arrête. Ne touche pas au rôle booster de Discord.' }),
+
+      /* ----- Rôles à l'arrivée ----- */
+      B('autorole_enabled', 'Donner des rôles à l’arrivée', false, { section: 'Rôles à l’arrivée', hint: 'Délai et validation du règlement : page « Rôles automatiques ».' }),
+      ROS('autorole_role_ids', 'Rôles des nouveaux membres', { dep: 'autorole_enabled' }),
+      ROS('autorole_bot_role_ids', 'Rôles des nouveaux bots', { dep: 'autorole_enabled' }),
+      RO('member_role_id', 'Rôle membre (après le règlement)', { section: 'Règlement et sécurité' }),
+      RO('member_role_id_2', 'Second rôle membre'),
+      N('min_account_age_days', 'Âge minimum du compte (jours)', 0, 0, 365, { hint: '0 = désactivé. Les comptes plus récents sont expulsés.' })
     ]
   },
   {

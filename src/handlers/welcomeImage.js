@@ -59,7 +59,14 @@ function applyPlaceholders(text, member, { mentionAsName = false } = {}) {
         .replace(/\{user\.joined_at\}/g, joinedAt)
         .replace(/\{user\.created_at\}/g, createdAt)
         .replace(/\{server\.name\}/g, member.guild.name)
-        .replace(/\{server\.member_count\}/g, String(member.guild.memberCount));
+        .replace(/\{server\.member_count\}/g, String(member.guild.memberCount))
+        .replace(/\{rules\}/g, salonRef(member.guild, getGuildConfig(member.guild.id).welcome_rules_channel_id) || 'le règlement')
+        .replace(/\{roles\}/g, salonRef(member.guild, getGuildConfig(member.guild.id).welcome_roles_channel_id) || 'les rôles');
+}
+
+// Mention cliquable d'un salon configuré (salon des règles / des rôles), ou '' s'il n'existe plus.
+function salonRef(guild, id) {
+    return id && guild.channels.cache.has(String(id)) ? `<#${id}>` : '';
 }
 
 // Construit le message de bienvenue en Components V2, façon "serveur pro" :
@@ -79,12 +86,14 @@ function buildWelcomeContainer(member, { includeImage = true, glassBuffer = null
     const found = includeImage && appearance.cardStyle !== 'classique' ? findWelcomeImageFile(member.guild.id) : null;
 
     const title = applyPlaceholders(appearance.title, member, { mentionAsName: true }) || `Bienvenue sur ${member.guild.name} !`;
+    const rulesRef = salonRef(member.guild, cfg.welcome_rules_channel_id);
+    const rolesRef = salonRef(member.guild, cfg.welcome_roles_channel_id);
     const description = applyPlaceholders(appearance.description, member) ||
         `Salut ${member.toString()}, bienvenue sur **${member.guild.name}** !\n` +
-        `Tu es notre **membre n°${member.guild.memberCount}**.\n\n` +
-        `📌 **Premiers pas :**\n` +
-        `• Lis le règlement\n` +
-        `• Choisis tes rôles\n` +
+        (appearance.showMemberCount === false ? '' : `Tu es notre **membre n°${member.guild.memberCount}**.\n`) +
+        `\n📌 **Premiers pas :**\n` +
+        `• Lis le règlement${rulesRef ? ` dans ${rulesRef}` : ''}\n` +
+        `• Choisis tes rôles${rolesRef ? ` dans ${rolesRef}` : ''}\n` +
         `• Présente-toi à la communauté`;
 
     const container = new ContainerBuilder().setAccentColor(appearance.color ?? 0xE8510D);
@@ -95,13 +104,17 @@ function buildWelcomeContainer(member, { includeImage = true, glassBuffer = null
     container.addSeparatorComponents(separator());
 
     // Message + avatar du membre à droite
-    container.addSectionComponents(
-        new SectionBuilder()
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(description))
-            .setThumbnailAccessory(
-                new ThumbnailBuilder().setURL(member.displayAvatarURL({ extension: 'png', size: 256 }))
-            )
-    );
+    if (appearance.showAvatar === false) {
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(description));
+    } else {
+        container.addSectionComponents(
+            new SectionBuilder()
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(description))
+                .setThumbnailAccessory(
+                    new ThumbnailBuilder().setURL(member.displayAvatarURL({ extension: 'png', size: 256 }))
+                )
+        );
+    }
 
     // Boutons : une ligne par bouton avec description, le reste en rangée classique
     const { sections, rows } = buildLinkButtonsSections(appearance.buttons);
@@ -131,6 +144,13 @@ function buildWelcomeContainer(member, { includeImage = true, glassBuffer = null
                 new MediaGalleryItemBuilder().setURL(`attachment://${fileName}`)
             )
         );
+    }
+
+    // Pied de message (petite ligne grisée tout en bas)
+    const footer = applyPlaceholders(appearance.footer, member, { mentionAsName: true });
+    if (footer && footer.trim()) {
+        container.addSeparatorComponents(separator());
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${footer.trim().replace(/\s*\n+\s*/g, ' ').slice(0, 200)}`));
     }
 
     return { container, attachment };
@@ -197,6 +217,7 @@ function registerWelcomeImageHandler(client) {
             if (member.user.bot) return;
             programmerMpBienvenue(member);
             const cfg = getGuildConfig(member.guild.id);
+            if (cfg.welcome_enabled === false) return;
             const channelId = cfg.welcome_channel_id;
             if (!channelId) return;
             const channel = member.guild.channels.cache.get(String(channelId));
@@ -211,7 +232,7 @@ function registerWelcomeImageHandler(client) {
                     username: member.displayName || member.user.username,
                     avatarUrl: member.displayAvatarURL({ extension: 'png', size: 256 }),
                     serverName: member.guild.name,
-                    memberCount: member.guild.memberCount,
+                    memberCount: cfg.welcome_appearance?.showMemberCount === false ? undefined : member.guild.memberCount,
                     card: cfg.welcome_card,
                     createdTs: member.user.createdTimestamp
                 }).catch(e => { console.error('Carte de bienvenue (verre) impossible :', e.message); return null; });
