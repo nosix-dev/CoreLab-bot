@@ -87,6 +87,8 @@ async function execute(interaction) {
       `• Rôle mentionné : ${cfg.bump_role_id ? `<@&${cfg.bump_role_id}>` : 'aucun'}`,
       `• Remerciement après un bump : ${cfg.bump_thanks ? 'oui' : 'non'}`,
       '',
+      'Plus d\'options (rôles supplémentaires, textes personnalisés, relances, heures calmes…) dans le dashboard, module « Rappel de bump ».',
+      '',
       'Fais un `/bump` pour lancer le premier minuteur (si le bump est trop tôt, Disboard indique le temps restant et le minuteur s\'y cale tout seul).',
       ...(avertissements.length ? ['', ...avertissements] : []),
     ];
@@ -125,7 +127,10 @@ async function execute(interaction) {
       `**Statut :** ${cfg.bump_enabled ? '🟢 Activé' : '⛔ Désactivé'}`,
       `**Salon du rappel :** ${cfg.bump_channel_id ? `<#${cfg.bump_channel_id}>` : 'salon du dernier `/bump`'}`,
       `**Rôle mentionné :** ${cfg.bump_role_id ? `<@&${cfg.bump_role_id}>` : 'aucun'}`,
+      ...(cfg.bump_extra_roles.length ? [`**Rôles supplémentaires :** ${cfg.bump_extra_roles.map(id => `<@&${id}>`).join(' ')}`] : []),
       `**Remerciement :** ${cfg.bump_thanks ? 'oui' : 'non'}`,
+      `**Relance :** ${cfg.bump_repeat_after_min > 0 ? `après ${cfg.bump_repeat_after_min} min, ${cfg.bump_repeat_max} max` : 'non'}`,
+      `**Heures calmes :** ${cfg.bump_quiet_enabled ? `${cfg.bump_quiet_start} → ${cfg.bump_quiet_end} (${cfg.bump_quiet_tz})` : 'non'}`,
       `**Prochain bump :** ${prochain}`,
       `**Bumps comptés :** ${cfg.bump_count}`,
     ];

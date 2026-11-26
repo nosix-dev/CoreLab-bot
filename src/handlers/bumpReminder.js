@@ -15,6 +15,10 @@
 // Config stockée dans getGuildConfig(guild.id) :
 //   bump_enabled, bump_channel_id, bump_role_id, bump_thanks,
 //   bump_next_at, bump_reminded, bump_last_channel_id, bump_count, bump_users{}
+//   Options : bump_extra_roles[], bump_mention_last, bump_delete_previous,
+//   bump_reminder_title, bump_reminder_message, bump_thanks_message,
+//   bump_repeat_after_min, bump_repeat_max, bump_quiet_enabled/_start/_end/_tz
+//   État : bump_last_user_id, bump_last_reminders[], bump_last_reminder_at, bump_repeat_count
 // ────────────────────────────────────────────────
 
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
@@ -42,7 +46,58 @@ function lireConfigBump(guildId) {
   if (cfg.bump_last_channel_id === undefined) cfg.bump_last_channel_id = null;
   if (typeof cfg.bump_count !== 'number') cfg.bump_count = 0;
   if (!cfg.bump_users || typeof cfg.bump_users !== 'object') cfg.bump_users = {};
+  if (!Array.isArray(cfg.bump_extra_roles)) cfg.bump_extra_roles = [];
+  if (cfg.bump_mention_last === undefined) cfg.bump_mention_last = false;
+  if (cfg.bump_delete_previous === undefined) cfg.bump_delete_previous = false;
+  if (typeof cfg.bump_repeat_after_min !== 'number') cfg.bump_repeat_after_min = 0;
+  if (typeof cfg.bump_repeat_max !== 'number') cfg.bump_repeat_max = 1;
+  if (cfg.bump_quiet_enabled === undefined) cfg.bump_quiet_enabled = false;
+  if (!cfg.bump_quiet_start) cfg.bump_quiet_start = '23:00';
+  if (!cfg.bump_quiet_end) cfg.bump_quiet_end = '08:00';
+  if (!cfg.bump_quiet_tz) cfg.bump_quiet_tz = 'Europe/Paris';
+  if (cfg.bump_last_user_id === undefined) cfg.bump_last_user_id = null;
+  if (!Array.isArray(cfg.bump_last_reminders)) cfg.bump_last_reminders = [];
+  if (typeof cfg.bump_last_reminder_at !== 'number') cfg.bump_last_reminder_at = 0;
+  if (typeof cfg.bump_repeat_count !== 'number') cfg.bump_repeat_count = 0;
   return cfg;
+}
+
+// Remplace {clé} par sa valeur dans un texte personnalisé.
+function remplacerVariables(texte, vars) {
+  return String(texte).replace(/\{(\w+)\}/g, (m, k) => (Object.prototype.hasOwnProperty.call(vars, k) ? vars[k] : m));
+}
+
+// Vrai si l'heure actuelle est dans la plage « heures calmes » du serveur.
+function dansHeuresCalmes(cfg, maintenant = Date.now()) {
+  if (!cfg.bump_quiet_enabled) return false;
+  const lire = (hhmm) => {
+    const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm || '');
+    return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null;
+  };
+  const debut = lire(cfg.bump_quiet_start);
+  const fin = lire(cfg.bump_quiet_end);
+  if (debut === null || fin === null || debut === fin) return false;
+  let minutes;
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: cfg.bump_quiet_tz || 'Europe/Paris', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(new Date(maintenant));
+    minutes = parseInt(parts.find(p => p.type === 'hour').value, 10) * 60 + parseInt(parts.find(p => p.type === 'minute').value, 10);
+  } catch {
+    return false;
+  }
+  return debut < fin ? (minutes >= debut && minutes < fin) : (minutes >= debut || minutes < fin);
+}
+
+// Supprime les rappels envoyés précédemment (option « supprimer l'ancien rappel »).
+async function supprimerAnciensRappels(guild, cfg) {
+  const liste = Array.isArray(cfg.bump_last_reminders) ? cfg.bump_last_reminders : [];
+  cfg.bump_last_reminders = [];
+  for (const r of liste) {
+    const salon = await guild.channels.fetch(r.c).catch(() => null);
+    const msg = salon?.messages ? await salon.messages.fetch(r.m).catch(() => null) : null;
+    if (msg?.deletable) await msg.delete().catch(() => { });
+  }
 }
 
 // « 1 h 10 », « 118 minutes », « 2 heures »… → nombre de minutes (ou null).
@@ -105,6 +160,7 @@ async function traiterMessage(message) {
 
   cfg.bump_last_channel_id = message.channel.id;
   cfg.bump_reminded = false;
+  cfg.bump_repeat_count = 0;
 
   if (analyse.type === 'attente') {
     if (analyse.minutes < 0 || analyse.minutes > MAX_MINUTES_ATTENTE) return;
@@ -118,14 +174,21 @@ async function traiterMessage(message) {
   const utilisateur = message.interactionMetadata?.user ?? message.interaction?.user ?? null;
   cfg.bump_next_at = Date.now() + COOLDOWN_MS;
   cfg.bump_count += 1;
-  if (utilisateur?.id) cfg.bump_users[utilisateur.id] = (cfg.bump_users[utilisateur.id] || 0) + 1;
+  if (utilisateur?.id) {
+    cfg.bump_users[utilisateur.id] = (cfg.bump_users[utilisateur.id] || 0) + 1;
+    cfg.bump_last_user_id = utilisateur.id;
+  }
+  if (cfg.bump_delete_previous) await supprimerAnciensRappels(message.guild, cfg);
   persist('configuration');
 
   if (cfg.bump_thanks) {
     const ts = Math.floor(cfg.bump_next_at / 1000);
     const qui = utilisateur?.id ? ` <@${utilisateur.id}>` : '';
+    const texteMerci = cfg.bump_thanks_message
+      ? remplacerVariables(cfg.bump_thanks_message, { user: utilisateur?.id ? `<@${utilisateur.id}>` : 'toi', next: `<t:${ts}:R>` })
+      : `Merci${qui} d'avoir bumpé le serveur !\nProchain bump possible : <t:${ts}:R>`;
     const merci = new EmbedBuilder().setTitle('🙏 Merci pour le bump !')
-      .setDescription(`Merci${qui} d'avoir bumpé le serveur !\nProchain bump possible : <t:${ts}:R>`).setColor(0xE8510D);
+      .setDescription(texteMerci).setColor(0xE8510D);
     await message.channel.send(await glassPayload({
       embeds: [merci],
       allowedMentions: { users: utilisateur?.id ? [utilisateur.id] : [] },
@@ -147,17 +210,27 @@ async function envoyerRappel(guild, cfg) {
     return;
   }
 
-  const role = cfg.bump_role_id ? guild.roles.cache.get(cfg.bump_role_id) : null;
+  // Rôles à mentionner : rôle principal + rôles supplémentaires (sans doublon, uniquement ceux qui existent).
+  const idsRoles = [cfg.bump_role_id, ...(cfg.bump_extra_roles || [])]
+    .filter((id, i, arr) => id && arr.indexOf(id) === i && guild.roles.cache.has(id));
+  const idUser = cfg.bump_mention_last && cfg.bump_last_user_id ? cfg.bump_last_user_id : null;
+  const mentionsRoles = idsRoles.map(id => `<@&${id}>`).join(' ');
+  const mentions = [mentionsRoles, idUser ? `<@${idUser}>` : ''].filter(Boolean).join(' ');
+
+  const description = cfg.bump_reminder_message
+    ? remplacerVariables(cfg.bump_reminder_message, { role: mentionsRoles, user: idUser ? `<@${idUser}>` : '', server: guild.name })
+    : 'Le serveur peut de nouveau être bumpé sur **Disboard**.\nTape `/bump` dans ce salon pour le faire remonter dans la liste.';
   const embed = new EmbedBuilder()
-    .setTitle('🔔 C\'est l\'heure de bump !')
-    .setDescription('Le serveur peut de nouveau être bumpé sur **Disboard**.\nTape `/bump` dans ce salon pour le faire remonter dans la liste.')
+    .setTitle(cfg.bump_reminder_title || '🔔 C\'est l\'heure de bump !')
+    .setDescription(description)
     .setColor(0xE8510D);
 
-  await salon.send(await glassPayload({
-    content: role ? `<@&${role.id}>` : undefined,
+  const envoye = await salon.send(await glassPayload({
+    content: mentions || undefined,
     embeds: [embed],
-    allowedMentions: { roles: role ? [role.id] : [] },
+    allowedMentions: { roles: idsRoles, users: idUser ? [idUser] : [] },
   }, { guild, client: guild.client, badge: 'RAPPEL BUMP' }));
+  return envoye;
 }
 
 async function verifierRappels(client) {
@@ -166,20 +239,40 @@ async function verifierRappels(client) {
 
   for (const guild of client.guilds.cache.values()) {
     const cfg = getGuildConfig(guild.id);
-    if (!cfg.bump_enabled || !cfg.bump_next_at || cfg.bump_reminded) continue;
-    if (maintenant < cfg.bump_next_at) continue;
+    if (!cfg.bump_enabled || !cfg.bump_next_at) continue;
+    const c = lireConfigBump(guild.id);
+
+    // Heures calmes : on attend la fin de la plage (le rappel reste « dû »).
+    if (dansHeuresCalmes(c, maintenant)) continue;
+
+    const premier = !c.bump_reminded && maintenant >= c.bump_next_at;
+    // Relance : le rappel a déjà été envoyé, personne n'a bumpé depuis (un bump remet « rappelé » à false).
+    const relance = c.bump_reminded && c.bump_repeat_after_min > 0
+      && c.bump_repeat_count < c.bump_repeat_max
+      && c.bump_last_reminder_at > 0
+      && maintenant >= c.bump_last_reminder_at + c.bump_repeat_after_min * 60 * 1000;
+    if (!premier && !relance) continue;
 
     // On marque « rappelé » AVANT l'envoi : pas de doublon si le tick suivant arrive pendant l'envoi.
-    cfg.bump_reminded = true;
+    const etaitRappele = c.bump_reminded;
+    c.bump_reminded = true;
+    c.bump_last_reminder_at = maintenant;
+    if (premier) c.bump_repeat_count = 0; else c.bump_repeat_count += 1;
     persist('configuration');
     try {
-      await envoyerRappel(guild, lireConfigBump(guild.id));
+      const envoye = await envoyerRappel(guild, c);
+      if (envoye?.id) {
+        c.bump_last_reminders = premier ? [] : c.bump_last_reminders;
+        c.bump_last_reminders.push({ c: envoye.channelId || envoye.channel?.id, m: envoye.id });
+        persist('configuration');
+      }
     } catch (e) {
       console.error(`[Bump] Rappel ${guild.id} :`, e.message);
       // Erreur temporaire (réseau…) : on réessaie au tick suivant.
       // Erreur définitive (permissions manquantes, salon supprimé) : on n'insiste pas.
       if (![50001, 50013, 10003].includes(e?.code)) {
-        cfg.bump_reminded = false;
+        c.bump_reminded = etaitRappele;
+        if (!premier) c.bump_repeat_count = Math.max(0, c.bump_repeat_count - 1);
         persist('configuration');
       }
     }
@@ -205,5 +298,7 @@ module.exports = {
   lireConfigBump,
   analyserTexteDisboard,
   extraireMinutes,
+  dansHeuresCalmes,
+  remplacerVariables,
   DISBOARD_ID,
 };

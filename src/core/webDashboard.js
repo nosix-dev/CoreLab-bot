@@ -339,9 +339,16 @@ const MODULES = [
     fields: [
       B('counting_enabled', 'Activer le comptage', false),
       CH('counting_channel_id', 'Salon de comptage', { dep: 'counting_enabled' }),
-      B('counting_allow_consecutive', 'Autoriser un membre à compter deux fois de suite', false, { dep: 'counting_enabled' }),
+      B('counting_allow_consecutive', 'Autoriser un membre à compter deux fois de suite', false, { dep: 'counting_enabled', section: 'Règles du jeu' }),
       B('counting_delete_wrong', 'Supprimer les mauvais nombres', true, { dep: 'counting_enabled' }),
-      B('counting_reset_on_error', 'Remettre à zéro en cas d’erreur', true, { dep: 'counting_enabled' })
+      B('counting_reset_on_error', 'Remettre à zéro en cas d’erreur', true, { dep: 'counting_enabled' }),
+      B('counting_math', 'Accepter les calculs (ex. 2+2, 3*4, 10/2)', false, { dep: 'counting_enabled', hint: 'Le résultat du calcul doit être un nombre entier. Seuls + − × ÷ et les parenthèses sont acceptés.' }),
+      B('counting_ignore_text', 'Autoriser la discussion (ignorer les messages qui ne sont pas des nombres)', false, { dep: 'counting_enabled', hint: 'Un message sans nombre n’est ni supprimé ni compté comme une erreur. Un mauvais nombre reste sanctionné.' }),
+      ROS('counting_ignored_roles', 'Rôles exclus du comptage', { dep: 'counting_enabled', assign: false, hint: 'Les messages des membres ayant l’un de ces rôles sont ignorés par le jeu.' }),
+      B('counting_react_ok', 'Réagir ✅ aux bons nombres', true, { dep: 'counting_enabled', section: 'Réactions et annonces' }),
+      B('counting_announce_break', 'Annoncer quand le compte est cassé', true, { dep: 'counting_enabled' }),
+      B('counting_celebrate', 'Célébrer les paliers atteints', true, { dep: 'counting_enabled' }),
+      N('counting_milestone_every', 'Palier de célébration : tous les X nombres', 0, 0, 100000, { dep: 'counting_celebrate', hint: '0 = paliers par défaut (50, 100, 250, 500, 1000).' })
     ]
   },
   {
@@ -351,7 +358,19 @@ const MODULES = [
       B('bump_enabled', 'Activer le rappel de bump', false),
       CH('bump_channel_id', 'Salon du rappel', { dep: 'bump_enabled' }),
       { key: 'bump_role_id', label: 'Rôle à mentionner', type: 'role', def: '', dep: 'bump_enabled' },
-      B('bump_thanks', 'Remercier après un bump', true, { dep: 'bump_enabled' })
+      ROS('bump_extra_roles', 'Rôles supplémentaires à mentionner', { dep: 'bump_enabled', assign: false }),
+      B('bump_mention_last', 'Mentionner aussi le dernier membre qui a bumpé', false, { dep: 'bump_enabled' }),
+      B('bump_delete_previous', 'Supprimer l’ancien rappel quand le serveur est bumpé', false, { dep: 'bump_enabled' }),
+      T('bump_reminder_title', 'Titre du rappel', 100, { dep: 'bump_enabled', emptyDelete: true, section: 'Message du rappel', hint: 'Vide = titre par défaut.' }),
+      L('bump_reminder_message', 'Texte du rappel', 1000, { dep: 'bump_enabled', emptyDelete: true, hint: 'Variables : {role} (rôles mentionnés), {user} (dernier bumpeur), {server}. Vide = texte par défaut.' }),
+      N('bump_repeat_after_min', 'Relancer si personne ne bumpe après X minutes (0 = jamais)', 0, 0, 720, { dep: 'bump_enabled', section: 'Relances' }),
+      N('bump_repeat_max', 'Nombre maximum de relances', 1, 1, 5, { dep: 'bump_enabled' }),
+      B('bump_thanks', 'Remercier après un bump', true, { dep: 'bump_enabled', section: 'Remerciement' }),
+      L('bump_thanks_message', 'Texte du remerciement', 500, { dep: 'bump_thanks', emptyDelete: true, hint: 'Variables : {user} et {next} (prochain bump possible). Vide = texte par défaut.' }),
+      B('bump_quiet_enabled', 'Ne pas envoyer de rappel pendant des heures calmes', false, { dep: 'bump_enabled', section: 'Heures calmes', hint: 'Le rappel est envoyé dès la fin de la plage.' }),
+      TM('bump_quiet_start', 'Début', '23:00', { dep: 'bump_quiet_enabled' }),
+      TM('bump_quiet_end', 'Fin', '08:00', { dep: 'bump_quiet_enabled' }),
+      TZ('bump_quiet_tz', 'Fuseau horaire', { dep: 'bump_quiet_enabled' })
     ]
   },
 

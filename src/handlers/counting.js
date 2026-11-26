@@ -19,6 +19,56 @@ const {
 const CLE_COMPARTIMENT = 'comptage';
 const PALIERS_CELEBRATION = [50, 100, 250, 500, 1000];
 
+// Évalue un calcul simple (+ - * / et parenthèses) sans eval().
+// Retourne un entier, ou null si l'expression est invalide.
+function evaluerCalcul(texte) {
+  const t = String(texte).replace(/[×x]/gi, '*').replace(/÷/g, '/').replace(/\s+/g, '');
+  if (!t || t.length > 40 || !/^[\d+\-*/()]+$/.test(t)) return null;
+  let i = 0;
+  const lireNombre = () => {
+    const m = /^\d+/.exec(t.slice(i));
+    if (!m) throw new Error('nombre attendu');
+    i += m[0].length;
+    return parseInt(m[0], 10);
+  };
+  const facteur = () => {
+    if (t[i] === '-') { i++; return -facteur(); }
+    if (t[i] === '(') {
+      i++;
+      const v = expression();
+      if (t[i] !== ')') throw new Error('parenthèse manquante');
+      i++;
+      return v;
+    }
+    return lireNombre();
+  };
+  const terme = () => {
+    let v = facteur();
+    while (t[i] === '*' || t[i] === '/') {
+      const op = t[i++];
+      const d = facteur();
+      if (op === '/' && d === 0) throw new Error('division par zéro');
+      v = op === '*' ? v * d : v / d;
+    }
+    return v;
+  };
+  const expression = () => {
+    let v = terme();
+    while (t[i] === '+' || t[i] === '-') {
+      const op = t[i++];
+      const d = terme();
+      v = op === '+' ? v + d : v - d;
+    }
+    return v;
+  };
+  try {
+    const v = expression();
+    return i === t.length && Number.isInteger(v) && Number.isSafeInteger(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 function getCountingState(guildId) {
   return getGuildBucket(guildId, CLE_COMPARTIMENT, {
     current: 0,
@@ -43,7 +93,10 @@ function buildStatsEmbed(guild) {
       { name: 'Compte actuel', value: `**${state.current}**`, inline: true },
       { name: 'Record du serveur', value: `**${state.highScore}**`, inline: true },
       { name: 'Deux fois d\'affilée', value: cfg.counting_allow_consecutive ? '✅ Autorisé' : '❌ Interdit', inline: true },
-      { name: 'Reset en cas d\'erreur', value: cfg.counting_reset_on_error ? '✅ Oui' : '❌ Non (juste supprimé)', inline: true }
+      { name: 'Reset en cas d\'erreur', value: cfg.counting_reset_on_error ? '✅ Oui' : '❌ Non (juste supprimé)', inline: true },
+      { name: 'Calculs acceptés', value: cfg.counting_math ? '✅ Oui' : '❌ Non', inline: true },
+      { name: 'Discussion libre', value: cfg.counting_ignore_text ? '✅ Oui' : '❌ Non', inline: true },
+      { name: 'Paliers', value: cfg.counting_celebrate === false ? '❌ Désactivés' : (Number(cfg.counting_milestone_every) > 0 ? `Tous les ${Number(cfg.counting_milestone_every)}` : '50 · 100 · 250 · 500 · 1000'), inline: true }
     )
     .setTimestamp();
 }
@@ -56,13 +109,26 @@ function registerCountingHandler(client) {
       if (!cfg.counting_enabled || !cfg.counting_channel_id) return;
       if (message.channel.id !== cfg.counting_channel_id) return;
 
+      // Rôles exclus : le jeu ignore totalement leurs messages.
+      const rolesExclus = Array.isArray(cfg.counting_ignored_roles) ? cfg.counting_ignored_roles : [];
+      if (rolesExclus.length && message.member?.roles?.cache?.some(r => rolesExclus.includes(r.id))) return;
+
       const contenu = message.content.trim();
       const state = getCountingState(message.guild.id);
       const attendu = state.current + 1;
 
+      // Valeur lue : nombre entier, ou résultat d'un calcul si l'option est active.
+      const calculActif = !!cfg.counting_math;
+      const ressembleNombre = calculActif ? /^[\d\s+\-*/()×x÷]+$/i.test(contenu) && /\d/.test(contenu) : /^\d+$/.test(contenu);
+      // Mode discussion : un message qui n'est pas un nombre n'est ni supprimé ni sanctionné.
+      if (cfg.counting_ignore_text && !ressembleNombre) return;
+
+      let valeur = null;
+      if (/^\d+$/.test(contenu)) valeur = parseInt(contenu, 10);
+      else if (calculActif && ressembleNombre) valeur = evaluerCalcul(contenu);
+
       const memeMembre = !cfg.counting_allow_consecutive && state.lastUserId === message.author.id;
-      const estUnNombreValide = /^\d+$/.test(contenu);
-      const bonNombre = estUnNombreValide && parseInt(contenu, 10) === attendu;
+      const bonNombre = valeur !== null && valeur === attendu;
 
       if (bonNombre && !memeMembre) {
         state.current = attendu;
@@ -70,9 +136,11 @@ function registerCountingHandler(client) {
         if (attendu > state.highScore) state.highScore = attendu;
         setCountingState(message.guild.id, state);
 
-        await message.react('✅').catch(() => {});
+        if (cfg.counting_react_ok !== false) await message.react('✅').catch(() => {});
 
-        if (PALIERS_CELEBRATION.includes(attendu)) {
+        const pas = Number(cfg.counting_milestone_every) || 0;
+        const estUnPalier = pas > 0 ? attendu % pas === 0 : PALIERS_CELEBRATION.includes(attendu);
+        if (cfg.counting_celebrate !== false && estUnPalier) {
           const embed = new EmbedBuilder()
             .setTitle('🎉 Palier atteint !')
             .setDescription(`La communauté vient d'atteindre **${attendu}** !`)
@@ -100,6 +168,7 @@ function registerCountingHandler(client) {
         state.lastUserId = null;
         setCountingState(message.guild.id, state);
 
+        if (cfg.counting_announce_break === false) return;
         const embed = new EmbedBuilder()
           .setTitle('💥 Compte cassé !')
           .setDescription(`${message.author} ${raison}.\nLe compte était à **${ancienCompte}**, il repart de **1**.`)
