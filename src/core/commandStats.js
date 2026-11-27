@@ -16,13 +16,14 @@ const path = require("path");
 const { dossierPersistant, fichierPersistant } = require('./persistentPath');
 
 const DATA_DIR = dossierPersistant('data');
-const FILE = path.join(DATA_DIR, "command_stats.json");
+const kv = require('./db');
+const NOM = 'data/command_stats.json';
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 let stats = {};
 try {
-  if (fs.existsSync(FILE)) stats = JSON.parse(fs.readFileSync(FILE, "utf-8"));
+  stats = kv.lireJson(NOM, {});
 } catch (e) {
   stats = {};
 }
@@ -43,7 +44,7 @@ function getStats() {
 setInterval(() => {
   if (!dirty) return;
   dirty = false;
-  fs.writeFileSync(FILE, JSON.stringify(stats, null, 2), "utf-8");
+  kv.ecrireJson(NOM, stats);
 }, 60_000);
 
 // ── Regroupement en "modules" pour le graphique en barres ────────────────

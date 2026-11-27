@@ -4,13 +4,14 @@
 const fs = require('fs');
 const { fichierPersistant } = require('./persistentPath');
 
-const FILE = fichierPersistant('sanctions_log.json');
+const kv = require('./db');
+const NOM = 'sanctions_log.json';
 const MAX_PAR_SERVEUR = 2000;
 let DB = null;
 
 function charger() {
   if (DB) return DB;
-  try { DB = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { DB = {}; }
+  DB = kv.lireJson(NOM, {});
   if (!DB || typeof DB !== 'object') DB = {};
   return DB;
 }
@@ -37,8 +38,7 @@ function enregistrer(guildId, { type, member, moderator, reason }) {
         action: LBL[type] || type
       });
     } catch { /* le Radar est facultatif */ }
-    fs.writeFileSync(FILE + '.tmp', JSON.stringify(db));
-    fs.renameSync(FILE + '.tmp', FILE);
+    kv.ecrireJson(NOM, db);
   } catch (e) { console.error('[sanctionsLog]', e.message); }
 }
 
@@ -62,8 +62,7 @@ function retirer(guildId, ts, memberId) {
     const i = liste.findIndex(e => e.ts === ts && e.member?.id === String(memberId));
     if (i < 0) return false;
     liste.splice(i, 1);
-    fs.writeFileSync(FILE + '.tmp', JSON.stringify(db));
-    fs.renameSync(FILE + '.tmp', FILE);
+    kv.ecrireJson(NOM, db);
     return true;
   } catch (e) { console.error('[sanctionsLog]', e.message); return false; }
 }
@@ -78,8 +77,7 @@ function marquerLevee(guildId, ts, memberId, par) {
     e.revoked = true;
     e.revokedAt = Date.now();
     e.revokedBy = par ? String(par).slice(0, 80) : null;
-    fs.writeFileSync(FILE + '.tmp', JSON.stringify(db));
-    fs.renameSync(FILE + '.tmp', FILE);
+    kv.ecrireJson(NOM, db);
     return true;
   } catch (e) { console.error('[sanctionsLog]', e.message); return false; }
 }

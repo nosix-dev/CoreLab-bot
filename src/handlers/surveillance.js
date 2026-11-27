@@ -9,7 +9,8 @@ const crypto = require('crypto');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { fichierPersistant } = require('../core/persistentPath');
 
-const FILE = fichierPersistant('surveillance.json');
+const kv = require('../core/db');
+const NOM = 'surveillance.json';
 const TEXT_CHANNEL_TYPES = [0, 5];
 const COOLDOWN_ALERTE_MS = 10 * 60 * 1000;   // une alerte par type et par membre toutes les 10 min
 const COOLDOWN_CONFLIT_MS = 15 * 60 * 1000;  // une alerte par paire de membres et par salon
@@ -22,14 +23,13 @@ const DEFAUTS = { alerts_enabled: false, alert_channel_id: null, conflicts_enabl
 let DB = null;
 function charger() {
   if (DB) return DB;
-  try { DB = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { DB = {}; }
+  DB = kv.lireJson(NOM, {});
   if (!DB || typeof DB !== 'object' || !DB.guilds) DB = { guilds: {} };
   return DB;
 }
 function sauver() {
   try {
-    fs.writeFileSync(FILE + '.tmp', JSON.stringify(DB));
-    fs.renameSync(FILE + '.tmp', FILE);
+    kv.ecrireJson(NOM, DB);
   } catch (e) { console.error('[surveillance] sauvegarde :', e.message); }
 }
 function serveur(gid) {

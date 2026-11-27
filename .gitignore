@@ -1,1 +1,5 @@
 node_modules
+corelab.db
+corelab.db-wal
+corelab.db-shm
+export-json/

@@ -6,29 +6,17 @@
 //  • minutes passées en vocal
 //  • arrivées / départs de membres
 //
-// Stockage : activity_stats.json (dans DATA_DIR si défini → survit aux redéploiements).
-// Écriture asynchrone avec délai (pas de writeFileSync bloquant pendant l'exécution)
-// + sauvegarde synchrone à l'arrêt du bot.
+// Stockage : tables SQLite activity_* (voir activityStore.js). Les compteurs sont cumulés en mémoire,
+// écrits par lots toutes les ~10 s et à l'arrêt du bot ; les /server-stats et /user-stats sont des requêtes SQL.
 // Les stats commencent à être comptées à partir du déploiement de ce module.
 // ─────────────────────────────────────────────────────────────────────────
 
-const fs = require('fs');
-const { fichierPersistant } = require('./persistentPath');
+const store = require('./activityStore');
 
-const FILE = fichierPersistant('activity_stats.json');
 const TZ = process.env.STATS_TZ || 'Europe/Paris'; // fuseau pour découper les jours / heures
 const RETENTION_DAYS = 45;                         // on garde 45 jours d'historique
-const SAVE_DELAY_MS = 20 * 1000;
 const VOICE_TICK_MS = 5 * 60 * 1000;
 const VOICE_MAX_SESSION_MS = 12 * 60 * 60 * 1000;
-
-let store = { guilds: {} };
-try {
-  if (fs.existsSync(FILE)) store = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-} catch (e) {
-  console.error('[ActivityStats] lecture impossible, nouveau fichier :', e.message);
-}
-if (!store || typeof store !== 'object' || !store.guilds) store = { guilds: {} };
 
 // ── Dates (jour / heure locaux dans le fuseau TZ) ───────────────────────
 let formatter;
@@ -58,104 +46,26 @@ function dayKeysBack(n) {
   return out;
 }
 
-// ── Écriture sur disque ────────────────────────────────────────────────
-let dirty = false;
-let saveTimer = null;
-let saving = false;
-
-function prune() {
-  const cutoff = dayKeysBack(RETENTION_DAYS)[0];
-  for (const g of Object.values(store.guilds)) {
-    for (const key of Object.keys(g.days || {})) {
-      if (key < cutoff) delete g.days[key];
-    }
-  }
-}
-
-async function saveAsync() {
-  if (saving || !dirty) return;
-  saving = true;
-  dirty = false;
-  try {
-    prune();
-    const tmp = `${FILE}.tmp`;
-    await fs.promises.writeFile(tmp, JSON.stringify(store), 'utf8');
-    await fs.promises.rename(tmp, FILE);
-  } catch (e) {
-    dirty = true;
-    console.error('[ActivityStats] sauvegarde impossible :', e.message);
-  } finally {
-    saving = false;
-  }
-}
-
-function saveSync() {
-  if (!dirty) return;
-  try {
-    prune();
-    fs.writeFileSync(FILE, JSON.stringify(store), 'utf8');
-    dirty = false;
-  } catch (e) {
-    console.error('[ActivityStats] sauvegarde finale impossible :', e.message);
-  }
-}
-
-function markDirty() {
-  dirty = true;
-  if (saveTimer) return;
-  saveTimer = setTimeout(() => {
-    saveTimer = null;
-    saveAsync();
-  }, SAVE_DELAY_MS);
-  saveTimer.unref?.();
-}
-
-// ── Accès aux données ───────────────────────────────────────────────────
-function getDay(guildId, day) {
-  const g = store.guilds[guildId] || (store.guilds[guildId] = { days: {} });
-  if (!g.days) g.days = {};
-  return g.days[day] || (g.days[day] = { t: 0, h: {}, c: {}, u: {}, j: 0, l: 0, v: 0 });
-}
-
-function getUserDay(d, userId) {
-  return d.u[userId] || (d.u[userId] = { n: 0, c: {}, h: {}, v: 0 });
-}
-
-// ── Enregistrement des évènements ───────────────────────────────────────
+// ── Enregistrement des évènements (cumulés en mémoire, écrits en base par lots) ──
 function recordMessage(guildId, userId, channelId) {
   const { day, hour } = localParts();
-  const d = getDay(guildId, day);
-  d.t++;
-  d.h[hour] = (d.h[hour] || 0) + 1;
-  d.c[channelId] = (d.c[channelId] || 0) + 1;
-  const u = getUserDay(d, userId);
-  u.n++;
-  u.c[channelId] = (u.c[channelId] || 0) + 1;
-  u.h[hour] = (u.h[hour] || 0) + 1;
-  markDirty();
+  store.ajouterMessage(guildId, day, hour, channelId, userId);
 }
 
 function recordJoin(guildId) {
-  getDay(guildId, localParts().day).j++;
-  markDirty();
+  store.ajouterArrivee(guildId, localParts().day);
 }
 
 function recordLeave(guildId) {
-  getDay(guildId, localParts().day).l++;
-  markDirty();
+  store.ajouterDepart(guildId, localParts().day);
 }
 
 function recordVoiceMinutes(guildId, userId, minutes) {
   if (!(minutes > 0)) return;
-  const d = getDay(guildId, localParts().day);
-  d.v += minutes;
-  getUserDay(d, userId).v += minutes;
-  markDirty();
+  store.ajouterVocal(guildId, localParts().day, userId, minutes);
 }
 
-// ── Lecture / agrégation ────────────────────────────────────────────────
-const sortDesc = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]);
-
+// ── Lecture / agrégation (requêtes SQL, voir activityStore.js) ───────────
 /**
  * Agrège les `days` derniers jours.
  * @param {string} guildId
@@ -163,43 +73,11 @@ const sortDesc = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]);
  * @param {string|null} userId  si fourni : stats de ce membre uniquement (messages / salons / heures / vocal)
  */
 function summarize(guildId, days, userId = null) {
-  const g = store.guilds[guildId];
   const keys = dayKeysBack(days);
-  const perDay = [];
-  const hours = Array(24).fill(0);
-  const channels = {};
-  const users = {};
-  let joins = 0, leaves = 0, voice = 0;
-
-  for (const key of keys) {
-    const d = g?.days?.[key];
-    let n = 0;
-    if (d) {
-      joins += d.j || 0;
-      leaves += d.l || 0;
-      if (userId) {
-        const u = d.u?.[userId];
-        if (u) {
-          n = u.n || 0;
-          voice += u.v || 0;
-          for (const [h, c] of Object.entries(u.h || {})) hours[Number(h)] += c;
-          for (const [ch, c] of Object.entries(u.c || {})) channels[ch] = (channels[ch] || 0) + c;
-        }
-      } else {
-        n = d.t || 0;
-        voice += d.v || 0;
-        for (const [h, c] of Object.entries(d.h || {})) hours[Number(h)] += c;
-        for (const [ch, c] of Object.entries(d.c || {})) channels[ch] = (channels[ch] || 0) + c;
-      }
-      for (const [uid, u] of Object.entries(d.u || {})) {
-        if (u.n) users[uid] = (users[uid] || 0) + u.n;
-      }
-    }
-    perDay.push(n);
-  }
+  const r = store.resume(guildId, keys, userId);
+  const { perDay, hours, topUsers } = r;
 
   const total = perDay.reduce((a, b) => a + b, 0);
-  const topUsers = sortDesc(users);
   const best = perDay.reduce((bi, v, i, arr) => (v > arr[bi] ? i : bi), 0);
   const peak = hours.reduce((bi, v, i, arr) => (v > arr[bi] ? i : bi), 0);
   const activeDays = perDay.filter(v => v > 0).length;
@@ -211,14 +89,14 @@ function summarize(guildId, days, userId = null) {
     avg: total / days,
     activeUsers: topUsers.length,
     topUsers,
-    topChannels: sortDesc(channels),
+    topChannels: r.topChannels,
     hours,
     peakHour: peak,
     bestDayIndex: best,
     activeDays,
-    joins,
-    leaves,
-    voiceMinutes: voice,
+    joins: r.joins,
+    leaves: r.leaves,
+    voiceMinutes: r.voice,
     rank: userId ? (topUsers.findIndex(([id]) => id === userId) + 1 || null) : null,
     rankedCount: topUsers.length
   };
@@ -229,17 +107,8 @@ function summarize(guildId, days, userId = null) {
  * @returns {{keys:string[], messages:number[], voice:number[], joins:number[], leaves:number[]}}
  */
 function dailySeries(guildId, days) {
-  const g = store.guilds[guildId];
   const keys = dayKeysBack(days);
-  const out = { keys, messages: [], voice: [], joins: [], leaves: [] };
-  for (const key of keys) {
-    const d = g?.days?.[key];
-    out.messages.push(d?.t || 0);
-    out.voice.push(Math.round(d?.v || 0));
-    out.joins.push(d?.j || 0);
-    out.leaves.push(d?.l || 0);
-  }
-  return out;
+  return { keys, ...store.serie(guildId, keys) };
 }
 
 // ── Branchement sur le client Discord ───────────────────────────────────
@@ -317,9 +186,19 @@ function registerActivityStatsHandler(client) {
     }
   }, VOICE_TICK_MS).unref();
 
-  process.once('SIGTERM', () => { for (const key of [...voiceSessions.keys()]) { const [g, u] = key.split(':'); endVoice(g, u); } saveSync(); });
-  process.once('SIGINT', () => { for (const key of [...voiceSessions.keys()]) { const [g, u] = key.split(':'); endVoice(g, u); } saveSync(); });
-  process.once('beforeExit', saveSync);
+  const arret = () => { for (const key of [...voiceSessions.keys()]) { const [g, u] = key.split(':'); endVoice(g, u); } store.flush(); };
+  process.once('SIGTERM', arret);
+  process.once('SIGINT', arret);
+  process.once('beforeExit', () => store.flush());
+
+  // Au démarrage : crée les tables, migre l'ancien JSON, purge ce qui dépasse la rétention (puis 1 fois par jour)
+  try {
+    store.init();
+    store.purger(dayKeysBack(RETENTION_DAYS)[0]);
+    setInterval(() => store.purger(dayKeysBack(RETENTION_DAYS)[0]), 24 * 3600 * 1000).unref();
+  } catch (e) {
+    console.error('[ActivityStats] initialisation de la base :', e.message);
+  }
 
   console.log('✅ Suivi des statistiques d\'activité initialisé (messages, vocal, arrivées/départs).');
 }

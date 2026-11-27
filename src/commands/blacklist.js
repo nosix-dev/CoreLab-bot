@@ -17,14 +17,15 @@ const { dossierPersistant, fichierPersistant } = require('../core/persistentPath
 const { sendLog } = require('../core/utils');
 const { glassPayload } = require('../core/glassEmbed');
 
-const FILE = fichierPersistant('blacklist_members.json');
+const kv = require('../core/db');
+const NOM = 'blacklist_members.json';
 let data = {};
-try { if (fs.existsSync(FILE)) data = JSON.parse(fs.readFileSync(FILE, 'utf-8')); } catch { data = {}; }
+data = kv.lireJson(NOM, {});
 
 let writing = Promise.resolve();
 function save() {
   writing = writing
-    .then(() => fs.promises.writeFile(FILE, JSON.stringify(data, null, 2), 'utf-8'))
+    .then(() => kv.ecrireJson(NOM, data))
     .catch(e => console.error('[blacklist] sauvegarde impossible :', e.message));
 }
 const list = guildId => data[guildId] || (data[guildId] = {});

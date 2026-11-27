@@ -26,7 +26,8 @@ const { obtenirConfigGuilde, persister } = require('./config');
 const { store, persist } = require('./data');
 const sanctionsLog = require('./sanctionsLog');
 
-const FILE = fichierPersistant('discipline_state.json');
+const kv = require('./db');
+const NOM = 'discipline_state.json';
 const TZ = 'Europe/Paris';
 const MIN = 60 * 1000;
 const COULEUR = 0xE8510D;
@@ -54,14 +55,13 @@ const ko = (code, error, reason) => ({ code, body: { error, ...(reason ? { reaso
 let DB = null;
 function charger() {
   if (DB) return DB;
-  try { DB = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { DB = {}; }
+  DB = kv.lireJson(NOM, {});
   if (!DB || typeof DB !== 'object' || !DB.guilds) DB = { guilds: {} };
   return DB;
 }
 function sauver() {
   try {
-    fs.writeFileSync(FILE + '.tmp', JSON.stringify(DB));
-    fs.renameSync(FILE + '.tmp', FILE);
+    kv.ecrireJson(NOM, DB);
   } catch (e) { console.error('[Sanctions] sauvegarde :', e.message); }
 }
 function srv(gid) {

@@ -4,7 +4,7 @@
 const http = require('http');
 const os = require('os');
 const fs = require('fs');
-const path = require('path');
+const kv = require('./src/core/db');
 
 module.exports = (client, app) => {
   // CPU du process, échantillonné toutes les 5 s
@@ -18,12 +18,12 @@ module.exports = (client, app) => {
   }, 5000).unref();
 
   // ── Historique d'uptime : 1 échantillon / minute, agrégé par jour (UTC), 90 jours ──
-  // Fichier modifiable via UPTIME_FILE (à placer sur un disque persistant si ton hébergeur efface les fichiers au redéploiement).
-  const HIST_FILE = process.env.UPTIME_FILE || path.join(__dirname, 'uptime-history.json');
+  // Stocké dans la base SQLite (corelab.db, table kv) : l'ancien uptime-history.json est importé automatiquement.
+  const HIST_NOM = 'uptime-history.json';
   const HIST_DAYS = 90, TICK = 60 * 1000;
   let hist = { last: 0, days: {} };
   try {
-    const raw = JSON.parse(fs.readFileSync(HIST_FILE, 'utf8'));
+    const raw = kv.lireJson(HIST_NOM, null);
     if (raw && typeof raw.days === 'object') hist = { last: Number(raw.last) || 0, days: raw.days };
   } catch {}
 
@@ -36,10 +36,8 @@ module.exports = (client, app) => {
   const save = () => {
     const keep = {}; days().forEach((k) => { keep[k] = hist.days[k]; });
     hist.days = keep;
-    try {
-      fs.writeFileSync(HIST_FILE + '.tmp', JSON.stringify(hist));
-      fs.renameSync(HIST_FILE + '.tmp', HIST_FILE);
-    } catch (e) { console.error('[status-api] sauvegarde uptime :', e.message); }
+    try { kv.ecrireJson(HIST_NOM, hist); }
+    catch (e) { console.error('[status-api] sauvegarde uptime :', e.message); }
   };
 
   // Au démarrage : les minutes où le bot était éteint comptent comme « indisponible ».
@@ -56,11 +54,11 @@ module.exports = (client, app) => {
   }, TICK).unref();
 
   // ── Compteurs persistants (messages, commandes utilisées, scams bloqués…) ──
-  // Fichier modifiable via STATS_FILE (disque persistant recommandé, comme UPTIME_FILE).
+  // Stocké dans la base SQLite (l'ancien counters.json est importé automatiquement).
   // Dans ton anti-scam, ajoute : client.stats.inc('scams_blocked');
-  const CNT_FILE = process.env.STATS_FILE || path.join(__dirname, 'counters.json');
+  const CNT_NOM = 'counters.json';
   let counters = {}, dirty = false;
-  try { counters = JSON.parse(fs.readFileSync(CNT_FILE, 'utf8')) || {}; } catch {}
+  try { counters = kv.lireJson(CNT_NOM, {}) || {}; } catch {}
   client.stats = {
     inc: (k, n = 1) => { counters[k] = (counters[k] || 0) + n; dirty = true; },
     get: (k) => counters[k] || 0,
@@ -69,10 +67,8 @@ module.exports = (client, app) => {
   client.on('interactionCreate', (i) => { if (i.isChatInputCommand?.()) client.stats.inc('commands_run'); });
   setInterval(() => {
     if (!dirty) return; dirty = false;
-    try {
-      fs.writeFileSync(CNT_FILE + '.tmp', JSON.stringify(counters));
-      fs.renameSync(CNT_FILE + '.tmp', CNT_FILE);
-    } catch (e) { console.error('[status-api] sauvegarde compteurs :', e.message); }
+    try { kv.ecrireJson(CNT_NOM, counters); }
+    catch (e) { console.error('[status-api] sauvegarde compteurs :', e.message); }
   }, 30 * 1000).unref();
 
   const build = () => {

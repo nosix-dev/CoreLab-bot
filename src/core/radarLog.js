@@ -5,7 +5,8 @@
 const fs = require('fs');
 const { fichierPersistant } = require('./persistentPath');
 
-const FILE = fichierPersistant('radar_log.json');
+const kv = require('./db');
+const NOM = 'radar_log.json';
 const MAX_PAR_SERVEUR = 1500;
 const RETENTION_MS = 8 * 24 * 3600 * 1000;
 const TZ = 'Europe/Paris';
@@ -15,7 +16,7 @@ let DB = null;
 let timer = null;
 function charger() {
   if (DB) return DB;
-  try { DB = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { DB = {}; }
+  DB = kv.lireJson(NOM, {});
   if (!DB || typeof DB !== 'object') DB = {};
   return DB;
 }
@@ -23,7 +24,7 @@ function sauverPlusTard() {
   if (timer) return;
   timer = setTimeout(() => {
     timer = null;
-    try { fs.writeFileSync(FILE + '.tmp', JSON.stringify(DB)); fs.renameSync(FILE + '.tmp', FILE); }
+    try { kv.ecrireJson(NOM, DB); }
     catch (e) { console.error('[radarLog]', e.message); }
   }, 2000);
   if (timer.unref) timer.unref();

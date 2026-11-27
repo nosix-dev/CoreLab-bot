@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { dossierPersistant, DATA_DIR, RACINE_DEPOT } = require('./persistentPath');
+const kv = require('./db'); // les « fichiers » JSON de données vivent maintenant dans la base SQLite
+require('./activityStore'); // enregistre le fichier virtuel « activity_stats.json » (données en tables SQL)
 
 const RACINE = DATA_DIR || RACINE_DEPOT;
 if (DATA_DIR) { try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch { /* ignoré */ } }
@@ -46,15 +48,34 @@ function parcourir(base, relatif = '', sortie = []) {
 function lister(kind) {
     const out = [];
     if (kind === 'data') {
+        // 1) données en base SQLite, exportées comme des fichiers JSON virtuels (même clés qu'avant → anciennes sauvegardes compatibles)
+        const vus = new Set();
+        // 0) données stockées en vraies tables SQL, exportées au format JSON d'origine
+        for (const [nom, def] of kv.virtuelsListe()) {
+            try { out.push({ key: `root/${nom}`, texte: def.exporter() }); vus.add(`root/${nom}`); }
+            catch (e) { console.error(`[Backup] export de ${nom} impossible :`, e.message); }
+        }
+        try {
+            for (const nom of kv.noms()) {
+                const cle = nom.startsWith('data/') ? nom : (nom.includes('/') ? null : `root/${nom}`);
+                if (!cle || !nom.endsWith('.json') || EXCLUS_RACINE.has(nom) || vus.has(cle)) continue;
+                const texte = kv.lireBrut(nom);
+                if (texte == null) continue;
+                out.push({ key: cle, texte });
+                vus.add(cle);
+            }
+        } catch (e) { console.error('[Backup] lecture de la base impossible :', e.message); }
+        // 2) fichiers JSON encore présents sur le disque (pas encore passés en base)
         let noms = [];
         try { noms = fs.readdirSync(RACINE); } catch { /* dossier absent */ }
         for (const nom of noms) {
             if (!nom.endsWith('.json') || EXCLUS_RACINE.has(nom)) continue;
             const abs = path.join(RACINE, nom);
+            if (vus.has(`root/${nom}`)) continue;
             try { if (fs.statSync(abs).isFile()) out.push({ key: `root/${nom}`, abs }); } catch { /* ignoré */ }
         }
         const d = dossier('data');
-        if (d) for (const rel of parcourir(d)) out.push({ key: `data/${rel}`, abs: path.join(d, rel) });
+        if (d) for (const rel of parcourir(d)) { if (!vus.has(`data/${rel}`)) out.push({ key: `data/${rel}`, abs: path.join(d, rel) }); }
     } else {
         for (const nom of Object.keys(DOSSIERS)) {
             if (nom === 'data') continue;
@@ -67,12 +88,14 @@ function lister(kind) {
 
 // Retourne { hash, parties: [ {files:{key:{e,d}}} ... ] } (plusieurs parties si trop volumineux)
 function construire(kind) {
+    try { kv.vider(); } catch { /* ignoré */ }
     const hash = crypto.createHash('sha1');
     const parties = [];
     let courante = { files: {}, taille: 0 };
     for (const f of lister(kind)) {
         let buf;
-        try { buf = fs.readFileSync(f.abs); } catch { continue; }
+        if (f.texte != null) buf = Buffer.from(f.texte, 'utf8');
+        else { try { buf = fs.readFileSync(f.abs); } catch { continue; } }
         if (buf.length > MAX_FICHIER) { console.warn(`[Backup] ${f.key} ignoré (trop lourd : ${(buf.length / 1048576).toFixed(1)} Mo)`); continue; }
         hash.update(f.key).update(buf);
         const texte = f.key.endsWith('.json');
@@ -104,8 +127,22 @@ function appliquer(files) {
             if (racineCle === 'root' && (rel.includes('/') || !rel.endsWith('.json') || EXCLUS_RACINE.has(rel))) continue;
             const abs = path.resolve(base, rel);
             if (!abs.startsWith(path.resolve(base) + path.sep)) continue;
+            const contenu = entree.e === 'u' ? Buffer.from(entree.d, 'utf8') : Buffer.from(entree.d, 'base64');
+            // données en tables SQL (stats d'activité…) : on recharge les tables, pas de fichier
+            const virtuel = racineCle === 'root' ? kv.virtuelsListe().get(rel) : null;
+            if (virtuel && entree.e === 'u') {
+                try { virtuel.importer(entree.d); n++; } catch (e) { console.error(`[Restore] ${key} :`, e.message); }
+                continue;
+            }
+            // JSON de données → base SQLite (nom = 'x.json' à la racine, 'data/x.json' dans data/)
+            if (entree.e === 'u' && rel.endsWith('.json') && (racineCle === 'root' || racineCle === 'data')) {
+                try {
+                    JSON.parse(entree.d);
+                    kv.ecrireBrut(racineCle === 'root' ? rel : `data/${rel}`, entree.d);
+                } catch (e) { console.error(`[Restore] ${key} : JSON invalide, ignoré en base :`, e.message); }
+            }
             fs.mkdirSync(path.dirname(abs), { recursive: true });
-            fs.writeFileSync(abs, entree.e === 'u' ? Buffer.from(entree.d, 'utf8') : Buffer.from(entree.d, 'base64'));
+            fs.writeFileSync(abs, contenu);
             n++;
         } catch (e) { console.error(`[Restore] ${key} :`, e.message); }
     }

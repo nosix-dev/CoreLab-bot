@@ -7,7 +7,8 @@ const fs = require('fs');
 const { PermissionFlagsBits } = require('discord.js');
 const { fichierPersistant } = require('./persistentPath');
 
-const FILE = fichierPersistant('security_network.json');
+const kv = require('./db');
+const NOM = 'security_network.json';
 
 /* ---------- Permissions surveillables (clés = celles du dashboard) ---------- */
 const PERM_FLAGS = {
@@ -48,7 +49,7 @@ let db = null;
 let timer = null;
 function load() {
   if (db) return db;
-  try { db = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { db = {}; }
+  db = kv.lireJson(NOM, {});
   db.bans = db.bans || {};          // userId → { kinds:[…], guilds:{ guildId: { kind, ts } } }
   db.permAlerts = db.permAlerts || {}; // guildId → [alerte]
   return db;
@@ -57,7 +58,7 @@ function save() {
   if (timer) return;
   timer = setTimeout(() => {
     timer = null;
-    try { fs.writeFileSync(FILE, JSON.stringify(db)); } catch (e) { console.error('[securityStore] écriture :', e.message); }
+    try { kv.ecrireJson(NOM, db); } catch (e) { console.error('[securityStore] écriture :', e.message); }
   }, 500);
 }
 

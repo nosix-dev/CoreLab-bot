@@ -15,13 +15,14 @@ const { dossierPersistant, fichierPersistant } = require('./persistentPath');
 
 const MAX_PAR_SERVEUR = 200;
 const DOSSIER = dossierPersistant('transcripts');
-const INDEX = fichierPersistant('transcripts.json');
+const kv = require('./db');
+const NOM_INDEX = 'transcripts.json';
 
 let donnees = {};
-try { donnees = JSON.parse(fs.readFileSync(INDEX, 'utf8')) || {}; } catch { donnees = {}; }
+donnees = kv.lireJson(NOM_INDEX, {}) || {};
 
 function sauver() {
-  try { fs.writeFileSync(INDEX, JSON.stringify(donnees)); }
+  try { kv.ecrireJson(NOM_INDEX, donnees); }
   catch (e) { console.error('[Transcripts] sauvegarde index :', e.message); }
 }
 

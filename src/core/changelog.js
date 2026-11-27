@@ -15,7 +15,8 @@ const crypto = require('crypto');
 const REPO_ROOT = path.join(__dirname, '..', '..');
 const UPDATE_FILE = path.join(REPO_ROOT, 'update.json');
 const DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : REPO_ROOT;
-const FILE = path.join(DIR, 'changelog.json');
+const kv = require('./db');
+const NOM = 'changelog.json';
 const MAX_ENTRIES = 100;
 
 function readJson(file) {
@@ -56,7 +57,7 @@ function entryFrom(data) {
 }
 
 function load() {
-  const d = readJson(FILE);
+  const d = kv.lireJson(NOM, null);
   return Array.isArray(d?.entries) ? d.entries : [];
 }
 
@@ -77,12 +78,11 @@ function sync() {
     }
     const out = entries.slice(0, MAX_ENTRIES);
     try {
-      fs.mkdirSync(DIR, { recursive: true });
-      fs.writeFileSync(FILE, JSON.stringify({ entries: out }, null, 2), 'utf8');
+      kv.ecrireJson(NOM, { entries: out });
       console.log(`[Changelog] version ${entry.version} enregistrée (${out.length} entrée(s)).`);
     } catch (e) {
       // Écriture impossible : on renvoie quand même l'historique en mémoire pour que le site l'affiche
-      console.error(`[Changelog] écriture de ${FILE} impossible :`, e.message);
+      console.error(`[Changelog] écriture de ${NOM} impossible :`, e.message);
     }
     return out;
   } catch (e) {

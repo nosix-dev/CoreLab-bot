@@ -10,49 +10,55 @@ if (process.env.DATA_DIR) {
     try { fs.mkdirSync(RACINE, { recursive: true }); } catch (e) { console.error('DATA_DIR inutilisable :', e.message); }
 }
 
-function chargerDonnees(cheminFichier, valeurParDefaut = {}) {
-    const cheminComplet = path.isAbsolute(cheminFichier) ? cheminFichier : path.join(RACINE, cheminFichier);
-    let source = cheminComplet;
-    if (!fs.existsSync(source) && RACINE !== RACINE_DEPOT && !path.isAbsolute(cheminFichier)) {
-        source = path.join(RACINE_DEPOT, cheminFichier); // première fois : on part du fichier du dépôt
-    }
-    if (!fs.existsSync(source)) return structuredClone(valeurParDefaut);
+// Stockage : base SQLite (src/core/db.js). Chaque ancien fichier JSON devient une ligne de la table `kv`,
+// sous le même nom (ex. 'bot_config.json'). Au premier accès, l'ancien fichier JSON est importé automatiquement.
+// Un chemin ABSOLU reste lu/écrit comme un vrai fichier (compatibilité avec d'éventuels usages externes).
+const kv = require('./db');
+
+function chargerFichierBrut(cheminFichier, valeurParDefaut) {
+    if (!fs.existsSync(cheminFichier)) return structuredClone(valeurParDefaut);
     try {
-        return JSON.parse(fs.readFileSync(source, 'utf8'));
+        return JSON.parse(fs.readFileSync(cheminFichier, 'utf8'));
     } catch (erreur) {
         console.error(`Erreur lecture ${cheminFichier}:`, erreur.message);
         return structuredClone(valeurParDefaut);
     }
 }
 
-// Écritures en attente, par chemin de fichier, pour sérialiser les sauvegardes
-// successives d'un même fichier sans jamais bloquer la boucle d'événements
-// (fs.writeFileSync gèle tout Node.js pendant l'écriture — problématique sur
-// un disque lent/hébergement mutualisé, ça peut faire timeout les interactions
-// Discord en cours ailleurs dans le bot).
+function chargerDonnees(cheminFichier, valeurParDefaut = {}) {
+    if (path.isAbsolute(cheminFichier)) return chargerFichierBrut(cheminFichier, valeurParDefaut);
+    return kv.lireJson(cheminFichier, valeurParDefaut);
+}
+
+// Écritures de fichiers (chemins absolus uniquement), sérialisées par chemin
 const ecrituresEnCours = new Map();
 
 function sauvegarderDonnees(cheminFichier, donnees) {
-    const cheminComplet = path.isAbsolute(cheminFichier) ? cheminFichier : path.join(RACINE, cheminFichier);
     // Sérialisé immédiatement pour figer l'état actuel de `donnees`
     // (au cas où l'objet serait remuté juste après cet appel).
     let json;
     try {
-        json = JSON.stringify(donnees, null, 4);
+        json = JSON.stringify(donnees);
     } catch (erreur) {
         console.error(`Erreur sérialisation ${cheminFichier}:`, erreur.message);
         return Promise.resolve();
     }
 
-    const precedente = ecrituresEnCours.get(cheminComplet) || Promise.resolve();
+    if (!path.isAbsolute(cheminFichier)) {
+        // Base SQLite : écritures regroupées (~50 ms), transactionnelles, flush garanti à l'arrêt
+        return kv.ecrireDiffere(cheminFichier, json).catch(erreur => {
+            console.error(`Erreur sauvegarde ${cheminFichier}:`, erreur.message);
+        });
+    }
+
+    const precedente = ecrituresEnCours.get(cheminFichier) || Promise.resolve();
     const tache = precedente
-        .catch(() => {}) // une écriture précédente en échec ne doit pas bloquer les suivantes
-        .then(() => fs.promises.writeFile(cheminComplet, json, 'utf8'))
+        .catch(() => {})
+        .then(() => fs.promises.writeFile(cheminFichier, json, 'utf8'))
         .catch(erreur => {
             console.error(`Erreur sauvegarde ${cheminFichier}:`, erreur.message);
         });
-
-    ecrituresEnCours.set(cheminComplet, tache);
+    ecrituresEnCours.set(cheminFichier, tache);
     return tache;
 }
 

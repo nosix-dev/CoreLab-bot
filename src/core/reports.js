@@ -6,7 +6,8 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { fichierPersistant } = require('./persistentPath');
 
-const FILE = fichierPersistant('reports.json');
+const kv = require('./db');
+const NOM = 'reports.json';
 const MAX_PAR_SERVEUR = 2000;
 const DONE = ['resolved', 'dismissed'];
 const ACTIVITE_GARDEE_MS = 30 * 24 * 3600 * 1000; // l'activité copiée dans un signalement traité est effacée après 30 jours
@@ -26,14 +27,13 @@ const LIMITES = {
 let DB = null;
 function charger() {
   if (DB) return DB;
-  try { DB = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch { DB = {}; }
+  DB = kv.lireJson(NOM, {});
   if (!DB || typeof DB !== 'object' || !DB.guilds) DB = { guilds: {} };
   return DB;
 }
 function sauver() {
   try {
-    fs.writeFileSync(FILE + '.tmp', JSON.stringify(DB));
-    fs.renameSync(FILE + '.tmp', FILE);
+    kv.ecrireJson(NOM, DB);
   } catch (e) { console.error('[reports] sauvegarde :', e.message); }
 }
 function serveur(gid) {

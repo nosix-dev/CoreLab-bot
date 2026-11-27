@@ -25,8 +25,8 @@ const ROOT = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : REPO_RO
 if (process.env.DATA_DIR) {
   try { fs.mkdirSync(ROOT, { recursive: true }); } catch (e) { console.error('[cardTheme] DATA_DIR inutilisable :', e.message); }
 }
-const FILE = path.join(ROOT, 'card_themes.json');
-const SEED_FILE = path.join(REPO_ROOT, 'card_themes.json');
+const kv = require('./db');
+const NOM = 'card_themes.json'; // en base SQLite ; l'import reprend le fichier du dépôt au premier démarrage
 
 // ── Presets proposés dans le menu ──
 const PRESETS = {
@@ -77,8 +77,7 @@ const DEFAULT_THEME = Object.freeze({ preset: 'gris', accent: '#ffffff', bg: nul
 // ── Stockage (fichier JSON à la racine, écriture asynchrone sérialisée) ──
 let store = {};
 try {
-  const source = fs.existsSync(FILE) ? FILE : SEED_FILE;
-  if (fs.existsSync(source)) store = JSON.parse(fs.readFileSync(source, 'utf8')) || {};
+  store = kv.lireJson(NOM, {}) || {};
 } catch (e) {
   console.error('[cardTheme] lecture impossible :', e.message);
   store = {};
@@ -86,7 +85,7 @@ try {
 let writing = Promise.resolve();
 function persist() {
   const json = JSON.stringify(store, null, 2);
-  writing = writing.catch(() => { }).then(() => fs.promises.writeFile(FILE, json, 'utf8'))
+  writing = writing.catch(() => { }).then(() => kv.ecrireBrut(NOM, json))
     .catch(e => console.error('[cardTheme] sauvegarde impossible :', e.message));
   return writing;
 }

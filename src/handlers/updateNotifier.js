@@ -40,7 +40,8 @@ const STATE_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : RE
 if (process.env.DATA_DIR) {
   try { fs.mkdirSync(STATE_DIR, { recursive: true }); } catch (e) { console.error('[Update] DATA_DIR inutilisable :', e.message); }
 }
-const STATE_FILE = path.join(STATE_DIR, 'update_state.json');
+const kv = require('../core/db');
+const NOM_ETAT = 'update_state.json';
 const HISTORY_PAGE = 100;      // messages récupérés par requête (max Discord)
 const HISTORY_PAGES = 5;       // 5 × 100 = 500 derniers messages du salon vérifiés (anti-doublon)
 const MAX_CHARS = 3500;        // Discord : 4000 caractères de texte max par message (Components V2)
@@ -55,12 +56,12 @@ function readJson(file) {
 }
 
 function lastSentHash() {
-  return String(readJson(STATE_FILE)?.hash ?? '');
+  return String(kv.lireJson(NOM_ETAT, null)?.hash ?? '');
 }
 
 function saveSentHash(hash, version) {
   try {
-    fs.writeFileSync(STATE_FILE, JSON.stringify({ hash, version, sentAt: new Date().toISOString() }, null, 2), 'utf8');
+    kv.ecrireJson(NOM_ETAT, { hash, version, sentAt: new Date().toISOString() });
   } catch (e) {
     console.error('[Update] Sauvegarde de l\'état impossible :', e.message);
   }

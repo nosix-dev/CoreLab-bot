@@ -12,15 +12,13 @@ const LAT_TICK = 5 * 60 * 1000;
 const LAT_KEEP = 24 * 3600 * 1000;
 const COMPS = ['bot', 'service', 'storage'];
 
-// Dossier data/ : persistant (DATA_DIR) et inclus dans la sauvegarde / restauration Discord.
-let FILE;
-try { FILE = path.join(require('./persistentPath').dossierPersistant('data'), 'uptime_history.json'); }
-catch { FILE = path.join(__dirname, '..', '..', 'data', 'uptime_history.json'); }
-try { fs.mkdirSync(path.dirname(FILE), { recursive: true }); } catch {}
+// Stocké en base SQLite (src/core/db.js) ; la sauvegarde Discord l'inclut sous « data/uptime_history.json ».
+const kv = require('./db');
+const NOM = 'data/uptime_history.json';
 
 let hist = { last: 0, since: 0, days: {}, lat: [], inc: [] };
 try {
-  const raw = JSON.parse(fs.readFileSync(FILE, 'utf8'));
+  const raw = kv.lireJson(NOM, null);
   if (raw && typeof raw.days === 'object') {
     hist = {
       last: Number(raw.last) || 0,
@@ -55,8 +53,7 @@ const save = () => {
   const minLat = Date.now() - LAT_KEEP;
   hist.lat = hist.lat.filter((p) => p[0] >= minLat);
   try {
-    fs.writeFileSync(FILE + '.tmp', JSON.stringify(hist));
-    fs.renameSync(FILE + '.tmp', FILE);
+    kv.ecrireJson(NOM, hist);
     storageOk = true;
   } catch (e) { storageOk = false; console.error('[Uptime] sauvegarde :', e.message); }
 };

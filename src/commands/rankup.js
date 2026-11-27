@@ -50,7 +50,8 @@ const { roleProblem } = require('./roleMenu');
 const { getDiamant, getStage } = require('../core/diamant');
 
 const FICHIER = 'rankup.json';
-const FICHIER_STATS = fichierPersistant('rankup_stats.json');
+const kv = require('../core/db');
+const NOM_STATS = 'rankup_stats.json';
 const COULEUR = 0xE8510D; // barre d'accent orange CoreLab
 const MAX_PALIERS = 25;
 const MSG_MIN_INTERVAL_MS = 2000; // anti-spam : 1 message compté toutes les 2 s par membre
@@ -85,7 +86,7 @@ function sortedRanks(cfg) {
 // ── Compteurs (rankup_stats.json) ───────────────────────────
 let stats = {};
 try {
-  if (fs.existsSync(FICHIER_STATS)) stats = JSON.parse(fs.readFileSync(FICHIER_STATS, 'utf8'));
+  stats = kv.lireJson(NOM_STATS, {});
 } catch (e) {
   console.error('[Rankup] lecture des compteurs impossible, nouveau fichier :', e.message);
 }
@@ -100,9 +101,7 @@ async function saveAsync() {
   saving = true;
   dirty = false;
   try {
-    const tmp = `${FICHIER_STATS}.tmp`;
-    await fs.promises.writeFile(tmp, JSON.stringify(stats), 'utf8');
-    await fs.promises.rename(tmp, FICHIER_STATS);
+    kv.ecrireJson(NOM_STATS, stats);
   } catch (e) {
     dirty = true;
     console.error('[Rankup] sauvegarde des compteurs impossible :', e.message);
@@ -114,7 +113,7 @@ async function saveAsync() {
 function saveSync() {
   if (!dirty) return;
   try {
-    fs.writeFileSync(FICHIER_STATS, JSON.stringify(stats), 'utf8');
+    kv.ecrireJson(NOM_STATS, stats);
     dirty = false;
   } catch (e) {
     console.error('[Rankup] sauvegarde finale impossible :', e.message);

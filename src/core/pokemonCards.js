@@ -12,11 +12,12 @@
 // -> { url, name, set, rarity } ou null (pas de carte trouvée / API indisponible)
 // ───────────────────────────────────────────────────────────
 
-const fs = require('fs');
-const path = require('path');
+const kv = require('./db');
 
 const API = 'https://api.tcgdex.net/v2';
-const CACHE_FILE = path.join(__dirname, '..', 'data', 'tcgdex_cards_cache.json');
+// Cache stocké en base SQLite (table kv). Le fichier src/data/tcgdex_cards_cache.json du dépôt
+// sert de point de départ : il est importé automatiquement au premier accès.
+const CACHE_NOM = 'src/data/tcgdex_cards_cache.json';
 const TIMEOUT_MS = 8000;
 const SAMPLE = 6; // nombre de cartes comparées pour trouver la bonne rareté
 
@@ -51,9 +52,7 @@ function rankOf(rarity) {
 
 // ── cache ──
 let cache = {};
-try {
-  if (fs.existsSync(CACHE_FILE)) cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')) || {};
-} catch { cache = {}; }
+try { cache = kv.lireJson(CACHE_NOM, {}) || {}; } catch { cache = {}; }
 
 let saveTimer = null;
 function saveCache() {
@@ -61,8 +60,7 @@ function saveCache() {
   saveTimer = setTimeout(() => {
     saveTimer = null;
     try {
-      fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
-      fs.writeFileSync(CACHE_FILE, JSON.stringify(cache));
+      kv.ecrireDiffere(CACHE_NOM, JSON.stringify(cache));
     } catch (e) {
       console.error('[PokemonCards] Cache non enregistré :', e.message);
     }
