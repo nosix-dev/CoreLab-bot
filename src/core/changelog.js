@@ -61,6 +61,16 @@ function load() {
   return Array.isArray(d?.entries) ? d.entries : [];
 }
 
+/** Versions supprimées depuis le blog (elles ne sont plus jamais ré-ajoutées depuis update.json). */
+function loadDeleted() {
+  const d = kv.lireJson(NOM, null);
+  return Array.isArray(d?.deleted) ? d.deleted.map(String) : [];
+}
+
+function save(entries, deleted) {
+  kv.ecrireJson(NOM, { entries, deleted });
+}
+
 /** Ajoute / met à jour l'entrée de update.json dans l'historique. Ne plante jamais. */
 function sync() {
   try {
@@ -68,6 +78,7 @@ function sync() {
     if (!data) { console.warn(`[Changelog] update.json introuvable ou illisible (${UPDATE_FILE}).`); return load(); }
     const entry = entryFrom(data);
     if (!entry) return load();
+    if (loadDeleted().includes(entry.version)) return load(); // article supprimé : on ne le recrée pas
     const entries = load();
     const i = entries.findIndex(e => e.version === entry.version);
     if (i >= 0) {
@@ -78,7 +89,7 @@ function sync() {
     }
     const out = entries.slice(0, MAX_ENTRIES);
     try {
-      kv.ecrireJson(NOM, { entries: out });
+      save(out, loadDeleted());
       console.log(`[Changelog] version ${entry.version} enregistrée (${out.length} entrée(s)).`);
     } catch (e) {
       // Écriture impossible : on renvoie quand même l'historique en mémoire pour que le site l'affiche
@@ -91,10 +102,23 @@ function sync() {
   }
 }
 
+/** Supprime un article (version) du blog. @returns {boolean} true si l'article existait ou vient d'être masqué */
+function supprimer(version) {
+  const v = String(version ?? '').trim();
+  if (!v || v.length > 40) return false;
+  const entries = load();
+  const deleted = loadDeleted();
+  const reste = entries.filter(e => e.version !== v);
+  if (!deleted.includes(v)) deleted.push(v);
+  save(reste, deleted.slice(-500));
+  console.log(`[Changelog] version ${v} supprimée du blog.`);
+  return true;
+}
+
 /** Réponse JSON de GET /changelog */
 function getChangelog() {
   const entries = sync();
-  return { updatedAt: new Date().toISOString(), entries: entries.map(({ hash, ...e }) => e) };
+  return { updatedAt: new Date().toISOString(), entries: entries.map(({ hash, ...e }) => e), deleted: loadDeleted() };
 }
 
-module.exports = { sync, getChangelog };
+module.exports = { sync, getChangelog, supprimer };

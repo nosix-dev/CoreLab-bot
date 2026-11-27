@@ -1133,7 +1133,17 @@ async function route(req, res, { client }, url) {
   if (!sess) return J(401, { error: 'unauthorized' });
 
   if (p === '/api/me' && req.method === 'GET') {
-    return J(200, { user: sess.user, guilds: sess.guilds.map(g => ({ ...g, botIn: client.guilds.cache.has(g.id) })) });
+    const owner = require('./constants').IDS_PROPRIETAIRES.has(String(sess.user?.id));
+    return J(200, { user: sess.user, owner, guilds: sess.guilds.map(g => ({ ...g, botIn: client.guilds.cache.has(g.id) })) });
+  }
+  /* Blog : suppression d'un article (réservé au propriétaire du bot) */
+  const blogm = p.match(/^\/api\/blog\/([^/]{1,40})$/);
+  if (blogm && req.method === 'DELETE') {
+    if (!require('./constants').IDS_PROPRIETAIRES.has(String(sess.user?.id))) return J(403, { error: 'forbidden' });
+    let version = '';
+    try { version = decodeURIComponent(blogm[1]); } catch { return J(400, { error: 'bad_version' }); }
+    if (!require('./changelog').supprimer(version)) return J(400, { error: 'bad_version' });
+    return J(200, { ok: true, version });
   }
   /* Synthèse de l'accueil : infractions / avertissements / notes sur 7 jours + total des membres (serveurs où CoreLab est présent) */
   if (p === '/api/me/summary' && req.method === 'GET') {
