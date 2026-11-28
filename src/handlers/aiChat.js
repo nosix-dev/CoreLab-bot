@@ -6,7 +6,9 @@ const {
   ButtonStyle,
   ChannelType,
   MessageFlags,
-  PermissionFlagsBits
+  PermissionFlagsBits,
+  ContainerBuilder,
+  TextDisplayBuilder
 } = require('discord.js');
 const {
   getGuildConfig
@@ -543,7 +545,7 @@ function registerIaMessageHandler(client) {
 const MENTION_SYSTEM_PROMPT =
   "Tu es CoreLab, un bot Discord communautaire. Un membre vient d'écrire le mot « corelab » dans un salon public, " +
   "souvent en parlant de toi à la 3e personne (ex : « j'ai invité corelab mais je ne sais pas comment il fonctionne ») : " +
-  "réponds-lui directement, à la 1re personne, comme si tu rejoignais la conversation, de façon naturelle, amicale et utile, à la manière de ChatGPT. " +
+  "même si son message s'adresse à quelqu'un d'autre (ex : « salut untel, j'ai un souci avec corelab »), réponds directement, à la 1re personne, comme si tu rejoignais la conversation, de façon naturelle, amicale et utile, à la manière de ChatGPT. " +
   "Si on te demande comment tu fonctionnes ou ce que tu sais faire, explique brièvement : tu proposes de la modération et de la protection (anti-scam, automod, logs), " +
   "des tickets et du modmail, des systèmes d'XP, d'économie et de jeux, un starboard, des cartes de bienvenue et d'au revoir, des giveaways et sondages, " +
   "un réseau interserveur, un dashboard web, et une IA. Invite à taper !help (ou !aide) pour voir toutes les commandes et /config-panel (réservé aux administrateurs) pour configurer le serveur. " +
@@ -554,11 +556,13 @@ const MENTION_SYSTEM_PROMPT =
 const MENTION_REGEX = /(?<![\p{L}\p{N}_])corelab(?![\p{L}\p{N}_])/iu;
 const MENTION_COOLDOWN_MS = 5 * 1000;          // délai mini entre 2 questions d'un même membre
 const MENTION_MEMORY_MS = 10 * 60 * 1000;      // la conversation est oubliée après 10 min sans échange
-const MENTION_MAX_TRACKED_REPLIES = 500;
 const MENTION_GUILD_MAX = 15;                    // réponses max par serveur et par minute (protège le quota)
 const mentionGuildHits = new Map();           // guildId -> [timestamps]
 const mentionConvos = new Map();   // "salon:membre" -> { history, updatedAt, busy, last }
-const mentionReplies = new Map();  // id d'un message envoyé par le bot -> clé de conversation
+
+// Mention affichée sous chaque réponse générée par le LLM (petit texte Discord « -# »)
+const LLM_FOOTER_URL = (process.env.DASHBOARD_URL || '').trim() || 'https://corelab-4cn.pages.dev';
+const LLM_FOOTER = `-# Contenu généré par un LLM. Il peut comporter des erreurs. Gérez l'IA sur [le dashboard](${LLM_FOOTER_URL})`;
 
 function triggersMention(content) {
   // On ignore les liens et les mentions Discord : « corelab.xyz » ou un salon nommé corelab ne déclenchent rien
@@ -566,13 +570,6 @@ function triggersMention(content) {
     .replace(/https?:\/\/\S+/gi, ' ')
     .replace(/<(?:@[!&]?|#|a?:\w+:)\d+>/g, ' ');
   return MENTION_REGEX.test(clean);
-}
-
-function rememberMentionReply(messageId, key) {
-  mentionReplies.set(messageId, key);
-  if (mentionReplies.size > MENTION_MAX_TRACKED_REPLIES) {
-    mentionReplies.delete(mentionReplies.keys().next().value);
-  }
 }
 
 function registerCorelabMentionHandler(client) {
@@ -585,11 +582,9 @@ function registerCorelabMentionHandler(client) {
       const cfg = getGuildConfig(message.guild.id);
       if (cfg.ia_mention_enabled === false) return; // désactivable depuis le dashboard
 
-      // Déclencheur : le mot « corelab », ou une réponse à une réponse précédente de l'IA (pour continuer la discussion)
-      let key = `${message.channel.id}:${message.author.id}`;
-      const repliedTo = message.reference && message.reference.messageId;
-      const isFollowUp = repliedTo && mentionReplies.get(repliedTo) === key;
-      if (!isFollowUp && !triggersMention(message.content)) return;
+      // Déclencheur : uniquement le mot « corelab » écrit dans le message (pas les mentions @, pas les réponses)
+      const key = `${message.channel.id}:${message.author.id}`;
+      if (!triggersMention(message.content)) return;
 
       const me = message.guild.members.me;
       const perms = message.channel.permissionsFor(me);
@@ -627,12 +622,14 @@ function registerCorelabMentionHandler(client) {
         convo.history = [...history, { role: 'assistant', content: result.content }].slice(-MAX_HISTORY_MESSAGES);
         convo.updatedAt = Date.now();
 
-        const chunks = result.content.match(/[\s\S]{1,1900}/g) || [result.content];
+        // Rendu « carte » : le texte dans un conteneur, la mention LLM en petit dessous (dernière partie)
+        const chunks = result.content.match(/[\s\S]{1,1800}/g) || [result.content];
         for (let i = 0; i < chunks.length; i++) {
-          const sent = i === 0
-            ? await message.reply({ content: chunks[i], allowedMentions: noReply }).catch(() => null)
-            : await message.channel.send({ content: chunks[i], allowedMentions: noReply }).catch(() => null);
-          if (sent) rememberMentionReply(sent.id, key);
+          const container = new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(chunks[i]));
+          if (i === chunks.length - 1) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(LLM_FOOTER));
+          const payload = { components: [container], flags: MessageFlags.IsComponentsV2, allowedMentions: noReply };
+          if (i === 0) await message.reply(payload).catch(() => null);
+          else await message.channel.send(payload).catch(() => null);
         }
       } finally {
         clearInterval(typing);
